@@ -1,24 +1,110 @@
 # Java / Spring Boot
 build/
-!gradle/wrapper/gradle-wrapper.jar
+target/
 *.class
 *.jar
 *.war
+*.ear
+bin/
+out/
 
 # Gradle
 .gradle/
-!gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Maven
+.mvn/
+mvnw
+mvnw.cmd
 
 # IDE
 .idea/
 .vscode/
 *.iml
-out/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+.factorypath
+.springBeans
 
 # macOS
 .DS_Store
+**/.DS_Store
+._*
 
-# Env
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.directory
+
+# Env / Secrets
 .env
+.env.*
+*.env.local
 application-local.yml
+application-local.yaml
 application-secret.yml
+application-secret.yaml
+application-prod.yml
+application-prod.yaml
+*.pem
+*.p12
+*.jks
+*.keystore
+*.key
+*.cert
+
+# AI Tools
+.claude/
+CLAUDE.md
+.cursor/
+.cursorignore
+.cursorules
+.copilot/
+.github/copilot/
+.aider*
+.windsurf/
+.bolt/
+.codeium/
+.tabnine*
+.cody/
+.continue/
+.codex/
+.amazonq/
+.ai/
+
+# Logs
+*.log
+logs/
+*.log.gz
+
+# H2 / Local DB
+*.db
+*.h2.db
+*.mv.db
+*.trace.db
+
+# Coverage / Test
+*.exec
+jacoco/
+test-results/
+surefire-reports/
+
+# Misc
+*.bak
+*.tmp
+*.temp
+*.orig
+hs_err_pid*
+replay_pid*
