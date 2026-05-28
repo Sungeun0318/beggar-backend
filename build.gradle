@@ -1,0 +1,75 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.3.5'
+    id 'io.spring.dependency-management' version '1.1.6'
+}
+
+group = 'com.beggar'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    sourceCompatibility = '17'
+}
+
+configurations {
+    compileOnly {
+        extendsFrom annotationProcessor
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // 1] SpringBoot Web (MVC) - 작성하신 'webmvc'는 존재 X, 'web'이 MVC 스타터
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // 2] MySQL (H2 미사용)
+    runtimeOnly 'com.mysql:mysql-connector-j'
+
+    // 3] Lombok
+    compileOnly 'org.projectlombok:lombok'
+    // 4] Lombok
+    annotationProcessor 'org.projectlombok:lombok'
+
+    // 5] JPA
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // Thymeleaf
+    implementation 'org.springframework.boot:spring-boot-starter-thymeleaf'
+
+    // 5] Jsoup (정적페이지)
+    implementation 'org.jsoup:jsoup:1.22.1'
+
+    // 6] selenium (동적페이지 크롤링)
+    implementation 'org.seleniumhq.selenium:selenium-java:4.41.0'
+
+    // 7] selenium (크롬브라우저 조작)
+    implementation 'io.github.bonigarcia:webdrivermanager:6.3.1'
+
+    // 8] HTTP 요청 (WebClient - WebFlux)
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    // 9] XML 파싱
+    implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.21.1'
+
+    // 10] 비크립트 (BCrypt만 - Spring Security 프레임워크는 미사용)
+    implementation 'org.springframework.security:spring-security-crypto:6.4.4'
+
+    // 11] JWT
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly   'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly   'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    // (추가) DTO @Valid 동작용
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+
+    // (추가) 테스트
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testRuntimeOnly    'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
