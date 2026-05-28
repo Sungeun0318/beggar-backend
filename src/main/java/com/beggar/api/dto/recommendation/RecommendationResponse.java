@@ -9,7 +9,7 @@ public record RecommendationResponse(
 ) {
     public record Place(
             String name,
-            String category,         // 식사 / 카페 / 놀거리 등
+            String category,         // 중식 / 한식 / 일식 / 양식 / 기타요식업
             Integer expectedPrice,
             String walkTime,         // "도보 5분"
             Double rating,
