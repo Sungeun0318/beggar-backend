@@ -225,3 +225,4 @@ NOTE.md
 notes/
 scratch/
 .scratch/
+src/main/resources/application.properties
