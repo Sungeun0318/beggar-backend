@@ -40,6 +40,9 @@ public class Room {
     @Column(name = "room_created", nullable = false)
     private LocalDateTime roomCreated;
 
+    @Column(name = "is_friends" , nullable = false)
+    private Boolean isFriends;
+
     @Builder
     public Room(User owner, String roomName, String roomCode, Integer totalBudget) {
         this.owner = owner;
