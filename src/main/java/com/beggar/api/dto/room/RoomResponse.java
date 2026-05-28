@@ -11,6 +11,7 @@ public record RoomResponse(
         String roomCode,
         Long ownerUserNo,
         Integer totalBudget,
+        Boolean isFriends,
         LocalDateTime roomCreated,
         List<String> tags
 ) {
@@ -21,6 +22,7 @@ public record RoomResponse(
                 room.getRoomCode(),
                 room.getOwner().getUserNo(),
                 room.getTotalBudget(),
+                room.getIsFriends(),
                 room.getRoomCreated(),
                 tags
         );

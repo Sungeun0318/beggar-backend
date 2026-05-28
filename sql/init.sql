@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   room_code     VARCHAR(15)  NOT NULL,
   total_budget  INT          NULL,
   room_created  DATETIME     NOT NULL,
+  is_friends    boolean      NOT NULL,
   PRIMARY KEY (room_no),
   UNIQUE KEY uk_rooms_room_name (room_name),
   UNIQUE KEY uk_rooms_room_code (room_code),
