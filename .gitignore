@@ -120,6 +120,7 @@ application-secret.properties
 application-prod.yml
 application-prod.yaml
 application-prod.properties
+application.properties
 
 # 인증서 / 키
 *.pem
