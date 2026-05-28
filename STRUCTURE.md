@@ -164,7 +164,7 @@ WebFlux의 `WebClient` 두 개:
 
 ### `entity/Room.java`
 `rooms` 테이블.
-- 필드: `roomNo`(PK), `owner`(User FK), `roomName`(UNIQUE), `roomCode`(UNIQUE), `totalBudget`(NULL), `roomCreated`(생성 시 자동)
+- 필드: `roomNo`(PK), `owner`(User FK), `roomName`(UNIQUE), `roomCode`(UNIQUE), `totalBudget`(NULL), `roomCreated`(생성 시 자동), 'isFriends'(False: 익명)
 - 메서드: `updateTotalBudget(int)` — 예산 확정 시 호출
 
 ### `entity/RoomMember.java`
@@ -347,9 +347,9 @@ WebFlux의 `WebClient` 두 개:
 - `UserResponse(userNo, userName, email, profileImageUrl, role)` + `from(User)` 정적 메서드
 
 ### dto/room/
-- `CreateRoomRequest(roomName, tags)`
+- `CreateRoomRequest(roomName, isFriends, tags)`
 - `JoinRoomRequest(roomCode)`
-- `RoomResponse(roomNo, roomName, roomCode, ownerUserNo, totalBudget, roomCreated, tags)` + `of(Room, tags)`
+- `RoomResponse(roomNo, roomName, roomCode, ownerUserNo, totalBudget, isFriends, roomCreated, tags)` + `of(Room, tags)`
 - `RoomMemberResponse(roomMemberId, userNo, userName, status, budgetSubmitted)` — **금액 X, 제출 여부만**
 
 ### dto/budget/
