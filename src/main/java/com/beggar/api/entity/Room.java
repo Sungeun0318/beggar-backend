@@ -44,11 +44,12 @@ public class Room {
     private Boolean isFriends;
 
     @Builder
-    public Room(User owner, String roomName, String roomCode, Integer totalBudget) {
+    public Room(User owner, String roomName, String roomCode, Integer totalBudget, Boolean isFriends) {
         this.owner = owner;
         this.roomName = roomName;
         this.roomCode = roomCode;
         this.totalBudget = totalBudget;
+        this.isFriends = isFriends;
         this.roomCreated = LocalDateTime.now();
     }
 
