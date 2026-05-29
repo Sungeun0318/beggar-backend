@@ -28,8 +28,8 @@ public class ReceiptController {
     }
 
     @GetMapping("/{receiptId}")
-    public ReceiptCreateRequest readone(@PathVariable Long receiptId) {
-        return receiptService.readone(receiptId);
+    public ReceiptCreateRequest readOne(@PathVariable Long receiptId) {
+        return receiptService.readOne(receiptId);
     }
 
     @PutMapping("/{receiptId}/ocr")

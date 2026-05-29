@@ -226,3 +226,4 @@ notes/
 scratch/
 .scratch/
 src/main/resources/application.properties
+src/main/resources/sql/data.sql

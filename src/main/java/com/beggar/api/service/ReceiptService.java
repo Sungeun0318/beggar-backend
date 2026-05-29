@@ -44,7 +44,7 @@ public class ReceiptService {
                 .collect(Collectors.toList());
     }
 
-    public ReceiptCreateRequest readone(Long receiptId) {
+    public ReceiptCreateRequest readOne(Long receiptId) {
         return receiptRepository.findById(receiptId)
                 .map(ReceiptCreateRequest::from)
                 .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
