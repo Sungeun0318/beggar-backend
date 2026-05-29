@@ -164,7 +164,8 @@ WebFlux의 `WebClient` 두 개:
 
 ### `entity/Room.java`
 `rooms` 테이블.
-- 필드: `roomNo`(PK), `owner`(User FK), `roomName`(UNIQUE), `roomCode`(UNIQUE), `totalBudget`(NULL), `roomCreated`(생성 시 자동), 'isFriends'(False: 익명)
+- 필드: `roomNo`(PK), `owner`(User FK), `roomName`(UNIQUE), `roomCode`(UNIQUE), `totalBudget`(NULL), `roomCreated`(생성 시 자동), `isFriends`(방 공개 정책)
+- `isFriends` 의미: `TRUE` = 친구 전용 (초대 코드/링크로만 입장) / `FALSE` = 자유방 (자유방 목록 노출, 코드 없이 입장 가능)
 - 메서드: `updateTotalBudget(int)` — 예산 확정 시 호출
 
 ### `entity/RoomMember.java`
@@ -208,6 +209,7 @@ WebFlux의 `WebClient` 두 개:
 ### `repository/RoomRepository.java`
 - `findByRoomCode(code)` — 입장 코드로 조회
 - `findActiveRoomsByUserNo(userNo)` — JPQL, ACTIVE 멤버인 방 목록 (정렬: roomCreated DESC)
+- `findOpenRooms(Pageable)` — **자유방 둘러보기** (`is_friends = FALSE`) JPQL, 페이징 + 카테고리 필터용 (추가 예정)
 
 ### `repository/RoomMemberRepository.java`
 - `findAllByRoom_RoomNo(roomNo)`, `findAllByRoom_RoomNoAndStatus(roomNo, status)`
@@ -255,11 +257,13 @@ WebFlux의 `WebClient` 두 개:
 
 ### `service/RoomService.java` ⚠ 비어있음
 - `create(ownerUserNo, CreateRoomRequest)` → `RoomResponse`
-  - `Room` INSERT → 방장을 `RoomMember(ACTIVE)`로 자동 INSERT → tags 일괄 INSERT
-  - `roomCode`는 UUID 12자
+  - `Room` INSERT (`isFriends` 저장) → 방장을 `RoomMember(ACTIVE)`로 자동 INSERT → tags 일괄 INSERT
+  - `roomCode`는 UUID 12자 (자유방도 동일하게 생성, URL 공유용)
 - `findMyRooms(userNo)` → `List<RoomResponse>`
 - `findById(roomNo)` → `RoomResponse`
-- `joinByCode(userNo, code)` → `RoomResponse` (중복 입장 시 `ALREADY_JOINED`)
+- `findOpenRooms(Pageable)` → `List<RoomResponse>` — **자유방 둘러보기** (`is_friends = FALSE` 만)
+- `joinByCode(userNo, code)` → `RoomResponse` (친구 전용 방용, 중복 입장 시 `ALREADY_JOINED`)
+- `joinOpenRoom(userNo, roomNo)` → `RoomResponse` — **자유방 직접 입장** (코드 없이 입장, `is_friends = TRUE` 방은 `ROOM_NOT_OPEN` 에러)
 - `findMembers(roomNo)` → `List<RoomMemberResponse>` — **금액 미노출, 제출 여부만**
 
 ### `service/BudgetService.java` ⚠ 비어있음
@@ -315,7 +319,9 @@ WebFlux의 `WebClient` 두 개:
 - `GET /rooms/my` → `List<RoomResponse>`
 - `POST /rooms` (`CreateRoomRequest`) → `RoomResponse`
 - `GET /rooms/{roomNo}` → `RoomResponse`
-- `POST /rooms/join` (`JoinRoomRequest`) → `RoomResponse`
+- `GET /rooms/open?limit=20&category=...` → `List<RoomResponse>` — **자유방 둘러보기**
+- `POST /rooms/join` (`JoinRoomRequest`) → `RoomResponse` — 친구 전용 방 (코드)
+- `POST /rooms/{roomNo}/join` → `RoomResponse` — **자유방 직접 입장 (코드 불필요)**
 - `GET /rooms/{roomNo}/members` → `List<RoomMemberResponse>`
 
 ### `controller/BudgetController.java` ⚠ 비어있음 — `/rooms/{roomNo}/budget`

@@ -21,6 +21,7 @@ public enum ErrorCode {
     INVALID_ROOM_CODE(HttpStatus.NOT_FOUND, "ROOM_002", "유효하지 않은 초대 코드입니다."),
     ALREADY_JOINED(HttpStatus.CONFLICT, "ROOM_003", "이미 참여 중인 방입니다."),
     NOT_ROOM_MEMBER(HttpStatus.FORBIDDEN, "ROOM_004", "방 멤버가 아닙니다."),
+    ROOM_NOT_OPEN(HttpStatus.FORBIDDEN, "ROOM_005", "친구 전용 방은 초대 코드로만 입장할 수 있습니다."),
 
     // Budget
     BUDGET_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "BUDGET_001", "이미 확정된 예산입니다."),
