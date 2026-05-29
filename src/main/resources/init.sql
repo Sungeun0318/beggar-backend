@@ -2,6 +2,10 @@
 -- 사용법: mysql -u root -p < sql/init.sql
 -- 또는 MySQL Workbench에서 통째로 실행
 
+DROP DATABASE IF EXISTS beggar;
+CREATE DATABASE beggar;
+USE beggar;
+
 CREATE DATABASE IF NOT EXISTS beggar
     CHARACTER SET utf8mb4
     COLLATE utf8mb4_unicode_ci;
@@ -12,18 +16,20 @@ USE beggar;
 
 -- 1. users
 CREATE TABLE IF NOT EXISTS users (
-  user_no            INT          NOT NULL AUTO_INCREMENT,
-  user_name          VARCHAR(15)  NOT NULL,
-  password_hash      VARCHAR(255) NULL,
-  profile_image_url  VARCHAR(500) NULL,
-  uemail             VARCHAR(100) NOT NULL,
-  role               VARCHAR(20)  NOT NULL DEFAULT 'USER',
-  created_at         DATETIME     NOT NULL,
-  updated_at         DATETIME     NOT NULL,
-  PRIMARY KEY (user_no),
-  UNIQUE KEY uk_users_user_name (user_name),
-  UNIQUE KEY uk_users_uemail (uemail)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+                                     user_no            INT          NOT NULL AUTO_INCREMENT,
+                                     user_name          VARCHAR(15)  NOT NULL,
+    password_hash      VARCHAR(255) NULL,
+    profile_image_url  VARCHAR(500) NULL,
+    uemail             VARCHAR(100) NOT NULL,
+    role               VARCHAR(20)  NOT NULL DEFAULT 'USER',
+    created_at         DATETIME     NOT NULL,
+    updated_at         DATETIME     NOT NULL,
+    gender             INT          NULL,    -- 추가
+    age                INT          NULL,    -- 추가
+    PRIMARY KEY (user_no),
+    UNIQUE KEY uk_users_user_name (user_name),
+    UNIQUE KEY uk_users_uemail (uemail)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- 2. rooms
 CREATE TABLE IF NOT EXISTS rooms (

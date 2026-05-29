@@ -3,9 +3,11 @@ package com.beggar.api.repository;
 import com.beggar.api.entity.Receipt;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
 
+@Repository
 public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
 
     List<Receipt> findAllByRoom_RoomNoOrderByCreatedAtDesc(Long roomNo);
