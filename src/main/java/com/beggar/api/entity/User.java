@@ -1,6 +1,7 @@
 package com.beggar.api.entity;
 
 import com.beggar.api.common.BaseTimeEntity;
+import com.beggar.api.dto.user.UserRequest;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Builder;
@@ -14,7 +15,7 @@ import lombok.NoArgsConstructor;
                 @UniqueConstraint(name = "uk_users_uemail",    columnNames = "uemail")
         })
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+//@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseTimeEntity {
 
     @Id
@@ -37,13 +38,34 @@ public class User extends BaseTimeEntity {
     @Column(name = "role", length = 20, nullable = false)
     private String role;
 
+    @Column(name = "gender")
+    private int gender;
+
+    @Column(name = "age")
+    private int age;
+
     @Builder
-    public User(String userName, String passwordHash, String profileImageUrl, String email, String role) {
+    public User(String userName, String passwordHash, String profileImageUrl, String email, String role, int gender, int age) {
         this.userName = userName;
         this.passwordHash = passwordHash;
         this.profileImageUrl = profileImageUrl;
         this.email = email;
-        this.role = (role == null) ? "USER" : role;
+        this.role = (role == null) ? "ROLE_USER" : role;
+        this.gender = gender;
+        this.age = age;
+    }
+
+    // 회원가입용 정적 팩토리 메서드 추가 (UserService)
+    public static User signup(UserRequest requestDto, String encodedPassword) {
+        return User.builder()
+                .userName(requestDto.getUserName())
+                .passwordHash(encodedPassword)
+                .email(requestDto.getEmail())
+                .profileImageUrl(requestDto.getProfileImageUrl())
+                .gender(requestDto.getGender())
+                .age(requestDto.getAge())
+                .role("ROLE_USER") // 기본 권한 세팅
+                .build();
     }
 
     public void updateProfile(String userName, String profileImageUrl) {
