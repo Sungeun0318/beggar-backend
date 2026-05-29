@@ -7,10 +7,8 @@ import jakarta.validation.constraints.Size;
 
 import java.util.List;
 public record CreateRoomRequest(
-        @NotBlank(message = "방 이름은 필수 항목입니다.") 
-        @Size(max = 15,message = "방 이름은 15자 이하로 입력해주세요.") String roomName,
+        @NotBlank(message = "방 이름은 필수 항목입니다.")
+        @Size(max = 15, message = "방 이름은 15자 이하로 입력해주세요.") String roomName,
         @NotEmpty List<String> tags, // 방 성격 태그 목록
         @NotNull(message = "친구 전용 여부는 필수 선택 사항입니다.") Boolean isFriends
-) {}
-        @NotNull Boolean isFriends
 ) {}

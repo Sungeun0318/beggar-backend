@@ -1,8 +1,18 @@
 package com.beggar.api.service;
 
+import com.beggar.api.common.exception.CustomException;
+import com.beggar.api.common.exception.ErrorCode;
+import com.beggar.api.dto.room.CreateRoomRequest;
+import com.beggar.api.dto.room.RoomResponse;
+import com.beggar.api.entity.User;
+import com.beggar.api.repository.RoomMemberRepository;
+import com.beggar.api.repository.RoomPurposeTagRepository;
+import com.beggar.api.repository.RoomRepository;
+import com.beggar.api.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import lombok.RequiredArgsConstructor;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true) // 데이터 조회 속도 최적화
@@ -15,12 +25,13 @@ public class RoomService {
 
     /* 방 생성(create) */
     @Transactional // 데이터삽입.   + readOnly끄기위해 붙여줌
-    public RoomResponse create(Long ownerUserNo , CreateRoomRequest request){
+    public RoomResponse create(Long ownerUserNo, CreateRoomRequest request) {
         // 방장 유저 존재 여부 검증
         User owner = userRepository.findById(ownerUserNo)
-            .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-            
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
+        // TODO: Room INSERT + 방장 RoomMember(ACTIVE) INSERT + tags 일괄 INSERT
+        throw new UnsupportedOperationException("not implemented yet");
     }
     // TODO: create(ownerUserNo, request)  — 방 생성 + 방장 자동 입장 + 태그 INSERT
     // TODO: findMyRooms(userNo)           — ACTIVE 멤버인 방 목록
