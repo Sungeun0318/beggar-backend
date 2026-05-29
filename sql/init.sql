@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS rooms (
   room_code     VARCHAR(15)  NOT NULL,
   total_budget  INT          NULL,
   room_created  DATETIME     NOT NULL,
-  is_friends    boolean      NOT NULL,    -- TRUE: 친구 전용(초대 코드만 입장) / FALSE: 자유방(누구나 입장)
+  is_friends    boolean      NOT NULL,    -- TRUE: 친구 전용(초대 코드만 입장) / FALSE: 익명방(누구나 입장)
   PRIMARY KEY (room_no),
   UNIQUE KEY uk_rooms_room_name (room_name),
   UNIQUE KEY uk_rooms_room_code (room_code),
