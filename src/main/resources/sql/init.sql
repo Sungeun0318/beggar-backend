@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS users (
   role               VARCHAR(20)  NOT NULL DEFAULT 'USER',
   created_at         DATETIME     NOT NULL,
   updated_at         DATETIME     NOT NULL,
+  gender             TINYINT      NOT NULL,
+  age                TINYINT      NOT NULL,
   PRIMARY KEY (user_no),
   UNIQUE KEY uk_users_user_name (user_name),
   UNIQUE KEY uk_users_uemail (uemail)
