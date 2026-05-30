@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/users")
 public class UserController {
 
-    // TODO: GET    /users/me               — 내 프로필 조회
-    // TODO: GET    /users/me/beggar-score  — 내 거지력 점수/칭호
-    // TODO: DELETE /users/me               — 회원 탈퇴
+    // TODO: GET    /users/me      — 내 프로필 조회 (gender/ageRange 포함)
+    // TODO: DELETE /users/me      — 회원 탈퇴
+    // 방별 거지평가는 /rooms/{roomNo}/beggar-score에서 조회한다.
 }

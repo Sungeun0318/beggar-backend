@@ -18,6 +18,14 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
     long sumAmountByRoomNo(Long roomNo);
 
     @Query("""
+           select count(r)
+             from Receipt r
+            where r.room.roomNo = :roomNo
+              and r.goodPriceMatched = true
+           """)
+    long countGoodPriceMatchedByRoomNo(Long roomNo);
+
+    @Query("""
            select r
              from Receipt r
             where r.uploader.user.userNo = :userNo

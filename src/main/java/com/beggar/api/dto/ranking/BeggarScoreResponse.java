@@ -1,29 +1,31 @@
 package com.beggar.api.dto.ranking;
 
-import com.beggar.api.entity.UserBeggarScore;
+import com.beggar.api.entity.RoomBeggarScore;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record BeggarScoreResponse(
-        Long userNo,
+        Long roomNo,
         Integer score,
         String title,
+        Long totalSpentAmount,
         Long totalSavedAmount,
+        Integer goodPriceVerifiedCount,
         BigDecimal budgetComplianceRate,
         BigDecimal avgSavingsRatio,
-        Integer participationCount,
         LocalDateTime lastCalculatedAt
 ) {
-    public static BeggarScoreResponse from(UserBeggarScore s) {
+    public static BeggarScoreResponse from(RoomBeggarScore s) {
         return new BeggarScoreResponse(
-                s.getUser().getUserNo(),
+                s.getRoom().getRoomNo(),
                 s.getScore(),
                 s.getTitle(),
+                s.getTotalSpentAmount(),
                 s.getTotalSavedAmount(),
+                s.getGoodPriceVerifiedCount(),
                 s.getBudgetComplianceRate(),
                 s.getAvgSavingsRatio(),
-                s.getParticipationCount(),
                 s.getLastCalculatedAt()
         );
     }

@@ -7,6 +7,8 @@ public record UserResponse(
         String userName,
         String email,
         String profileImageUrl,
+        String gender,
+        String ageRange,
         String role
 ) {
     public static UserResponse from(User user) {
@@ -15,6 +17,8 @@ public record UserResponse(
                 user.getUserName(),
                 user.getEmail(),
                 user.getProfileImageUrl(),
+                user.getGender(),
+                user.getAgeRange(),
                 user.getRole()
         );
     }

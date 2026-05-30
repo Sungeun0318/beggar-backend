@@ -34,15 +34,24 @@ public class User extends BaseTimeEntity {
     @Column(name = "uemail", length = 100, nullable = false)
     private String email;
 
+    @Column(name = "gender", length = 20)
+    private String gender;
+
+    @Column(name = "age_range", length = 20)
+    private String ageRange;
+
     @Column(name = "role", length = 20, nullable = false)
     private String role;
 
     @Builder
-    public User(String userName, String passwordHash, String profileImageUrl, String email, String role) {
+    public User(String userName, String passwordHash, String profileImageUrl,
+                String email, String gender, String ageRange, String role) {
         this.userName = userName;
         this.passwordHash = passwordHash;
         this.profileImageUrl = profileImageUrl;
         this.email = email;
+        this.gender = gender;
+        this.ageRange = ageRange;
         this.role = (role == null) ? "USER" : role;
     }
 
