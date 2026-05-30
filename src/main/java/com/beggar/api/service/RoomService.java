@@ -30,12 +30,13 @@ public class RoomService {
         User owner = userRepository.findById(ownerUserNo)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
-        // TODO: Room INSERT + 방장 RoomMember(ACTIVE) INSERT + tags 일괄 INSERT
+        // TODO: Room INSERT(maxMemberCount 포함) + 방장 RoomMember(ACTIVE) INSERT + tags 일괄 INSERT
         throw new UnsupportedOperationException("not implemented yet");
     }
-    // TODO: create(ownerUserNo, request)  — 방 생성 + 방장 자동 입장 + 태그 INSERT
+    // TODO: create(ownerUserNo, request)  — 방 생성 + 방장 자동 입장 + 태그 INSERT + maxMemberCount 저장
     // TODO: findMyRooms(userNo)           — ACTIVE 멤버인 방 목록
     // TODO: findById(roomNo)              — 방 상세 + 태그
     // TODO: joinByCode(userNo, roomCode)  — 코드로 입장 (중복 입장 차단)
     // TODO: findMembers(roomNo)           — 입장 현황 (예산 제출 여부만, 금액 X)
+    // TODO: updateSettings(roomNo, ownerUserNo, request) — 지역/태그/최대 인원 변경
 }

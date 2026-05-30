@@ -8,7 +8,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/receipts")
+@RequestMapping("/rooms/{roomNo}/receipts")
+
 @RequiredArgsConstructor
 public class ReceiptController {
     private final ReceiptService receiptService;

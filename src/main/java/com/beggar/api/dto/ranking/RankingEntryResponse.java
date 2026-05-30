@@ -1,19 +1,19 @@
 package com.beggar.api.dto.ranking;
 
-import com.beggar.api.entity.UserBeggarScore;
+import com.beggar.api.entity.RoomBeggarScore;
 
 public record RankingEntryResponse(
         int rank,
-        Long userNo,
-        String userName,
+        Long roomNo,
+        String roomName,
         Integer score,
         String title
 ) {
-    public static RankingEntryResponse of(int rank, UserBeggarScore s) {
+    public static RankingEntryResponse of(int rank, RoomBeggarScore s) {
         return new RankingEntryResponse(
                 rank,
-                s.getUser().getUserNo(),
-                s.getUser().getUserName(),
+                s.getRoom().getRoomNo(),
+                s.getRoom().getRoomName(),
                 s.getScore(),
                 s.getTitle()
         );

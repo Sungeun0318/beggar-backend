@@ -10,21 +10,22 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_beggar_scores",
-        indexes = @Index(name = "idx_scores_score_desc", columnList = "score DESC"))
+@Table(name = "room_beggar_scores",
+        uniqueConstraints = @UniqueConstraint(name = "uk_room_beggar_scores_room", columnNames = "room_no"),
+        indexes = @Index(name = "idx_room_scores_score_desc", columnList = "score DESC"))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class UserBeggarScore {
+public class RoomBeggarScore {
 
     @Id
-    @Column(name = "user_no")
-    private Long userNo;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "score_id")
+    private Long scoreId;
 
     @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @MapsId
-    @JoinColumn(name = "user_no",
-            foreignKey = @ForeignKey(name = "fk_scores_user"))
-    private User user;
+    @JoinColumn(name = "room_no", nullable = false,
+            foreignKey = @ForeignKey(name = "fk_room_beggar_scores_room"))
+    private Room room;
 
     @Column(name = "score", nullable = false)
     private Integer score;
@@ -32,17 +33,20 @@ public class UserBeggarScore {
     @Column(name = "title", length = 30, nullable = false)
     private String title;
 
+    @Column(name = "total_spent_amount", nullable = false)
+    private Long totalSpentAmount;
+
     @Column(name = "total_saved_amount", nullable = false)
     private Long totalSavedAmount;
+
+    @Column(name = "good_price_verified_count", nullable = false)
+    private Integer goodPriceVerifiedCount;
 
     @Column(name = "budget_compliance_rate", precision = 5, scale = 2)
     private BigDecimal budgetComplianceRate;
 
     @Column(name = "avg_savings_ratio", precision = 5, scale = 2)
     private BigDecimal avgSavingsRatio;
-
-    @Column(name = "participation_count", nullable = false)
-    private Integer participationCount;
 
     @Column(name = "last_calculated_at", nullable = false)
     private LocalDateTime lastCalculatedAt;
@@ -51,24 +55,27 @@ public class UserBeggarScore {
     private LocalDateTime updatedAt;
 
     @Builder
-    public UserBeggarScore(User user) {
-        this.user = user;
+    public RoomBeggarScore(Room room) {
+        this.room = room;
         this.score = 0;
         this.title = "아기 거지";
+        this.totalSpentAmount = 0L;
         this.totalSavedAmount = 0L;
-        this.participationCount = 0;
+        this.goodPriceVerifiedCount = 0;
         this.lastCalculatedAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
 
-    public void update(int score, String title, long totalSavedAmount,
-                       BigDecimal compliance, BigDecimal savingsRatio, int participation) {
+    public void update(int score, long totalSpentAmount, long totalSavedAmount,
+                       int goodPriceVerifiedCount, BigDecimal compliance,
+                       BigDecimal savingsRatio) {
         this.score = score;
-        this.title = title;
+        this.title = resolveTitle(score);
+        this.totalSpentAmount = totalSpentAmount;
         this.totalSavedAmount = totalSavedAmount;
+        this.goodPriceVerifiedCount = goodPriceVerifiedCount;
         this.budgetComplianceRate = compliance;
         this.avgSavingsRatio = savingsRatio;
-        this.participationCount = participation;
         this.lastCalculatedAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }

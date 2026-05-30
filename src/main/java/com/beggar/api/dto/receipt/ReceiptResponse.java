@@ -9,6 +9,8 @@ public record ReceiptResponse(
         Long receiptId,
         Long roomNo,
         Long uploaderUserNo,
+        String receiptType,
+        String inputMethod,
         String imageUrl,
         String ocrStatus,
         String storeName,
@@ -17,6 +19,10 @@ public record ReceiptResponse(
         String address,
         BigDecimal centerLat,
         BigDecimal centerLng,
+        Boolean goodPriceMatched,
+        String goodPriceStoreId,
+        String goodPriceStoreName,
+        String goodPriceStoreAddress,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -25,6 +31,8 @@ public record ReceiptResponse(
                 r.getReceiptId(),
                 r.getRoom().getRoomNo(),
                 r.getUploader().getUser().getUserNo(),
+                r.getReceiptType().name(),
+                r.getInputMethod().name(),
                 r.getImageUrl(),
                 r.getOcrStatus().name(),
                 r.getStoreName(),
@@ -33,6 +41,10 @@ public record ReceiptResponse(
                 r.getAddress(),
                 r.getCenterLat(),
                 r.getCenterLng(),
+                r.getGoodPriceMatched(),
+                r.getGoodPriceStoreId(),
+                r.getGoodPriceStoreName(),
+                r.getGoodPriceStoreAddress(),
                 r.getCreatedAt(),
                 r.getUpdatedAt()
         );
