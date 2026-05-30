@@ -153,19 +153,22 @@ WebFlux의 `WebClient` 두 개:
 
 ---
 
-## entity/ — JPA 엔티티 8개 (시트와 1:1)
+## entity/ — JPA 엔티티
+
+현재 Java 스캐폴딩은 이전 8개 엔티티 기준이 일부 남아있다. DB 목표 설계는 `docs/DB_DESIGN.md`의 10개 테이블 기준이며, Java 구현 정리는 별도 단계에서 진행한다.
 
 각 엔티티는 `protected` 기본 생성자 + `@Builder` 패턴. setter 대신 의미있는 메서드(`updateXxx`, `leave`, `kick` 등)로 상태 변경.
 
 ### `entity/User.java`
 `users` 테이블. `BaseTimeEntity` 상속 (created_at / updated_at 자동).
-- 필드: `userNo`(PK), `userName`(UNIQUE), `passwordHash`(NULL), `profileImageUrl`(NULL), `email`(UNIQUE, 컬럼명 `uemail`), `role`(기본 `USER`)
+- 필드 목표: `userNo`(PK), `userName`(UNIQUE), `passwordHash`(NULL), `profileImageUrl`(NULL), `email`(UNIQUE, 컬럼명 `uemail`), `gender`(NULL), `ageRange`(NULL), `role`(기본 `USER`)
 - 메서드: `updateProfile(userName, profileImageUrl)`
 
 ### `entity/Room.java`
 `rooms` 테이블.
-- 필드: `roomNo`(PK), `owner`(User FK), `roomName`(UNIQUE), `roomCode`(UNIQUE), `totalBudget`(NULL), `roomCreated`(생성 시 자동), `isFriends`(방 공개 정책)
-- `isFriends` 의미: `TRUE` = 친구 전용 (초대 코드/링크로만 입장) / `FALSE` = 자유방 (자유방 목록 노출, 코드 없이 입장 가능)
+- 필드: `roomNo`(PK), `owner`(User FK), `roomName`(UNIQUE), `roomCode`(UNIQUE), `maxMemberCount`(기본 100), `totalBudget`(NULL), `roomCreated`(생성 시 자동), `isFriends`
+- `isFriends` 의미: 현재 MVP는 친구 초대 기반 방 중심. `FALSE`는 공개 방 후보로 남겨두지만 커뮤니티와 분리한다.
+- `maxMemberCount`: 반장이 거지방 설정에서 수정 가능한 최대 인원. 최소 2~최대 100 정책.
 - 메서드: `updateTotalBudget(int)` — 예산 확정 시 호출
 
 ### `entity/RoomMember.java`
@@ -189,19 +192,29 @@ WebFlux의 `WebClient` 두 개:
 
 ### `entity/Receipt.java`
 `receipts` 테이블. `BaseTimeEntity` 상속.
-- enum `OcrStatus`: `PENDING / SUCCESS / FAILED / CANCELED`
-- 필드: `receiptId`(PK), `room`, `uploader`(RoomMember FK), `imageUrl`, `ocrStatus`, `storeName`, `totalAmount`(OCR 원본), `amount`(사용자 보정값), `address`, `centerLat/centerLng`(DECIMAL 10,7 — 시트 datetime→DECIMAL 보정)
+- enum `ReceiptType`: `COMBINED / SPLIT`
+- enum `InputMethod`: `CAMERA / GALLERY / MANUAL`
+- enum `OcrStatus`: `PENDING / SUCCESS / FAILED / CANCELED / MANUAL`
+- 필드 목표: `receiptId`(PK), `room`, `uploader`(RoomMember FK), `receiptType`, `inputMethod`, `imageUrl`, `ocrStatus`, `storeName`, `totalAmount`(OCR 원본), `amount`(사용자 보정값), `address`, `centerLat/centerLng`, 착한가격업소 매칭 컬럼
 - 메서드: `applyOcrResult(...)`, `markOcrFailed()`, `updateAmount(int)`
 
-### `entity/UserBeggarScore.java`
-`user_beggar_scores` 테이블. user_no 공유 PK (`@MapsId`).
-- 필드: `userNo`(PK/FK), `score`(0~100), `title`(칭호 캐시), `totalSavedAmount`, `budgetComplianceRate`(DECIMAL 5,2), `avgSavingsRatio`, `participationCount`, `lastCalculatedAt`, `updatedAt`
+### `entity/ReceiptSplit.java` 목표
+`receipt_splits` 테이블. 분할 영수증의 멤버별 금액.
+- 필드: `splitId`, `receipt`, `roomMember`, `amount`, `createdAt`, `updatedAt`
+
+### `entity/RoomBeggarScore.java` 목표
+`room_beggar_scores` 테이블. `room_no` 기준 UNIQUE.
+- 필드: `scoreId`, `room`, `score`(0~100), `title`(칭호 캐시), `totalSpentAmount`, `totalSavedAmount`, `goodPriceVerifiedCount`, `budgetComplianceRate`, `avgSavingsRatio`, `lastCalculatedAt`, `updatedAt`
 - 정적: `resolveTitle(score)` — 점수→칭호 매핑 (5단계)
-- 인덱스: `idx_scores_score_desc` (랭킹 정렬용)
+- 인덱스: `idx_room_scores_score_desc` (전체 방 점수 정렬 후보)
+
+### `entity/CommunityPost.java` 목표
+`community_posts` 테이블. 커뮤니티 게시글.
+- 필드: `postId`, `user`, `title`, `content`, `category`, `createdAt`, `updatedAt`
 
 ---
 
-## repository/ — JpaRepository 8개
+## repository/ — JpaRepository
 
 ### `repository/UserRepository.java`
 - `findByEmail(email)`, `existsByEmail(email)`, `existsByUserName(name)`
@@ -209,7 +222,7 @@ WebFlux의 `WebClient` 두 개:
 ### `repository/RoomRepository.java`
 - `findByRoomCode(code)` — 입장 코드로 조회
 - `findActiveRoomsByUserNo(userNo)` — JPQL, ACTIVE 멤버인 방 목록 (정렬: roomCreated DESC)
-- `findOpenRooms(Pageable)` — **자유방 둘러보기** (`is_friends = FALSE`) JPQL, 페이징 + 카테고리 필터용 (추가 예정)
+- 공개 방 목록 API는 현재 MVP에서 제외한다. 커뮤니티는 `community_posts` 계열로 분리한다.
 
 ### `repository/RoomMemberRepository.java`
 - `findAllByRoom_RoomNo(roomNo)`, `findAllByRoom_RoomNoAndStatus(roomNo, status)`
@@ -234,8 +247,8 @@ WebFlux의 `WebClient` 두 개:
 - `sumAmountByRoomNo(roomNo)` (JPQL, SUM) — 거지력 산식
 - `findAllByUploaderUserNo(userNo)` (JPQL)
 
-### `repository/UserBeggarScoreRepository.java`
-- `findTopRanking(Pageable)` (JPQL + fetch join) — 랭킹 화면용
+### `repository/RoomBeggarScoreRepository.java` 목표
+- `findByRoomNo(roomNo)` — 방별 거지평가 화면용
 
 ---
 
@@ -246,7 +259,7 @@ WebFlux의 `WebClient` 두 개:
 ### `service/AuthService.java` ⚠ 비어있음
 - `loginWithKakao(KakaoLoginRequest)` → `TokenResponse`
   - `kakaoWebClient`로 카카오 `/v2/user/me` 호출 → 이메일/닉네임 추출
-  - `UserRepository.findByEmail` → 없으면 `users` + `user_beggar_scores`(0점/아기 거지) 같은 트랜잭션에 INSERT
+  - `UserRepository.findByEmail` → 없으면 `users` INSERT
   - `JwtTokenProvider.createAccessToken/Refresh` 발급
 - `refresh(RefreshTokenRequest)` → `TokenResponse`
 - `signOut(userNo)` — (필요 시) 블랙리스트
@@ -257,13 +270,11 @@ WebFlux의 `WebClient` 두 개:
 
 ### `service/RoomService.java` ⚠ 비어있음
 - `create(ownerUserNo, CreateRoomRequest)` → `RoomResponse`
-  - `Room` INSERT (`isFriends` 저장) → 방장을 `RoomMember(ACTIVE)`로 자동 INSERT → tags 일괄 INSERT
-  - `roomCode`는 UUID 12자 (자유방도 동일하게 생성, URL 공유용)
+  - `Room` INSERT → 방장을 `RoomMember(ACTIVE)`로 자동 INSERT → tags 일괄 INSERT
+  - `roomCode`는 UUID 12자
 - `findMyRooms(userNo)` → `List<RoomResponse>`
 - `findById(roomNo)` → `RoomResponse`
-- `findOpenRooms(Pageable)` → `List<RoomResponse>` — **자유방 둘러보기** (`is_friends = FALSE` 만)
 - `joinByCode(userNo, code)` → `RoomResponse` (친구 전용 방용, 중복 입장 시 `ALREADY_JOINED`)
-- `joinOpenRoom(userNo, roomNo)` → `RoomResponse` — **자유방 직접 입장** (코드 없이 입장, `is_friends = TRUE` 방은 `ROOM_NOT_OPEN` 에러)
 - `findMembers(roomNo)` → `List<RoomMemberResponse>` — **금액 미노출, 제출 여부만**
 
 ### `service/BudgetService.java` ⚠ 비어있음
@@ -276,8 +287,9 @@ WebFlux의 `WebClient` 두 개:
 
 ### `service/ReceiptService.java` ⚠ 비어있음
 - `create(userNo, ReceiptCreateRequest)` → `ReceiptResponse`
-  - `ocrStatus = PENDING`, `amount = request.amount or 0` 으로 INSERT
-  - **같은 트랜잭션 내 `BeggarScoreService.recalculate(userNo)` 호출**
+  - `receiptType`, `inputMethod`, `ocrStatus`, `amount` 저장
+  - 통합은 `receipts`만, 분할은 `receipt_splits`까지 저장
+  - **같은 트랜잭션 내 `BeggarScoreService.recalculate(roomNo)` 호출**
 - `updateAmount(userNo, receiptId, ReceiptUpdateRequest)` → 수동 보정 → 재계산
 - `listByRoom(roomNo)` → `List<ReceiptResponse>` (최신순)
 - `applyOcrResult(receiptId, ...)` — OCR 콜백 (Python에서 push)
@@ -290,13 +302,12 @@ WebFlux의 `WebClient` 두 개:
   - **DB에 적재하지 않음** (채택률 트래킹 제외)
 
 ### `service/BeggarScoreService.java` ⚠ 비어있음
-- 산식: `score = 예산준수율 × 0.40 + 평균절약률 × 0.40 + 참여빈도 × 0.20` (0~100)
+- 산식 후보: `score = 예산준수율 35% + 절약률 35% + 착한가격업소 인증 점수 30%` (0~100)
 - 칭호 5단계: 아기 거지 / 성장하는 거지 / 알뜰한 거지 / 프로 거지 / 전설의 거지
-- `getMyScore(userNo)` → `BeggarScoreResponse`
-- `getRanking(limit)` → `List<RankingEntryResponse>` (rank 1부터)
-- `recalculate(userNo)` — 동기 + 동일 트랜잭션
-  - 본인 멤버십 전체 순회 → 방별 totalBudget vs SUM(amount) 계산
-  - `participationScore = min(count/10, 1) × 100`
+- `getRoomScore(roomNo)` → `BeggarScoreResponse`
+- `recalculate(roomNo)` — 동기 + 동일 트랜잭션
+  - 해당 방 totalBudget vs 방 전체 지출/SUM(amount) 계산
+  - 착한가격업소 매칭 성공 수 반영
   - UPSERT (없으면 INSERT, 있으면 update)
 
 ---
@@ -312,16 +323,13 @@ WebFlux의 `WebClient` 두 개:
 
 ### `controller/UserController.java` ⚠ 비어있음 — `/users/**`
 - `GET /users/me` → `UserResponse`
-- `GET /users/me/beggar-score` → `BeggarScoreResponse`
 - `DELETE /users/me` → 204
 
 ### `controller/RoomController.java` ⚠ 비어있음 — `/rooms/**`
 - `GET /rooms/my` → `List<RoomResponse>`
 - `POST /rooms` (`CreateRoomRequest`) → `RoomResponse`
 - `GET /rooms/{roomNo}` → `RoomResponse`
-- `GET /rooms/open?limit=20&category=...` → `List<RoomResponse>` — **자유방 둘러보기**
 - `POST /rooms/join` (`JoinRoomRequest`) → `RoomResponse` — 친구 전용 방 (코드)
-- `POST /rooms/{roomNo}/join` → `RoomResponse` — **자유방 직접 입장 (코드 불필요)**
 - `GET /rooms/{roomNo}/members` → `List<RoomMemberResponse>`
 
 ### `controller/BudgetController.java` ⚠ 비어있음 — `/rooms/{roomNo}/budget`
@@ -329,16 +337,16 @@ WebFlux의 `WebClient` 두 개:
 - `POST /rooms/{roomNo}/budget/confirm` → `BudgetResultResponse`
 - `GET /rooms/{roomNo}/budget/result` → `BudgetResultResponse`
 
-### `controller/ReceiptController.java` ⚠ 비어있음 — `/receipts/**`
-- `POST /receipts` (`ReceiptCreateRequest`) → `ReceiptResponse`
-- `PATCH /receipts/{receiptId}` (`ReceiptUpdateRequest`) → `ReceiptResponse`
-- `GET /receipts?roomNo=...` → `List<ReceiptResponse>`
+### `controller/ReceiptController.java` ⚠ 비어있음 — `/rooms/{roomNo}/receipts/**`
+- `POST /rooms/{roomNo}/receipts` (`ReceiptCreateRequest`) → `ReceiptResponse`
+- `PATCH /rooms/{roomNo}/receipts/{receiptId}` (`ReceiptUpdateRequest`) → `ReceiptResponse`
+- `GET /rooms/{roomNo}/receipts` → `List<ReceiptResponse>`
 
 ### `controller/RecommendationController.java` ⚠ 비어있음 — `/rooms/{roomNo}/recommend`
 - `GET /rooms/{roomNo}/recommend` → `RecommendationResponse`
 
-### `controller/RankingController.java` ⚠ 비어있음 — `/ranking`
-- `GET /ranking?limit=15` → `List<RankingEntryResponse>`
+### `controller/RoomBeggarScoreController.java` 목표
+- `GET /rooms/{roomNo}/beggar-score` → `BeggarScoreResponse`
 
 ---
 
@@ -350,7 +358,7 @@ WebFlux의 `WebClient` 두 개:
 - `TokenResponse(accessToken, refreshToken, userNo, userName)`
 
 ### dto/user/
-- `UserResponse(userNo, userName, email, profileImageUrl, role)` + `from(User)` 정적 메서드
+- `UserResponse(userNo, userName, email, profileImageUrl, gender, ageRange, role)` + `from(User)` 정적 메서드
 
 ### dto/room/
 - `CreateRoomRequest(roomName, isFriends, tags)`
@@ -363,7 +371,7 @@ WebFlux의 `WebClient` 두 개:
 - `BudgetResultResponse(roomNo, minBudgetPerPerson, memberCount, totalBudget, confirmedAt)` + `from(RoomBudgetResult)`
 
 ### dto/receipt/
-- `ReceiptCreateRequest(roomNo, imageUrl, amount)`
+- `ReceiptCreateRequest(receiptType, inputMethod, imageUrl, amount, splits)`
 - `ReceiptUpdateRequest(amount)`
 - `ReceiptResponse(...)` — 모든 컬럼 (uploaderUserNo는 `RoomMember.user.userNo`로 평탄화)
 
@@ -371,8 +379,8 @@ WebFlux의 `WebClient` 두 개:
 - `RecommendationResponse(roomNo, totalBudget, places)` + 내부 `record Place(...)`
 
 ### dto/ranking/
-- `RankingEntryResponse(rank, userNo, userName, score, title)` + `of(rank, UserBeggarScore)`
-- `BeggarScoreResponse(...)` — 마이페이지용, 산식 구성요소까지 포함
+- `RankingEntryResponse(rank, userNo, userName, score, title)` + `of(rank, RoomBeggarScore)`
+- `BeggarScoreResponse(...)` — 방별 거지평가용, 산식 구성요소까지 포함
 
 ---
 
