@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -26,6 +27,7 @@ public class ReceiptService {
     private final ReceiptSplitRepository receiptSplitRepository;
     private final RoomRepository roomRepository;
     private final RoomMemberRepository roomMemberRepository;
+    private final GoodPriceMatchService goodPriceMatchService;
 
     // TODO: create(roomNo, userNo, request)        — 통합/분할 영수증 등록
     //                                                CAMERA/GALLERY는 OCR PENDING, MANUAL은 OCR MANUAL
@@ -58,6 +60,7 @@ public class ReceiptService {
                 .build();
 
         Receipt saved = receiptRepository.save(receipt);
+        applyGoodPriceMatch(saved);
 
         if (request.receiptType() == Receipt.ReceiptType.SPLIT && request.splits() != null) {
             request.splits().forEach(split -> {
@@ -104,6 +107,7 @@ public class ReceiptService {
                 request.storeName(), request.totalAmount(),
                 request.address(), request.centerLat(), request.centerLng()
         );
+        applyGoodPriceMatch(receipt);
         return ReceiptResponse.from(receipt);
     }
 
@@ -113,5 +117,18 @@ public class ReceiptService {
                 .filter(found -> found.getRoom().getRoomNo().equals(roomNo))
                 .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
         receiptRepository.delete(receipt);
+    }
+
+    private void applyGoodPriceMatch(Receipt receipt) {
+        goodPriceMatchService.match(receipt.getStoreName(), receipt.getAddress())
+                .ifPresentOrElse(
+                        store -> receipt.applyGoodPriceMatch(
+                                store.storeId(),
+                                store.name(),
+                                store.address(),
+                                LocalDateTime.now()
+                        ),
+                        receipt::clearGoodPriceMatch
+                );
     }
 }

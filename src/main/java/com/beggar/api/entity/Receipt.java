@@ -131,4 +131,12 @@ public class Receipt extends BaseTimeEntity {
         this.goodPriceMatched = true;
         this.goodPriceVerifiedAt = verifiedAt;
     }
+
+    public void clearGoodPriceMatch() {
+        this.goodPriceStoreId = null;
+        this.goodPriceStoreName = null;
+        this.goodPriceStoreAddress = null;
+        this.goodPriceMatched = false;
+        this.goodPriceVerifiedAt = null;
+    }
 }

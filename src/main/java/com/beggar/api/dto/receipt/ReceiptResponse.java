@@ -23,6 +23,7 @@ public record ReceiptResponse(
         String goodPriceStoreId,
         String goodPriceStoreName,
         String goodPriceStoreAddress,
+        LocalDateTime goodPriceVerifiedAt,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -45,6 +46,7 @@ public record ReceiptResponse(
                 r.getGoodPriceStoreId(),
                 r.getGoodPriceStoreName(),
                 r.getGoodPriceStoreAddress(),
+                r.getGoodPriceVerifiedAt(),
                 r.getCreatedAt(),
                 r.getUpdatedAt()
         );

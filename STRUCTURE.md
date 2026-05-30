@@ -299,14 +299,22 @@ WebFlux의 `WebClient` 두 개:
 - `getResult(roomNo)` → `BudgetResultResponse`
 - **내부**: `confirmInternal(roomNo)` — MIN × COUNT 계산 → `room_budget_results` INSERT + `rooms.total_budget` UPDATE + 해당 방 `room_beggar_scores` 재계산 (모두 같은 트랜잭션)
 
-### `service/ReceiptService.java` ⚠ 구현 예정
+### `service/ReceiptService.java` ✅ 1차 구현
 - `create(roomNo, userNo, ReceiptCreateRequest)` → `ReceiptResponse`
   - `receiptType`, `inputMethod`, `ocrStatus`, `amount` 저장
   - 통합은 `receipts`만, 분할은 `receipt_splits`까지 저장
-  - **같은 트랜잭션 내 `BeggarScoreService.recalculate(roomNo)` 호출**
+  - `storeName/address` 기준 착한가격업소 인증 매칭 후 `good_price_*` 저장
+  - **후속**: 같은 트랜잭션 내 `BeggarScoreService.recalculate(roomNo)` 호출
 - `updateAmount(roomNo, userNo, receiptId, ReceiptUpdateRequest)` → 수동 보정 → 재계산
 - `listByRoom(roomNo)` → `List<ReceiptResponse>` (최신순)
-- `applyOcrResult(receiptId, ...)` — OCR 콜백 (Python에서 push)
+- `applyOcrResult(receiptId, ...)` — OCR 콜백/수동 반영 후 착한가격업소 재매칭
+
+### `service/GoodPriceMatchService.java` ✅ 1차 구현
+- 영수증 `storeName/address`를 행정안전부 착한가격업소 OpenAPI 결과와 비교
+- 매칭 성공 기준:
+  - 상호명이 정확히 같으면 인증 후보로 인정
+  - 상호명이 부분 일치하면 주소 일치 점수를 더해 임계값 이상일 때 인증
+- 외부 API 실패 시 영수증 저장은 막지 않고 미인증으로 처리
 
 ### `service/RecommendationService.java` ✅ 1차 구현
 - `recommend(roomNo, tag, region)` → `RecommendationResponse`
@@ -316,7 +324,7 @@ WebFlux의 `WebClient` 두 개:
   - 지역 문자열은 주소 포함 여부로 필터링 (`서울특별시 중구` 등)
   - 태그는 한식/양식/일식/중식/기타요식업 및 식사/카페/놀거리 매칭 규칙으로 필터링
   - 카테고리 기본 이미지 경로(`thumbnailUrl`)와 카카오맵 검색 링크(`mapUrl`)를 함께 반환
-  - **DB에 적재하지 않음** (추천 이력/채택률 트래킹은 후속 작업)
+  - **DB에 적재하지 않음** (거지력 점수는 추천 이력이 아니라 영수증 착한가격업소 인증 기준)
 
 ### `service/BeggarScoreService.java` ⚠ 구현 예정
 - 산식 후보: `score = 예산준수율 35% + 절약률 35% + 착한가격업소 인증 점수 30%` (0~100)
@@ -445,6 +453,6 @@ WebFlux의 `WebClient` 두 개:
 7. **`ReceiptService` + `ReceiptController`** — 프론트 영수증/지출 화면 연결 (OCR 콜백은 마지막)
 8. **`BeggarScoreService`** — 영수증/예산 트리거에서 호출 + 방별 평가 API
 9. **`CommunityService` + `CommunityController`** — 게시글 API
-10. **`RecommendationService`** — Python AI 서버 연동
+10. **`RecommendationService`** — Spring 착한가격업소 추천 유지, Python은 후순위 AI Hub 고도화
 
 각 단계마다 `application.properties`의 DB 연결 + JWT 시크릿이 정상인지 먼저 확인하면 빠름.
