@@ -1,6 +1,8 @@
 package com.beggar.api.controller;
 
 import com.beggar.api.dto.receipt.ReceiptCreateRequest;
+import com.beggar.api.dto.receipt.ReceiptResponse;
+import com.beggar.api.dto.receipt.ReceiptUpdateRequest;
 import com.beggar.api.service.ReceiptService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -14,32 +16,39 @@ import java.util.List;
 public class ReceiptController {
     private final ReceiptService receiptService;
 
-//     TODO: POST  /receipts              — 영수증 등록 (S3 URL + 메타)
-//     TODO: PATCH /receipts/{receiptId}  — 금액 수동 보정
-//     TODO: GET   /receipts?roomNo=...   — 방별 영수증 목록 (최신순)
+    // TODO: @LoginUser가 연결되면 request.uploaderUserNo 대신 로그인 사용자 번호를 사용한다.
 
     @PostMapping
-    public Long create(@RequestBody ReceiptCreateRequest request) {
-        return receiptService.create(request);
+    public ReceiptResponse create(@PathVariable Long roomNo, @RequestBody ReceiptCreateRequest request) {
+        return receiptService.create(roomNo, request);
     }
 
     @GetMapping
-    public List<ReceiptCreateRequest> read() { // Response 대신 Request 사용
-        return receiptService.read();
+    public List<ReceiptResponse> read(@PathVariable Long roomNo) {
+        return receiptService.read(roomNo);
     }
 
     @GetMapping("/{receiptId}")
-    public ReceiptCreateRequest readOne(@PathVariable Long receiptId) {
-        return receiptService.readOne(receiptId);
+    public ReceiptResponse readOne(@PathVariable Long roomNo, @PathVariable Long receiptId) {
+        return receiptService.readOne(roomNo, receiptId);
+    }
+
+    @PatchMapping("/{receiptId}")
+    public ReceiptResponse updateAmount(@PathVariable Long roomNo,
+                                        @PathVariable Long receiptId,
+                                        @RequestBody ReceiptUpdateRequest request) {
+        return receiptService.updateAmount(roomNo, receiptId, request);
     }
 
     @PutMapping("/{receiptId}/ocr")
-    public boolean update(@PathVariable Long receiptId, @RequestBody ReceiptCreateRequest request) {
-        return receiptService.update(receiptId, request);
+    public ReceiptResponse applyOcrResult(@PathVariable Long roomNo,
+                                          @PathVariable Long receiptId,
+                                          @RequestBody ReceiptCreateRequest request) {
+        return receiptService.applyOcrResult(roomNo, receiptId, request);
     }
 
-    @DeleteMapping
-    public boolean delete(@RequestParam Long receiptId) {
-        return receiptService.delete(receiptId);
+    @DeleteMapping("/{receiptId}")
+    public void delete(@PathVariable Long roomNo, @PathVariable Long receiptId) {
+        receiptService.delete(roomNo, receiptId);
     }
 }

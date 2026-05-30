@@ -8,8 +8,8 @@ public record UserResponse(
         String email,
         String profileImageUrl,
         String role,
-        int gender,
-        int age
+        Integer gender,
+        Integer age
 ) {
     public static UserResponse from(User user) {
         return new UserResponse(

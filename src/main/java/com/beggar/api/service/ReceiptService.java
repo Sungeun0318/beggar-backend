@@ -2,10 +2,13 @@ package com.beggar.api.service;
 
 import com.beggar.api.dto.receipt.ReceiptCreateRequest;
 import com.beggar.api.dto.receipt.ReceiptResponse;
+import com.beggar.api.dto.receipt.ReceiptUpdateRequest;
 import com.beggar.api.entity.Receipt;
+import com.beggar.api.entity.ReceiptSplit;
 import com.beggar.api.entity.Room;
 import com.beggar.api.entity.RoomMember;
 import com.beggar.api.repository.ReceiptRepository;
+import com.beggar.api.repository.ReceiptSplitRepository;
 import com.beggar.api.repository.RoomMemberRepository;
 import com.beggar.api.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +16,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -21,6 +23,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ReceiptService {
     private final ReceiptRepository receiptRepository;
+    private final ReceiptSplitRepository receiptSplitRepository;
     private final RoomRepository roomRepository;
     private final RoomMemberRepository roomMemberRepository;
 
@@ -33,43 +36,82 @@ public class ReceiptService {
     // TODO: applyOcrResult(receiptId, payload)     — OCR 콜백 (AI 서버 → 결과 반영)
 
     @Transactional
-    public Long create(ReceiptCreateRequest request) {
-        Room room = roomRepository.getReferenceById(request.roomNo());
-        RoomMember uploader = roomMemberRepository.getReferenceById(request.uploaderUserNo());
-        Receipt savedEntity = receiptRepository.save(request.toEntity(room, uploader));
-        return savedEntity.getReceiptId();
+    public ReceiptResponse create(Long roomNo, ReceiptCreateRequest request) {
+        Room room = roomRepository.getReferenceById(roomNo);
+        RoomMember uploader = roomMemberRepository
+                .findByRoom_RoomNoAndUser_UserNo(roomNo, request.uploaderUserNo())
+                .orElseThrow(() -> new IllegalArgumentException("방 멤버만 영수증을 등록할 수 있습니다."));
+
+        Receipt receipt = Receipt.builder()
+                .room(room)
+                .uploader(uploader)
+                .receiptType(request.receiptType())
+                .inputMethod(request.inputMethod())
+                .imageUrl(request.imageUrl())
+                .ocrStatus(null)
+                .storeName(request.storeName())
+                .totalAmount(request.totalAmount())
+                .amount(request.amount())
+                .address(request.address())
+                .centerLat(request.centerLat())
+                .centerLng(request.centerLng())
+                .build();
+
+        Receipt saved = receiptRepository.save(receipt);
+
+        if (request.receiptType() == Receipt.ReceiptType.SPLIT && request.splits() != null) {
+            request.splits().forEach(split -> {
+                RoomMember splitMember = roomMemberRepository.getReferenceById(split.roomMemberId());
+                receiptSplitRepository.save(ReceiptSplit.builder()
+                        .receipt(saved)
+                        .roomMember(splitMember)
+                        .amount(split.amount())
+                        .build());
+            });
+        }
+
+        return ReceiptResponse.from(saved);
     }
 
-    public List<ReceiptCreateRequest> read() {
-        return receiptRepository.findAll().stream()
-                .map(ReceiptCreateRequest::from)
+    public List<ReceiptResponse> read(Long roomNo) {
+        return receiptRepository.findAllByRoom_RoomNoOrderByCreatedAtDesc(roomNo).stream()
+                .map(ReceiptResponse::from)
                 .collect(Collectors.toList());
     }
 
-    public ReceiptCreateRequest readOne(Long receiptId) {
+    public ReceiptResponse readOne(Long roomNo, Long receiptId) {
         return receiptRepository.findById(receiptId)
-                .map(ReceiptCreateRequest::from)
+                .filter(receipt -> receipt.getRoom().getRoomNo().equals(roomNo))
+                .map(ReceiptResponse::from)
                 .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
     }
 
     @Transactional
-    public boolean update(Long receiptId, ReceiptCreateRequest request) {
-        return receiptRepository.findById(receiptId)
-                .map(receipt -> {
-                    receipt.applyOcrResult(
-                            request.storeName(), request.totalAmount(),
-                            request.address(), request.centerLat(), request.centerLng()
-                    );
-                    return true;
-                }).orElse(false);
+    public ReceiptResponse updateAmount(Long roomNo, Long receiptId, ReceiptUpdateRequest request) {
+        Receipt receipt = receiptRepository.findById(receiptId)
+                .filter(found -> found.getRoom().getRoomNo().equals(roomNo))
+                .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
+        receipt.updateAmount(request.amount());
+        return ReceiptResponse.from(receipt);
     }
 
     @Transactional
-    public boolean delete(Long receiptId) {
-        if (receiptRepository.existsById(receiptId)) {
-            receiptRepository.deleteById(receiptId);
-            return true;
-        }
-        return false;
+    public ReceiptResponse applyOcrResult(Long roomNo, Long receiptId, ReceiptCreateRequest request) {
+        Receipt receipt = receiptRepository.findById(receiptId)
+                .filter(found -> found.getRoom().getRoomNo().equals(roomNo))
+                .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
+        receipt.applyOcrResult(
+                request.storeName(), request.totalAmount(),
+                request.address(), request.centerLat(), request.centerLng()
+        );
+        return ReceiptResponse.from(receipt);
+    }
+
+    @Transactional
+    public void delete(Long roomNo, Long receiptId) {
+        Receipt receipt = receiptRepository.findById(receiptId)
+                .filter(found -> found.getRoom().getRoomNo().equals(roomNo))
+                .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
+        receiptRepository.delete(receipt);
     }
 }

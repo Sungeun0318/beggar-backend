@@ -12,13 +12,13 @@ USE beggar;
 
 -- 1. users
 CREATE TABLE IF NOT EXISTS users (
-  user_no            INT          NOT NULL AUTO_INCREMENT,
+  user_no            BIGINT       NOT NULL AUTO_INCREMENT,
   user_name          VARCHAR(15)  NOT NULL,
   password_hash      VARCHAR(255) NULL,
   profile_image_url  VARCHAR(500) NULL,
   uemail             VARCHAR(100) NOT NULL,
-  gender             VARCHAR(20)  NULL,
-  age_range          VARCHAR(20)  NULL,
+  gender             INT          NULL,
+  age                INT          NULL,
   role               VARCHAR(20)  NOT NULL DEFAULT 'USER',
   created_at         DATETIME     NOT NULL,
   updated_at         DATETIME     NOT NULL,
@@ -29,8 +29,8 @@ CREATE TABLE IF NOT EXISTS users (
 
 -- 2. rooms
 CREATE TABLE IF NOT EXISTS rooms (
-  room_no       INT          NOT NULL AUTO_INCREMENT,
-  user_no       INT          NOT NULL,
+  room_no       BIGINT       NOT NULL AUTO_INCREMENT,
+  user_no       BIGINT       NOT NULL,
   room_name     VARCHAR(15)  NOT NULL,
   room_code     VARCHAR(15)  NOT NULL,
   max_member_count INT        NOT NULL DEFAULT 100,
@@ -45,9 +45,9 @@ CREATE TABLE IF NOT EXISTS rooms (
 
 -- 3. room_members
 CREATE TABLE IF NOT EXISTS room_members (
-  room_member_id  INT          NOT NULL AUTO_INCREMENT,
-  room_no         INT          NOT NULL,
-  user_no         INT          NOT NULL,
+  room_member_id  BIGINT       NOT NULL AUTO_INCREMENT,
+  room_no         BIGINT       NOT NULL,
+  user_no         BIGINT       NOT NULL,
   status          VARCHAR(15)  NOT NULL,
   joined_at       DATETIME     NOT NULL,
   left_at         DATETIME     NULL,
@@ -59,8 +59,8 @@ CREATE TABLE IF NOT EXISTS room_members (
 
 -- 4. room_purpose_tags
 CREATE TABLE IF NOT EXISTS room_purpose_tags (
-  tag_id    INT          NOT NULL AUTO_INCREMENT,
-  room_no   INT          NOT NULL,
+  tag_id    BIGINT       NOT NULL AUTO_INCREMENT,
+  room_no   BIGINT       NOT NULL,
   tag_tags  VARCHAR(30)  NOT NULL,
   PRIMARY KEY (tag_id),
   CONSTRAINT fk_tags_room FOREIGN KEY (room_no) REFERENCES rooms(room_no)
@@ -68,8 +68,8 @@ CREATE TABLE IF NOT EXISTS room_purpose_tags (
 
 -- 5. budgets
 CREATE TABLE IF NOT EXISTS budgets (
-  budget_id       INT       NOT NULL AUTO_INCREMENT,
-  room_member_id  INT       NOT NULL,
+  budget_id       BIGINT    NOT NULL AUTO_INCREMENT,
+  room_member_id  BIGINT    NOT NULL,
   budget_amount   INT       NOT NULL,
   submitted_at    DATETIME  NOT NULL,
   PRIMARY KEY (budget_id),
@@ -79,8 +79,8 @@ CREATE TABLE IF NOT EXISTS budgets (
 
 -- 6. room_budget_results
 CREATE TABLE IF NOT EXISTS room_budget_results (
-  result_id              INT       NOT NULL AUTO_INCREMENT,
-  room_no                INT       NOT NULL,
+  result_id              BIGINT    NOT NULL AUTO_INCREMENT,
+  room_no                BIGINT    NOT NULL,
   min_budget_per_person  INT       NOT NULL,
   member_count           INT       NOT NULL,
   total_budget           INT       NOT NULL,
@@ -92,9 +92,9 @@ CREATE TABLE IF NOT EXISTS room_budget_results (
 
 -- 7. receipts
 CREATE TABLE IF NOT EXISTS receipts (
-  receipt_id      INT            NOT NULL AUTO_INCREMENT,
-  room_no         INT            NOT NULL,
-  room_member_id  INT            NOT NULL,
+  receipt_id      BIGINT         NOT NULL AUTO_INCREMENT,
+  room_no         BIGINT         NOT NULL,
+  room_member_id  BIGINT         NOT NULL,
   receipt_type    VARCHAR(20)    NOT NULL,
   input_method    VARCHAR(20)    NOT NULL,
   image_url       VARCHAR(500)   NULL,
@@ -119,9 +119,9 @@ CREATE TABLE IF NOT EXISTS receipts (
 
 -- 8. receipt_splits
 CREATE TABLE IF NOT EXISTS receipt_splits (
-  split_id        INT       NOT NULL AUTO_INCREMENT,
-  receipt_id      INT       NOT NULL,
-  room_member_id  INT       NOT NULL,
+  split_id        BIGINT    NOT NULL AUTO_INCREMENT,
+  receipt_id      BIGINT    NOT NULL,
+  room_member_id  BIGINT    NOT NULL,
   amount          INT       NOT NULL,
   created_at      DATETIME  NOT NULL,
   updated_at      DATETIME  NOT NULL,
@@ -133,8 +133,8 @@ CREATE TABLE IF NOT EXISTS receipt_splits (
 
 -- 9. room_beggar_scores
 CREATE TABLE IF NOT EXISTS room_beggar_scores (
-  score_id                    INT           NOT NULL AUTO_INCREMENT,
-  room_no                     INT           NOT NULL,
+  score_id                    BIGINT        NOT NULL AUTO_INCREMENT,
+  room_no                     BIGINT        NOT NULL,
   score                       INT           NOT NULL DEFAULT 0,
   title                       VARCHAR(30)   NOT NULL DEFAULT '아기 거지',
   total_spent_amount          BIGINT        NOT NULL DEFAULT 0,
@@ -152,8 +152,8 @@ CREATE TABLE IF NOT EXISTS room_beggar_scores (
 
 -- 10. community_posts
 CREATE TABLE IF NOT EXISTS community_posts (
-  post_id     INT           NOT NULL AUTO_INCREMENT,
-  user_no     INT           NOT NULL,
+  post_id     BIGINT        NOT NULL AUTO_INCREMENT,
+  user_no     BIGINT        NOT NULL,
   title       VARCHAR(100)  NOT NULL,
   content     TEXT          NOT NULL,
   category    VARCHAR(30)   NULL,
