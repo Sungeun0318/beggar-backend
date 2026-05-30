@@ -308,12 +308,15 @@ WebFlux의 `WebClient` 두 개:
 - `listByRoom(roomNo)` → `List<ReceiptResponse>` (최신순)
 - `applyOcrResult(receiptId, ...)` — OCR 콜백 (Python에서 push)
 
-### `service/RecommendationService.java` ⚠ 구현 예정
-- `recommend(roomNo)` → `RecommendationResponse`
-  - `Room` 조회로 totalBudget + tags 확보
-  - `aiServerWebClient.get()` → `/recommend?roomNo=...&budget=...&tags=...` 호출
-  - 응답을 `RecommendationResponse.Place`로 매핑
-  - **DB에 적재하지 않음** (채택률 트래킹 제외)
+### `service/RecommendationService.java` ✅ 1차 구현
+- `recommend(roomNo, tag, region)` → `RecommendationResponse`
+  - `Room` 조회로 totalBudget 확보
+  - `ReceiptRepository.sumAmountByRoomNo(roomNo)`로 사용 금액/남은 예산 계산
+  - `GoodPriceStoreClient`로 행정안전부 착한가격업소 OpenAPI 호출
+  - 지역 문자열은 주소 포함 여부로 필터링 (`서울특별시 중구` 등)
+  - 태그는 한식/양식/일식/중식/기타요식업 및 식사/카페/놀거리 매칭 규칙으로 필터링
+  - 카테고리 기본 이미지 경로(`thumbnailUrl`)와 카카오맵 검색 링크(`mapUrl`)를 함께 반환
+  - **DB에 적재하지 않음** (추천 이력/채택률 트래킹은 후속 작업)
 
 ### `service/BeggarScoreService.java` ⚠ 구현 예정
 - 산식 후보: `score = 예산준수율 35% + 절약률 35% + 착한가격업소 인증 점수 30%` (0~100)
@@ -363,8 +366,8 @@ WebFlux의 `WebClient` 두 개:
 - `PATCH /rooms/{roomNo}/receipts/{receiptId}` (`ReceiptUpdateRequest`) → `ReceiptResponse`
 - `GET /rooms/{roomNo}/receipts` → `List<ReceiptResponse>`
 
-### `controller/RecommendationController.java` ⚠ 구현 예정 — `/rooms/{roomNo}/recommend`
-- `GET /rooms/{roomNo}/recommend` → `RecommendationResponse`
+### `controller/RecommendationController.java` ✅ 1차 구현 — `/rooms/{roomNo}/recommend`
+- `GET /rooms/{roomNo}/recommend?tag={tag}&region={region}` → `RecommendationResponse`
 
 ### `controller/CommunityController.java` ⚠ 구현 예정 — `/community/**`
 - `GET /community/posts` → 게시글 목록
@@ -400,7 +403,8 @@ WebFlux의 `WebClient` 두 개:
 - `ReceiptResponse(...)` — 모든 컬럼 (uploaderUserNo는 `RoomMember.user.userNo`로 평탄화)
 
 ### dto/recommendation/
-- `RecommendationResponse(roomNo, totalBudget, places)` + 내부 `record Place(...)`
+- `RecommendationResponse(roomNo, totalBudget, spentAmount, remainingBudget, requestedTag, requestedRegion, places)` + 내부 `record Place(...)`
+- `Place`: `storeId`, `name`, `category`, `expectedPrice`, `walkTime`, `rating`, `thumbnailUrl`, `address`, `mapUrl`, `lat`, `lng`, `source`, `reason`
 
 ### dto/ranking/
 - `RankingEntryResponse(rank, roomNo, roomName, score, title)` + `of(rank, RoomBeggarScore)`

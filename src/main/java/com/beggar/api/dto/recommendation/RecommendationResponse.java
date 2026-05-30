@@ -8,6 +8,7 @@ public record RecommendationResponse(
         Long spentAmount,
         Integer remainingBudget,
         String requestedTag,
+        String requestedRegion,
         List<Place> places
 ) {
     public record Place(

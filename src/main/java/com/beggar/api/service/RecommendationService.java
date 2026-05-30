@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -25,6 +26,8 @@ import java.util.Locale;
 public class RecommendationService {
 
     private static final int DEFAULT_RESULT_SIZE = 5;
+    private static final int GOOD_PRICE_PAGE_SIZE = 100;
+    private static final int GOOD_PRICE_MAX_PAGE = 10;
 
     private final RoomRepository roomRepository;
     private final RoomPurposeTagRepository roomPurposeTagRepository;
@@ -32,6 +35,10 @@ public class RecommendationService {
     private final GoodPriceStoreClient goodPriceStoreClient;
 
     public RecommendationResponse recommend(Long roomNo, String requestedTag) {
+        return recommend(roomNo, requestedTag, null);
+    }
+
+    public RecommendationResponse recommend(Long roomNo, String requestedTag, String requestedRegion) {
         Room room = roomRepository.findById(roomNo)
                 .orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없습니다. roomNo=" + roomNo));
         String tag = resolveTag(roomNo, requestedTag);
@@ -39,15 +46,31 @@ public class RecommendationService {
         Integer totalBudget = room.getTotalBudget();
         Integer remainingBudget = totalBudget == null ? null : Math.max(0, totalBudget - Math.toIntExact(spentAmount));
 
-        List<RecommendationResponse.Place> places = goodPriceStoreClient.search(1, 100).stream()
-                .filter(store -> matchesTag(store, tag))
-                .sorted(Comparator.comparing((GoodPriceStore store) -> affordableRank(store, remainingBudget))
-                        .thenComparing(store -> store.price() == null ? Integer.MAX_VALUE : store.price()))
+        List<GoodPriceStore> stores = findGoodPriceStores(tag, requestedRegion, remainingBudget);
+
+        List<RecommendationResponse.Place> places = stores.stream()
                 .limit(DEFAULT_RESULT_SIZE)
                 .map(store -> toPlace(store, remainingBudget, tag))
                 .toList();
 
-        return new RecommendationResponse(roomNo, totalBudget, spentAmount, remainingBudget, tag, places);
+        return new RecommendationResponse(roomNo, totalBudget, spentAmount, remainingBudget, tag, requestedRegion, places);
+    }
+
+    private List<GoodPriceStore> findGoodPriceStores(String tag, String requestedRegion, Integer remainingBudget) {
+        List<GoodPriceStore> stores = new ArrayList<>();
+        for (int page = 1; page <= GOOD_PRICE_MAX_PAGE && stores.size() < DEFAULT_RESULT_SIZE; page++) {
+            List<GoodPriceStore> pageStores = goodPriceStoreClient.search(page, GOOD_PRICE_PAGE_SIZE).stream()
+                .filter(store -> matchesRegion(store, requestedRegion))
+                .filter(store -> matchesTag(store, tag))
+                .sorted(Comparator.comparing((GoodPriceStore store) -> affordableRank(store, remainingBudget))
+                        .thenComparing(store -> store.price() == null ? Integer.MAX_VALUE : store.price()))
+                .toList();
+            stores.addAll(pageStores);
+        }
+        return stores.stream()
+                .sorted(Comparator.comparing((GoodPriceStore store) -> affordableRank(store, remainingBudget))
+                        .thenComparing(store -> store.price() == null ? Integer.MAX_VALUE : store.price()))
+                .toList();
     }
 
     private String resolveTag(Long roomNo, String requestedTag) {
@@ -73,6 +96,19 @@ public class RecommendationService {
                 || ("식사".equals(normalizedTag) && containsAnyKeyword(new String[]{category, itemName, name}, "음식", "외식", "한식", "중식", "일식", "양식", "분식"))
                 || ("카페".equals(normalizedTag) && containsAnyKeyword(new String[]{category, itemName, name}, "카페", "커피", "음료", "차"))
                 || ("놀거리".equals(normalizedTag) && containsAnyKeyword(new String[]{category, itemName, name}, "문화", "여가", "노래", "볼링", "당구", "보드게임"));
+    }
+
+    private boolean matchesRegion(GoodPriceStore store, String region) {
+        if (region == null || region.isBlank()) {
+            return true;
+        }
+        String address = normalize(store.address());
+        for (String keyword : region.trim().split("\\s+")) {
+            if (!address.contains(normalize(keyword))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private int affordableRank(GoodPriceStore store, Integer remainingBudget) {

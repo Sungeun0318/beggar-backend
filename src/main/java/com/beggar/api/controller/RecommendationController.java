@@ -18,7 +18,8 @@ public class RecommendationController {
 
     @GetMapping
     public RecommendationResponse recommend(@PathVariable Long roomNo,
-                                            @RequestParam(required = false) String tag) {
-        return recommendationService.recommend(roomNo, tag);
+                                            @RequestParam(required = false) String tag,
+                                            @RequestParam(required = false) String region) {
+        return recommendationService.recommend(roomNo, tag, region);
     }
 }
