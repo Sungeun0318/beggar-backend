@@ -23,7 +23,7 @@ public class RoomCreateRequest {
         this.tags = tags;
     }
 
-    public Boolean getFriends() {
+    public Boolean getIsFriends() {
         return isFriends;
     }
 
