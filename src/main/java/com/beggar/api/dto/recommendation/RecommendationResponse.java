@@ -7,6 +7,9 @@ public record RecommendationResponse(
         Integer totalBudget,
         Long spentAmount,
         Integer remainingBudget,
+        Integer recommendationBudget,
+        String budgetGuide,
+        Boolean fallbackApplied,
         String requestedTag,
         String requestedRegion,
         List<Place> places

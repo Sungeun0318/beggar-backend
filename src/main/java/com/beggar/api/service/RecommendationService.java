@@ -6,6 +6,7 @@ import com.beggar.api.dto.recommendation.RecommendationResponse;
 import com.beggar.api.entity.Room;
 import com.beggar.api.entity.RoomPurposeTag;
 import com.beggar.api.repository.ReceiptRepository;
+import com.beggar.api.repository.RoomMemberRepository;
 import com.beggar.api.repository.RoomPurposeTagRepository;
 import com.beggar.api.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ public class RecommendationService {
 
     private final RoomRepository roomRepository;
     private final RoomPurposeTagRepository roomPurposeTagRepository;
+    private final RoomMemberRepository roomMemberRepository;
     private final ReceiptRepository receiptRepository;
     private final GoodPriceStoreClient goodPriceStoreClient;
 
@@ -45,30 +47,74 @@ public class RecommendationService {
         long spentAmount = receiptRepository.sumAmountByRoomNo(roomNo);
         Integer totalBudget = room.getTotalBudget();
         Integer remainingBudget = totalBudget == null ? null : Math.max(0, totalBudget - Math.toIntExact(spentAmount));
+        long activeMemberCount = Math.max(1, roomMemberRepository.countByRoom_RoomNoAndStatus(roomNo, com.beggar.api.entity.RoomMember.Status.ACTIVE));
+        Integer recommendationBudget = recommendationBudget(remainingBudget, activeMemberCount, tag);
 
-        List<GoodPriceStore> stores = findGoodPriceStores(tag, requestedRegion, remainingBudget);
+        RecommendationCandidates candidates = findGoodPriceStores(
+                tag,
+                requestedRegion,
+                remainingBudget,
+                recommendationBudget,
+                activeMemberCount
+        );
 
-        List<RecommendationResponse.Place> places = stores.stream()
+        List<RecommendationResponse.Place> places = candidates.stores().stream()
                 .limit(DEFAULT_RESULT_SIZE)
-                .map(store -> toPlace(store, remainingBudget, tag))
+                .map(store -> toPlace(store, recommendationBudget, tag))
                 .toList();
+        boolean fallbackApplied = candidates.fallbackApplied() || (remainingBudget != null && remainingBudget <= 0);
 
-        return new RecommendationResponse(roomNo, totalBudget, spentAmount, remainingBudget, tag, requestedRegion, places);
+        return new RecommendationResponse(
+                roomNo,
+                totalBudget,
+                spentAmount,
+                remainingBudget,
+                recommendationBudget,
+                budgetGuide(recommendationBudget, tag, fallbackApplied),
+                fallbackApplied,
+                tag,
+                requestedRegion,
+                places
+        );
     }
 
-    private List<GoodPriceStore> findGoodPriceStores(String tag, String requestedRegion, Integer remainingBudget) {
-        List<GoodPriceStore> stores = new ArrayList<>();
-        for (int page = 1; page <= GOOD_PRICE_MAX_PAGE && stores.size() < DEFAULT_RESULT_SIZE; page++) {
-            List<GoodPriceStore> pageStores = goodPriceStoreClient.search(page, GOOD_PRICE_PAGE_SIZE).stream()
+    private RecommendationCandidates findGoodPriceStores(String tag, String requestedRegion,
+                                                         Integer remainingBudget, Integer recommendationBudget,
+                                                         long activeMemberCount) {
+        List<GoodPriceStore> allStores = new ArrayList<>();
+        for (int page = 1; page <= GOOD_PRICE_MAX_PAGE; page++) {
+            allStores.addAll(goodPriceStoreClient.search(page, GOOD_PRICE_PAGE_SIZE));
+        }
+
+        List<GoodPriceStore> strictBudget = filterStores(allStores, tag, requestedRegion, recommendationBudget);
+        if (strictBudget.size() >= DEFAULT_RESULT_SIZE) {
+            return new RecommendationCandidates(strictBudget, false);
+        }
+
+        List<GoodPriceStore> perPersonBudget = filterStores(
+                allStores,
+                tag,
+                requestedRegion,
+                perPersonRemainingBudget(remainingBudget, activeMemberCount)
+        );
+        if (perPersonBudget.size() >= DEFAULT_RESULT_SIZE) {
+            return new RecommendationCandidates(perPersonBudget, true);
+        }
+
+        List<GoodPriceStore> noBudgetLimit = filterStores(allStores, tag, requestedRegion, null);
+        if (noBudgetLimit.size() >= DEFAULT_RESULT_SIZE || requestedRegion == null || requestedRegion.isBlank()) {
+            return new RecommendationCandidates(noBudgetLimit, true);
+        }
+
+        return new RecommendationCandidates(filterStores(allStores, tag, null, null), true);
+    }
+
+    private List<GoodPriceStore> filterStores(List<GoodPriceStore> stores, String tag, String requestedRegion, Integer maxPrice) {
+        return stores.stream()
                 .filter(store -> matchesRegion(store, requestedRegion))
                 .filter(store -> matchesTag(store, tag))
-                .sorted(Comparator.comparing((GoodPriceStore store) -> affordableRank(store, remainingBudget))
-                        .thenComparing(store -> store.price() == null ? Integer.MAX_VALUE : store.price()))
-                .toList();
-            stores.addAll(pageStores);
-        }
-        return stores.stream()
-                .sorted(Comparator.comparing((GoodPriceStore store) -> affordableRank(store, remainingBudget))
+                .filter(store -> maxPrice == null || store.price() == null || store.price() <= maxPrice)
+                .sorted(Comparator.comparing((GoodPriceStore store) -> affordableRank(store, maxPrice))
                         .thenComparing(store -> store.price() == null ? Integer.MAX_VALUE : store.price()))
                 .toList();
     }
@@ -118,6 +164,34 @@ public class RecommendationService {
         return store.price() <= remainingBudget ? 0 : 2;
     }
 
+    private Integer recommendationBudget(Integer remainingBudget, long activeMemberCount, String tag) {
+        Integer perPerson = perPersonRemainingBudget(remainingBudget, activeMemberCount);
+        if (perPerson == null || perPerson <= 0) {
+            return null;
+        }
+
+        double ratio = switch (recommendationTagGroup(tag)) {
+            case "CAFE" -> 0.6;
+            case "PLAY" -> 1.0;
+            default -> 0.7;
+        };
+        return Math.max(0, (int) Math.floor(perPerson * ratio));
+    }
+
+    private Integer perPersonRemainingBudget(Integer remainingBudget) {
+        return perPersonRemainingBudget(remainingBudget, 1);
+    }
+
+    private Integer perPersonRemainingBudget(Integer remainingBudget, long activeMemberCount) {
+        if (remainingBudget == null) {
+            return null;
+        }
+        if (remainingBudget <= 0) {
+            return null;
+        }
+        return (int) Math.floor((double) remainingBudget / Math.max(1, activeMemberCount));
+    }
+
     private RecommendationResponse.Place toPlace(GoodPriceStore store, Integer remainingBudget, String tag) {
         Double lat = toDouble(store.lat());
         Double lng = toDouble(store.lng());
@@ -141,14 +215,42 @@ public class RecommendationService {
         );
     }
 
-    private String buildReason(GoodPriceStore store, Integer remainingBudget, String tag) {
-        if (store.price() != null && remainingBudget != null && store.price() <= remainingBudget) {
-            return "남은 예산 안에서 갈 수 있는 착한가격업소예요.";
+    private String buildReason(GoodPriceStore store, Integer recommendationBudget, String tag) {
+        if (store.price() != null && recommendationBudget != null && store.price() <= recommendationBudget) {
+            return "다음 일정까지 고려한 1인 추천 예산 안에 들어오는 착한가격업소예요.";
         }
         if (tag != null && !tag.isBlank()) {
             return tag + " 태그와 맞는 착한가격업소예요.";
         }
         return "착한가격업소 기준으로 추천했어요.";
+    }
+
+    private String budgetGuide(Integer recommendationBudget, String tag, boolean fallbackApplied) {
+        if (recommendationBudget == null) {
+            return fallbackApplied
+                    ? "남은 예산이 부족해서 가격 조건을 빼고 태그와 지역 기준으로 추천했어요."
+                    : "예산 정보 없이 지역과 태그 기준으로 추천했어요.";
+        }
+        String base = "%s 기준 1인 추천 예산은 약 %,d원이에요.".formatted(displayTag(tag), recommendationBudget);
+        if (fallbackApplied) {
+            return base + " 결과가 부족해 조건을 조금 넓혀 보여드려요.";
+        }
+        return base + " 다음 일정에 쓸 돈을 남기는 기준이에요.";
+    }
+
+    private String displayTag(String tag) {
+        return tag == null || tag.isBlank() ? "현재 태그" : tag;
+    }
+
+    private String recommendationTagGroup(String tag) {
+        String normalizedTag = normalize(tag);
+        if (containsAnyKeyword(new String[]{normalizedTag}, "카페", "커피", "음료")) {
+            return "CAFE";
+        }
+        if (containsAnyKeyword(new String[]{normalizedTag}, "놀거리", "문화", "여가")) {
+            return "PLAY";
+        }
+        return "FOOD";
     }
 
     private String kakaoMapSearchUrl(String name, String address) {
@@ -198,5 +300,8 @@ public class RecommendationService {
 
     private Double toDouble(BigDecimal value) {
         return value == null ? null : value.doubleValue();
+    }
+
+    private record RecommendationCandidates(List<GoodPriceStore> stores, boolean fallbackApplied) {
     }
 }

@@ -320,6 +320,8 @@ WebFlux의 `WebClient` 두 개:
 - `recommend(roomNo, tag, region)` → `RecommendationResponse`
   - `Room` 조회로 totalBudget 확보
   - `ReceiptRepository.sumAmountByRoomNo(roomNo)`로 사용 금액/남은 예산 계산
+  - 활성 멤버 수로 1인 남은 예산을 계산한 뒤 태그별 추천 예산 산출
+  - 결과 부족 시 1인 남은 예산 전체 → 가격 조건 제거 → 지역 조건 완화 순서로 fallback
   - `GoodPriceStoreClient`로 행정안전부 착한가격업소 OpenAPI 호출
   - 지역 문자열은 주소 포함 여부로 필터링 (`서울특별시 중구` 등)
   - 태그는 한식/양식/일식/중식/기타요식업 및 식사/카페/놀거리 매칭 규칙으로 필터링
@@ -411,7 +413,7 @@ WebFlux의 `WebClient` 두 개:
 - `ReceiptResponse(...)` — 모든 컬럼 (uploaderUserNo는 `RoomMember.user.userNo`로 평탄화)
 
 ### dto/recommendation/
-- `RecommendationResponse(roomNo, totalBudget, spentAmount, remainingBudget, requestedTag, requestedRegion, places)` + 내부 `record Place(...)`
+- `RecommendationResponse(roomNo, totalBudget, spentAmount, remainingBudget, recommendationBudget, budgetGuide, fallbackApplied, requestedTag, requestedRegion, places)` + 내부 `record Place(...)`
 - `Place`: `storeId`, `name`, `category`, `expectedPrice`, `walkTime`, `rating`, `thumbnailUrl`, `address`, `mapUrl`, `lat`, `lng`, `source`, `reason`
 
 ### dto/ranking/
