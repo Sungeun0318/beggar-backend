@@ -5,7 +5,7 @@ import lombok.Getter;
 import java.time.LocalDateTime;
 
 @Getter
-@AllArgsConstructor // 💡 모든 필드를 파라미터로 받는 생성자를 롬복이 자동으로 만들어줍니다!
+@AllArgsConstructor
 public class RoomResponse {
     private Long roomNo;
     private String roomName;
