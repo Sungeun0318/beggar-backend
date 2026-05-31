@@ -4,6 +4,7 @@ import com.beggar.api.common.exception.CustomException;
 import com.beggar.api.common.exception.ErrorCode;
 import com.beggar.api.dto.room.RoomCreateRequest;
 import com.beggar.api.dto.room.RoomResponse;
+import com.beggar.api.entity.Room;
 import com.beggar.api.entity.User;
 import com.beggar.api.repository.RoomMemberRepository;
 import com.beggar.api.repository.RoomPurposeTagRepository;
@@ -18,15 +19,22 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true) // 데이터 조회 속도 최적화
 public class RoomService {
     private final RoomRepository roomRepository;
-    private final RoomMemberRepository roomMemberRepository;
-    private final RoomPurposeTagRepository roomPurposeTagRepository;
-
 
     /* 방 생성(create) */
     public RoomResponse createRoom(RoomCreateRequest request,Long userNo){
         String roomCode = generateRandomCode(12);
         System.out.println("생성된 12자리 초대 코드:" + roomCode);
-        return null; // 일단은 컴파일 에러 안 나게 임시 리턴
+
+        Room room = new Room(
+                request.getRoomName(),
+                roomCode,
+                userNo,
+                request.getIsFriends()
+        );
+
+        Room savedRoom = roomRepository.save(room);
+
+        return null;
     }
 
     private String generateRandomCode(int length){
