@@ -19,6 +19,7 @@ public record RecommendationResponse(
             String name,
             String category,         // 중식 / 한식 / 일식 / 양식 / 기타요식업
             Integer expectedPrice,
+            String menuName,
             String walkTime,         // "도보 5분"
             Double rating,
             String thumbnailUrl,

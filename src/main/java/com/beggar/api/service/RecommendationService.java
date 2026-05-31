@@ -2,6 +2,7 @@ package com.beggar.api.service;
 
 import com.beggar.api.client.goodprice.GoodPriceStoreClient;
 import com.beggar.api.dto.goodprice.GoodPriceStore;
+import com.beggar.api.dto.location.LocationSearchResponse;
 import com.beggar.api.dto.recommendation.RecommendationResponse;
 import com.beggar.api.entity.Room;
 import com.beggar.api.entity.RoomPurposeTag;
@@ -35,12 +36,18 @@ public class RecommendationService {
     private final RoomMemberRepository roomMemberRepository;
     private final ReceiptRepository receiptRepository;
     private final GoodPriceStoreClient goodPriceStoreClient;
+    private final LocationService locationService;
 
     public RecommendationResponse recommend(Long roomNo, String requestedTag) {
         return recommend(roomNo, requestedTag, null);
     }
 
     public RecommendationResponse recommend(Long roomNo, String requestedTag, String requestedRegion) {
+        return recommend(roomNo, requestedTag, requestedRegion, null, null, 2000);
+    }
+
+    public RecommendationResponse recommend(Long roomNo, String requestedTag, String requestedRegion,
+                                            Double lat, Double lng, Integer radius) {
         Room room = roomRepository.findById(roomNo)
                 .orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없습니다. roomNo=" + roomNo));
         String tag = resolveTag(roomNo, requestedTag);
@@ -49,18 +56,22 @@ public class RecommendationService {
         Integer remainingBudget = totalBudget == null ? null : Math.max(0, totalBudget - Math.toIntExact(spentAmount));
         long activeMemberCount = Math.max(1, roomMemberRepository.countByRoom_RoomNoAndStatus(roomNo, com.beggar.api.entity.RoomMember.Status.ACTIVE));
         Integer recommendationBudget = recommendationBudget(remainingBudget, activeMemberCount, tag);
+        String region = resolveRecommendationRegion(requestedRegion, lat, lng);
 
         RecommendationCandidates candidates = findGoodPriceStores(
                 tag,
-                requestedRegion,
+                region,
                 remainingBudget,
                 recommendationBudget,
-                activeMemberCount
+                activeMemberCount,
+                lat,
+                lng,
+                radius
         );
 
         List<RecommendationResponse.Place> places = candidates.stores().stream()
                 .limit(DEFAULT_RESULT_SIZE)
-                .map(store -> toPlace(store, recommendationBudget, tag))
+                .map(store -> toPlace(store, recommendationBudget, tag, lat, lng))
                 .toList();
         boolean fallbackApplied = candidates.fallbackApplied() || (remainingBudget != null && remainingBudget <= 0);
 
@@ -73,20 +84,41 @@ public class RecommendationService {
                 budgetGuide(recommendationBudget, tag, fallbackApplied),
                 fallbackApplied,
                 tag,
-                requestedRegion,
+                region,
                 places
         );
     }
 
     private RecommendationCandidates findGoodPriceStores(String tag, String requestedRegion,
                                                          Integer remainingBudget, Integer recommendationBudget,
-                                                         long activeMemberCount) {
+                                                         long activeMemberCount,
+                                                         Double lat, Double lng, Integer radius) {
         List<GoodPriceStore> allStores = new ArrayList<>();
-        for (int page = 1; page <= GOOD_PRICE_MAX_PAGE; page++) {
-            allStores.addAll(goodPriceStoreClient.search(page, GOOD_PRICE_PAGE_SIZE));
+        String addressKeyword = regionKeyword(requestedRegion);
+        if (!addressKeyword.isBlank()) {
+            try {
+                allStores.addAll(goodPriceStoreClient.searchByAddressKeyword(addressKeyword, 1, GOOD_PRICE_PAGE_SIZE * 3));
+            } catch (RuntimeException ignored) {
+                allStores.clear();
+            }
+        }
+        for (int page = 1; allStores.isEmpty() && page <= GOOD_PRICE_MAX_PAGE && allStores.size() < GOOD_PRICE_PAGE_SIZE * 3; page++) {
+            List<GoodPriceStore> pageStores;
+            try {
+                pageStores = goodPriceStoreClient.search(page, GOOD_PRICE_PAGE_SIZE);
+            } catch (RuntimeException e) {
+                break;
+            }
+            if (pageStores.isEmpty()) {
+                break;
+            }
+            allStores.addAll(pageStores);
         }
 
-        List<GoodPriceStore> strictBudget = filterStores(allStores, tag, requestedRegion, recommendationBudget);
+        Double filterLat = requestedRegion == null || requestedRegion.isBlank() ? lat : null;
+        Double filterLng = requestedRegion == null || requestedRegion.isBlank() ? lng : null;
+
+        List<GoodPriceStore> strictBudget = filterStores(allStores, tag, requestedRegion, recommendationBudget, filterLat, filterLng, radius);
         if (strictBudget.size() >= DEFAULT_RESULT_SIZE) {
             return new RecommendationCandidates(strictBudget, false);
         }
@@ -95,26 +127,60 @@ public class RecommendationService {
                 allStores,
                 tag,
                 requestedRegion,
-                perPersonRemainingBudget(remainingBudget, activeMemberCount)
+                perPersonRemainingBudget(remainingBudget, activeMemberCount),
+                filterLat,
+                filterLng,
+                radius
         );
         if (perPersonBudget.size() >= DEFAULT_RESULT_SIZE) {
             return new RecommendationCandidates(perPersonBudget, true);
         }
 
-        List<GoodPriceStore> noBudgetLimit = filterStores(allStores, tag, requestedRegion, null);
-        if (noBudgetLimit.size() >= DEFAULT_RESULT_SIZE || requestedRegion == null || requestedRegion.isBlank()) {
+        List<GoodPriceStore> noBudgetLimit = filterStores(allStores, tag, requestedRegion, null, filterLat, filterLng, radius);
+        if (noBudgetLimit.size() >= DEFAULT_RESULT_SIZE
+                || (!noBudgetLimit.isEmpty() && (requestedRegion == null || requestedRegion.isBlank()))) {
             return new RecommendationCandidates(noBudgetLimit, true);
         }
 
-        return new RecommendationCandidates(filterStores(allStores, tag, null, null), true);
+        List<GoodPriceStore> relaxedRegion = filterStores(allStores, tag, null, null, filterLat, filterLng, radius);
+        if (!relaxedRegion.isEmpty() || lat == null || lng == null) {
+            return new RecommendationCandidates(relaxedRegion, true);
+        }
+
+        return new RecommendationCandidates(filterStores(allStores, tag, null, null, null, null, null), true);
     }
 
-    private List<GoodPriceStore> filterStores(List<GoodPriceStore> stores, String tag, String requestedRegion, Integer maxPrice) {
+    private String resolveRecommendationRegion(String requestedRegion, Double lat, Double lng) {
+        if (requestedRegion != null && !requestedRegion.isBlank()) {
+            return requestedRegion;
+        }
+        return locationService.resolveRegion(lat, lng).orElse(requestedRegion);
+    }
+
+    private String regionKeyword(String region) {
+        if (region == null || region.isBlank()) {
+            return "";
+        }
+        for (String part : region.trim().split("\\s+")) {
+            if (part.endsWith("시") && !part.endsWith("특별시") && !part.endsWith("광역시")) {
+                return part.substring(0, part.length() - 1);
+            }
+            if (part.endsWith("군") || part.endsWith("구")) {
+                return part;
+            }
+        }
+        return region.trim();
+    }
+
+    private List<GoodPriceStore> filterStores(List<GoodPriceStore> stores, String tag, String requestedRegion,
+                                              Integer maxPrice, Double lat, Double lng, Integer radius) {
         return stores.stream()
                 .filter(store -> matchesRegion(store, requestedRegion))
                 .filter(store -> matchesTag(store, tag))
                 .filter(store -> maxPrice == null || store.price() == null || store.price() <= maxPrice)
+                .filter(store -> withinRadius(store, lat, lng, radius))
                 .sorted(Comparator.comparing((GoodPriceStore store) -> affordableRank(store, maxPrice))
+                        .thenComparing(store -> distanceRank(store, lat, lng))
                         .thenComparing(store -> store.price() == null ? Integer.MAX_VALUE : store.price()))
                 .toList();
     }
@@ -192,18 +258,21 @@ public class RecommendationService {
         return (int) Math.floor((double) remainingBudget / Math.max(1, activeMemberCount));
     }
 
-    private RecommendationResponse.Place toPlace(GoodPriceStore store, Integer remainingBudget, String tag) {
-        Double lat = toDouble(store.lat());
-        Double lng = toDouble(store.lng());
+    private RecommendationResponse.Place toPlace(GoodPriceStore store, Integer remainingBudget, String tag,
+                                                 Double baseLat, Double baseLng) {
+        Double lat = storeLat(store);
+        Double lng = storeLng(store);
         String reason = buildReason(store, remainingBudget, tag);
         String thumbnailUrl = thumbnailUrl(store.category(), store.itemName(), store.name());
         String mapUrl = kakaoMapSearchUrl(store.name(), store.address());
+        String walkTime = walkTime(distanceMeters(lat, lng, baseLat, baseLng));
         return new RecommendationResponse.Place(
                 store.storeId(),
                 store.name(),
                 store.category(),
                 store.price(),
-                null,
+                store.itemName(),
+                walkTime,
                 null,
                 thumbnailUrl,
                 store.address(),
@@ -300,6 +369,65 @@ public class RecommendationService {
 
     private Double toDouble(BigDecimal value) {
         return value == null ? null : value.doubleValue();
+    }
+
+    private boolean withinRadius(GoodPriceStore store, Double baseLat, Double baseLng, Integer radius) {
+        if (baseLat == null || baseLng == null || radius == null || radius <= 0) {
+            return true;
+        }
+        Double distance = distanceMeters(rawStoreLat(store), rawStoreLng(store), baseLat, baseLng);
+        return distance != null && distance <= radius;
+    }
+
+    private Double distanceRank(GoodPriceStore store, Double baseLat, Double baseLng) {
+        Double distance = distanceMeters(rawStoreLat(store), rawStoreLng(store), baseLat, baseLng);
+        return distance == null ? Double.MAX_VALUE : distance;
+    }
+
+    private Double distanceMeters(Double lat, Double lng, Double baseLat, Double baseLng) {
+        if (lat == null || lng == null || baseLat == null || baseLng == null) {
+            return null;
+        }
+        double earthRadius = 6371000.0;
+        double latDistance = Math.toRadians(lat - baseLat);
+        double lngDistance = Math.toRadians(lng - baseLng);
+        double a = Math.sin(latDistance / 2) * Math.sin(latDistance / 2)
+                + Math.cos(Math.toRadians(baseLat)) * Math.cos(Math.toRadians(lat))
+                * Math.sin(lngDistance / 2) * Math.sin(lngDistance / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return earthRadius * c;
+    }
+
+    private Double rawStoreLat(GoodPriceStore store) {
+        return toDouble(store.lat());
+    }
+
+    private Double rawStoreLng(GoodPriceStore store) {
+        return toDouble(store.lng());
+    }
+
+    private Double storeLat(GoodPriceStore store) {
+        Double lat = rawStoreLat(store);
+        if (lat != null) {
+            return lat;
+        }
+        return locationService.resolveAddress(store.address()).map(LocationSearchResponse::lat).orElse(null);
+    }
+
+    private Double storeLng(GoodPriceStore store) {
+        Double lng = rawStoreLng(store);
+        if (lng != null) {
+            return lng;
+        }
+        return locationService.resolveAddress(store.address()).map(LocationSearchResponse::lng).orElse(null);
+    }
+
+    private String walkTime(Double distanceMeters) {
+        if (distanceMeters == null) {
+            return null;
+        }
+        int minutes = Math.max(1, (int) Math.ceil(distanceMeters / 67.0));
+        return "도보 " + minutes + "분";
     }
 
     private record RecommendationCandidates(List<GoodPriceStore> stores, boolean fallbackApplied) {

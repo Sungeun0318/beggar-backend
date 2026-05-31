@@ -10,6 +10,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.math.BigDecimal;
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -30,19 +34,31 @@ public class GoodPriceStoreClient {
     private String path;
 
     public List<GoodPriceStore> search(int pageNo, int numOfRows) {
+        return search(pageNo, numOfRows, null);
+    }
+
+    public List<GoodPriceStore> searchByAddressKeyword(String keyword, int pageNo, int numOfRows) {
+        return search(pageNo, numOfRows, keyword);
+    }
+
+    private List<GoodPriceStore> search(int pageNo, int numOfRows, String addressKeyword) {
         try {
             String url = baseUrl + path
                     + "?serviceKey=" + apiKey
                     + "&page=" + pageNo
                     + "&perPage=" + numOfRows
                     + "&returnType=JSON";
+            if (addressKeyword != null && !addressKeyword.isBlank()) {
+                url += "&cond%5B%EC%A3%BC%EC%86%8C%3A%3ALIKE%5D="
+                        + URLEncoder.encode(addressKeyword, StandardCharsets.UTF_8);
+            }
 
             JsonNode response = WebClient.create()
                     .get()
-                    .uri(url)
+                    .uri(URI.create(url))
                     .retrieve()
                     .bodyToMono(JsonNode.class)
-                    .block();
+                    .block(Duration.ofSeconds(5));
 
             return toStores(response);
         } catch (WebClientResponseException e) {
