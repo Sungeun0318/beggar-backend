@@ -34,7 +34,15 @@ public class RoomService {
 
         Room savedRoom = roomRepository.save(room);
 
-        return null;
+        return new RoomResponse(
+                savedRoom.getRoomNo(),
+                savedRoom.getRoomName(),
+                savedRoom.getRoomCode(),
+                savedRoom.getOwnerUserNo(),
+                savedRoom.getTotalBudget(),
+                savedRoom.getIsFriends(),
+                savedRoom.getRoomCreated()
+        );
     }
 
     private String generateRandomCode(int length){
