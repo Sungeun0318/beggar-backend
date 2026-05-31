@@ -18,6 +18,7 @@ import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
@@ -297,12 +298,12 @@ public class RecommendationService {
     private String budgetGuide(Integer recommendationBudget, String tag, boolean fallbackApplied) {
         if (recommendationBudget == null) {
             return fallbackApplied
-                    ? "남은 예산이 부족해서 가격 조건을 빼고 태그와 지역 기준으로 추천했어요."
+                    ? "조건에 맞는 추천이 부족해서 범위를 넓혀봤어요."
                     : "예산 정보 없이 지역과 태그 기준으로 추천했어요.";
         }
         String base = "%s 기준 1인 추천 예산은 약 %,d원이에요.".formatted(displayTag(tag), recommendationBudget);
         if (fallbackApplied) {
-            return base + " 결과가 부족해 조건을 조금 넓혀 보여드려요.";
+            return base + " 조건에 맞는 추천이 부족해서 범위를 넓혀봤어요.";
         }
         return base + " 다음 일정에 쓸 돈을 남기는 기준이에요.";
     }
@@ -323,9 +324,18 @@ public class RecommendationService {
     }
 
     private String kakaoMapSearchUrl(String name, String address) {
-        String keyword = ((address == null ? "" : address) + " " + (name == null ? "" : name)).trim();
+        String keyword = ((name == null ? "" : name) + " " + shortRegion(address)).trim();
         String encodedKeyword = URLEncoder.encode(keyword, StandardCharsets.UTF_8);
         return "https://map.kakao.com/link/search/" + encodedKeyword;
+    }
+
+    private String shortRegion(String address) {
+        if (address == null || address.isBlank()) {
+            return "";
+        }
+        String[] parts = address.trim().split("\\s+");
+        int limit = Math.min(parts.length, 3);
+        return String.join(" ", Arrays.copyOf(parts, limit));
     }
 
     private String thumbnailUrl(String category, String itemName, String name) {
