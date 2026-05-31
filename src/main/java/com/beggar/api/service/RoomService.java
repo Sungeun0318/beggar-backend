@@ -2,7 +2,7 @@ package com.beggar.api.service;
 
 import com.beggar.api.common.exception.CustomException;
 import com.beggar.api.common.exception.ErrorCode;
-import com.beggar.api.dto.room.CreateRoomRequest;
+import com.beggar.api.dto.room.RoomCreateRequest;
 import com.beggar.api.dto.room.RoomResponse;
 import com.beggar.api.entity.User;
 import com.beggar.api.repository.RoomMemberRepository;
@@ -19,20 +19,29 @@ import org.springframework.transaction.annotation.Transactional;
 public class RoomService {
     private final RoomRepository roomRepository;
     private final RoomMemberRepository roomMemberRepository;
-    private final UserRepository userRepository;
     private final RoomPurposeTagRepository roomPurposeTagRepository;
 
 
     /* 방 생성(create) */
-    @Transactional // 데이터삽입.   + readOnly끄기위해 붙여줌
-    public RoomResponse create(Long ownerUserNo, CreateRoomRequest request) {
-        // 방장 유저 존재 여부 검증
-        User owner = userRepository.findById(ownerUserNo)
-                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
-
-        // TODO: Room INSERT(maxMemberCount 포함) + 방장 RoomMember(ACTIVE) INSERT + tags 일괄 INSERT
-        throw new UnsupportedOperationException("not implemented yet");
+    public RoomResponse createRoom(RoomCreateRequest request,Long userNo){
+        String roomCode = generateRandomCode(12);
+        System.out.println("생성된 12자리 초대 코드:" + roomCode);
+        return null; // 일단은 컴파일 에러 안 나게 임시 리턴
     }
+
+    private String generateRandomCode(int length){
+        String codeList = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+        StringBuilder sb = new StringBuilder();
+
+        for (int i = 0; i < length; i++){
+            int index = (int) (codeList.length() * Math.random());
+            sb.append(codeList.charAt(index));
+        }
+        return sb.toString();
+    }
+
+
+    // TODO: Room INSERT(maxMemberCount 포함) + 방장 RoomMember(ACTIVE) INSERT + tags 일괄 INSERT
     // TODO: create(ownerUserNo, request)  — 방 생성 + 방장 자동 입장 + 태그 INSERT + maxMemberCount 저장
     // TODO: findMyRooms(userNo)           — ACTIVE 멤버인 방 목록
     // TODO: findById(roomNo)              — 방 상세 + 태그
