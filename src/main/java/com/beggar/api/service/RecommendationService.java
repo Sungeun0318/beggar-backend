@@ -116,8 +116,8 @@ public class RecommendationService {
             allStores.addAll(pageStores);
         }
 
-        Double filterLat = requestedRegion == null || requestedRegion.isBlank() ? lat : null;
-        Double filterLng = requestedRegion == null || requestedRegion.isBlank() ? lng : null;
+        Double filterLat = lat;
+        Double filterLng = lng;
 
         List<GoodPriceStore> strictBudget = filterStores(allStores, tag, requestedRegion, recommendationBudget, filterLat, filterLng, radius);
         if (strictBudget.size() >= DEFAULT_RESULT_SIZE) {
@@ -385,12 +385,12 @@ public class RecommendationService {
         if (baseLat == null || baseLng == null || radius == null || radius <= 0) {
             return true;
         }
-        Double distance = distanceMeters(rawStoreLat(store), rawStoreLng(store), baseLat, baseLng);
+        Double distance = distanceMeters(storeLat(store), storeLng(store), baseLat, baseLng);
         return distance != null && distance <= radius;
     }
 
     private Double distanceRank(GoodPriceStore store, Double baseLat, Double baseLng) {
-        Double distance = distanceMeters(rawStoreLat(store), rawStoreLng(store), baseLat, baseLng);
+        Double distance = distanceMeters(storeLat(store), storeLng(store), baseLat, baseLng);
         return distance == null ? Double.MAX_VALUE : distance;
     }
 
