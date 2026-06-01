@@ -228,6 +228,8 @@ replay_pid*
 node_modules/
 sql/data.sql
 sql/init.sql
+src/main/resources/sql/data.sql
+src/main/resources/sql/init.sql
 src/main/resources/sql/seed.sql
 src/main/resources/sql/local.sql
 
