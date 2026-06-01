@@ -1,7 +1,6 @@
 package com.beggar.api.entity;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -9,67 +8,43 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "rooms",
-        uniqueConstraints = {
-                @UniqueConstraint(name = "uk_rooms_room_name", columnNames = "room_name"),
-                @UniqueConstraint(name = "uk_rooms_room_code", columnNames = "room_code")
-        })
+@Table(name = "rooms")
 @Getter
-@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor
 public class Room {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // 기본키 자동 증가 (  1, 2, 3 .. )
     @Column(name = "room_no")
     private Long roomNo;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_no", nullable = false,
-            foreignKey = @ForeignKey(name = "fk_rooms_user"))
-    private User owner;
-
-    @Column(name = "room_name", length = 15, nullable = false)
+    @Column(nullable = false)
     private String roomName;
 
-    @Column(name = "room_code", length = 15, nullable = false)
+    @Column(nullable = false, unique = true)
     private String roomCode;
 
-    @Column(name = "max_member_count", nullable = false)
-    private Integer maxMemberCount;
+    @Column(nullable = false)
+    private Long ownerUserNo;
 
-    @Column(name = "total_budget")
-    private Integer totalBudget;
+    private Integer totalBudget; // 처음엔 비어있을 수 있으니 null 허용
 
-    @Column(name = "room_created", nullable = false)
-    private LocalDateTime roomCreated;
-
-    @Column(name = "is_friends" , nullable = false)
+    @Column(nullable = false)
     private Boolean isFriends;
 
-    @Builder
-    public Room(User owner, String roomName, String roomCode, Integer maxMemberCount,
-                Integer totalBudget, Boolean isFriends) {
-        this.owner = owner;
-        this.roomName = roomName;
-        this.roomCode = roomCode;
-        this.maxMemberCount = validateMaxMemberCount(maxMemberCount == null ? 100 : maxMemberCount);
-        this.totalBudget = totalBudget;
-        this.isFriends = isFriends;
+    private LocalDateTime roomCreated;
+
+    // DB에 저장되기 직전에 현재 시간으로 세팅해주는 함수
+    @PrePersist
+    public void prePersist() {
         this.roomCreated = LocalDateTime.now();
     }
 
-    public void updateTotalBudget(int totalBudget) {
-        this.totalBudget = totalBudget;
-    }
-
-    public void updateMaxMemberCount(int maxMemberCount) {
-        this.maxMemberCount = validateMaxMemberCount(maxMemberCount);
-    }
-
-    private int validateMaxMemberCount(int maxMemberCount) {
-        if (maxMemberCount < 2 || maxMemberCount > 100) {
-            throw new IllegalArgumentException("maxMemberCount must be between 2 and 100");
-        }
-        return maxMemberCount;
+    // 방 만들 때 쓸 생성자
+    public Room(String roomName, String roomCode, Long ownerUserNo, Boolean isFriends) {
+        this.roomName = roomName;
+        this.roomCode = roomCode;
+        this.ownerUserNo = ownerUserNo;
+        this.isFriends = isFriends;
     }
 }
