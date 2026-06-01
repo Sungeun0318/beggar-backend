@@ -64,7 +64,7 @@ public class KakaoLocalClient {
                     .header("Authorization", "KakaoAK " + restApiKey)
                     .retrieve()
                     .bodyToMono(JsonNode.class)
-                    .block(Duration.ofSeconds(5));
+                    .block(Duration.ofSeconds(2));
         } catch (WebClientResponseException e) {
             throw new CustomException(ErrorCode.EXTERNAL_API_FAILED,
                     "카카오 Local API 응답 오류: " + e.getStatusCode());
@@ -86,7 +86,7 @@ public class KakaoLocalClient {
                     .header("Authorization", "KakaoAK " + restApiKey)
                     .retrieve()
                     .bodyToMono(JsonNode.class)
-                    .block(Duration.ofSeconds(5));
+                    .block(Duration.ofSeconds(2));
         } catch (WebClientResponseException e) {
             throw new CustomException(ErrorCode.EXTERNAL_API_FAILED,
                     "카카오 좌표 변환 API 응답 오류: " + e.getStatusCode());
