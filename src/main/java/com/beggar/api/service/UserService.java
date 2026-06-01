@@ -38,17 +38,19 @@ public class UserService {
     }
 
     // 로그인기능
-    @Transactional(readOnly = true)
-    public String login(UserRequest userRequest){
-        Optional<User> optionalUser = userRepository.findByEmail(userRequest.getEmail());
-        if(){
-            User user = userRepository.findByEmail(userRequest.getEmail())
-                        .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
-            }
-        if( !user.getPasswordHash().equals(userRequest.getPassword())){
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
-        }
-    return "로그인 성공"; //(JWT 토큰)
-    }
-    // TODO: getMyProfile(userNo) — 마이페이지 프로필 조회
+//    @Transactional(readOnly = true)
+//    public String login(UserRequest userRequest){
+//        Optional<User> optionalUser = userRepository.findByEmail(userRequest.getEmail());
+//        if(optionalUser.isPresent()){
+//            User user = userRepository.findByEmail(userRequest.getEmail())
+//                        .orElseThrow(() -> new IllegalArgumentException("가입되지 않은 이메일입니다."));
+//
+//        if( !user.getPasswordHash().equals(userRequest.getPassword())){
+//            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
+//    return "로그인 성공"; //(JWT 토큰)
+//    }
+//        }
+//    return false;
+//   // TODO: getMyProfile(userNo) — 마이페이지 프로필 조회
+//    }
 }
