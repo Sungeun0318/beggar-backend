@@ -21,6 +21,7 @@ public class RoomService {
     private final RoomRepository roomRepository;
 
     /* 방 생성(create) */
+    @Transactional
     public RoomResponse createRoom(RoomCreateRequest request,Long userNo){
         String roomCode = generateRandomCode(12);
         System.out.println("생성된 12자리 초대 코드:" + roomCode);
