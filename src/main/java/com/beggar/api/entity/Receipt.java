@@ -15,7 +15,9 @@ import java.math.BigDecimal;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Receipt extends BaseTimeEntity {
 
-    public enum OcrStatus { PENDING, SUCCESS, FAILED, CANCELED }
+    public enum ReceiptType { COMBINED, SPLIT }
+    public enum InputMethod { CAMERA, GALLERY, MANUAL }
+    public enum OcrStatus { PENDING, SUCCESS, FAILED, CANCELED, MANUAL }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -32,7 +34,15 @@ public class Receipt extends BaseTimeEntity {
             foreignKey = @ForeignKey(name = "fk_receipts_member"))
     private RoomMember uploader;
 
-    @Column(name = "image_url", length = 500, nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "receipt_type", length = 20, nullable = false)
+    private ReceiptType receiptType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "input_method", length = 20, nullable = false)
+    private InputMethod inputMethod;
+
+    @Column(name = "image_url", length = 500)
     private String imageUrl;
 
     @Enumerated(EnumType.STRING)
@@ -57,14 +67,41 @@ public class Receipt extends BaseTimeEntity {
     @Column(name = "center_lng", precision = 10, scale = 7)
     private BigDecimal centerLng;
 
+    @Column(name = "good_price_store_id", length = 100)
+    private String goodPriceStoreId;
+
+    @Column(name = "good_price_store_name", length = 150)
+    private String goodPriceStoreName;
+
+    @Column(name = "good_price_store_address", length = 200)
+    private String goodPriceStoreAddress;
+
+    @Column(name = "good_price_matched", nullable = false)
+    private Boolean goodPriceMatched;
+
+    @Column(name = "good_price_verified_at")
+    private java.time.LocalDateTime goodPriceVerifiedAt;
+
     @Builder
-    public Receipt(Room room, RoomMember uploader, String imageUrl,
-                   OcrStatus ocrStatus, Integer amount) {
+    public Receipt(Room room, RoomMember uploader, ReceiptType receiptType,
+                   InputMethod inputMethod, String imageUrl, OcrStatus ocrStatus,
+                   String storeName, Integer totalAmount, Integer amount,
+                   String address, BigDecimal centerLat, BigDecimal centerLng) {
         this.room = room;
         this.uploader = uploader;
+        this.receiptType = (receiptType == null) ? ReceiptType.COMBINED : receiptType;
+        this.inputMethod = (inputMethod == null) ? InputMethod.CAMERA : inputMethod;
         this.imageUrl = imageUrl;
-        this.ocrStatus = (ocrStatus == null) ? OcrStatus.PENDING : ocrStatus;
+        this.ocrStatus = (ocrStatus == null)
+                ? (this.inputMethod == InputMethod.MANUAL ? OcrStatus.MANUAL : OcrStatus.PENDING)
+                : ocrStatus;
+        this.storeName = storeName;
+        this.totalAmount = totalAmount;
         this.amount = (amount == null) ? 0 : amount;
+        this.address = address;
+        this.centerLat = centerLat;
+        this.centerLng = centerLng;
+        this.goodPriceMatched = false;
     }
 
     public void applyOcrResult(String storeName, Integer totalAmount,
@@ -84,5 +121,22 @@ public class Receipt extends BaseTimeEntity {
 
     public void updateAmount(int newAmount) {
         this.amount = newAmount;
+    }
+
+    public void applyGoodPriceMatch(String storeId, String storeName, String storeAddress,
+                                    java.time.LocalDateTime verifiedAt) {
+        this.goodPriceStoreId = storeId;
+        this.goodPriceStoreName = storeName;
+        this.goodPriceStoreAddress = storeAddress;
+        this.goodPriceMatched = true;
+        this.goodPriceVerifiedAt = verifiedAt;
+    }
+
+    public void clearGoodPriceMatch() {
+        this.goodPriceStoreId = null;
+        this.goodPriceStoreName = null;
+        this.goodPriceStoreAddress = null;
+        this.goodPriceMatched = false;
+        this.goodPriceVerifiedAt = null;
     }
 }

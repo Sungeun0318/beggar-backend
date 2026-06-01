@@ -34,6 +34,9 @@ public class Room {
     @Column(name = "room_code", length = 15, nullable = false)
     private String roomCode;
 
+    @Column(name = "max_member_count", nullable = false)
+    private Integer maxMemberCount;
+
     @Column(name = "total_budget")
     private Integer totalBudget;
 
@@ -44,10 +47,12 @@ public class Room {
     private Boolean isFriends;
 
     @Builder
-    public Room(User owner, String roomName, String roomCode, Integer totalBudget, Boolean isFriends) {
+    public Room(User owner, String roomName, String roomCode, Integer maxMemberCount,
+                Integer totalBudget, Boolean isFriends) {
         this.owner = owner;
         this.roomName = roomName;
         this.roomCode = roomCode;
+        this.maxMemberCount = validateMaxMemberCount(maxMemberCount == null ? 100 : maxMemberCount);
         this.totalBudget = totalBudget;
         this.isFriends = isFriends;
         this.roomCreated = LocalDateTime.now();
@@ -55,5 +60,16 @@ public class Room {
 
     public void updateTotalBudget(int totalBudget) {
         this.totalBudget = totalBudget;
+    }
+
+    public void updateMaxMemberCount(int maxMemberCount) {
+        this.maxMemberCount = validateMaxMemberCount(maxMemberCount);
+    }
+
+    private int validateMaxMemberCount(int maxMemberCount) {
+        if (maxMemberCount < 2 || maxMemberCount > 100) {
+            throw new IllegalArgumentException("maxMemberCount must be between 2 and 100");
+        }
+        return maxMemberCount;
     }
 }

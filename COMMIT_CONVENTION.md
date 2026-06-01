@@ -57,11 +57,11 @@
 ```
 Feat: 카카오 OAuth 로그인 구현
 Fix: 방 입장 시 중복 검사 누락 수정
-Refactor: RoomService와 RoomAnonymousService 통합
+Refactor: RoomService 방 설정 변경 로직 분리
 Docs: 백엔드 STRUCTURE.md에 인증 흐름 추가
 Chore: application.properties 위치를 src/main/resources로 이동
 Test: BudgetService.confirm 통합 테스트 추가
-Remove: 사용하지 않는 RoomAnonymousService 삭제
+Remove: 사용하지 않는 공개방 후보 코드 삭제
 Style: ErrorCode enum 정렬 및 들여쓰기 정리
 Rename: util 패키지 → common 패키지로 이동
 !BREAKING CHANGE: /auth/kakao 응답에서 userNo 제거, profile 객체로 통합

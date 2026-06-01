@@ -27,4 +27,5 @@ public class WebClientConfig {
                 .baseUrl(baseUrl)
                 .build();
     }
+
 }

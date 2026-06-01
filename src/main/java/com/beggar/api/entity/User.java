@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
                 @UniqueConstraint(name = "uk_users_uemail",    columnNames = "uemail")
         })
 @Getter
-//@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class User extends BaseTimeEntity {
 
     @Id
@@ -39,18 +39,19 @@ public class User extends BaseTimeEntity {
     private String role;
 
     @Column(name = "gender")
-    private int gender;
+    private Integer gender;
 
     @Column(name = "age")
-    private int age;
+    private Integer age;
 
     @Builder
-    public User(String userName, String passwordHash, String profileImageUrl, String email, String role, int gender, int age) {
+    public User(String userName, String passwordHash, String profileImageUrl, String email,
+                String role, Integer gender, Integer age) {
         this.userName = userName;
         this.passwordHash = passwordHash;
         this.profileImageUrl = profileImageUrl;
         this.email = email;
-        this.role = (role == null) ? "ROLE_USER" : role;
+        this.role = (role == null) ? "USER" : role;
         this.gender = gender;
         this.age = age;
     }
@@ -64,7 +65,7 @@ public class User extends BaseTimeEntity {
                 .profileImageUrl(requestDto.getProfileImageUrl())
                 .gender(requestDto.getGender())
                 .age(requestDto.getAge())
-                .role("ROLE_USER") // 기본 권한 세팅
+                .role("USER") // 기본 권한 세팅
                 .build();
     }
 

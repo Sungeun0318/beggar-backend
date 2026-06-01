@@ -103,6 +103,7 @@ $RECYCLE.BIN/
 # ─────────────────────────────────────────────────────────────────────
 .env
 .env.*
+!.env.example
 *.env.local
 
 # 개인 로컬 오버라이드 (개발자마다 DB 비번/로깅 레벨 등 달라 충돌 방지)
@@ -121,6 +122,11 @@ application-prod.yml
 application-prod.yaml
 application-prod.properties
 application.properties
+application.yml
+application.yaml
+!application-example.properties
+!application-example.yml
+!application-example.yaml
 
 # 인증서 / 키
 *.pem
@@ -184,10 +190,14 @@ spring.log*
 # H2 / 로컬 임베디드 DB (혹시 생성되면)
 # ─────────────────────────────────────────────────────────────────────
 *.db
+*.sqlite
+*.sqlite3
 *.h2.db
 *.mv.db
 *.trace.db
 *.lock.db
+*.dump
+*.backup
 
 # ─────────────────────────────────────────────────────────────────────
 # 테스트 / 커버리지
@@ -216,6 +226,11 @@ HELP.md
 hs_err_pid*
 replay_pid*
 node_modules/
+sql/data.sql
+sql/init.sql
+src/main/resources/sql/data.sql
+src/main/resources/sql/seed.sql
+src/main/resources/sql/local.sql
 
 # ─────────────────────────────────────────────────────────────────────
 # 로컬 메모 / 작업 파일 (팀원마다 다른 메모)

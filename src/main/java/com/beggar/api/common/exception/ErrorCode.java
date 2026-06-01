@@ -30,6 +30,9 @@ public enum ErrorCode {
     // Receipt
     RECEIPT_NOT_FOUND(HttpStatus.NOT_FOUND, "RECEIPT_001", "영수증을 찾을 수 없습니다."),
 
+    // External API
+    EXTERNAL_API_FAILED(HttpStatus.BAD_GATEWAY, "EXTERNAL_001", "외부 API 호출에 실패했습니다."),
+
     // Common
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "COMMON_001", "잘못된 요청입니다."),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "COMMON_999", "서버 오류가 발생했습니다.");

@@ -11,6 +11,6 @@ public class UserRequest {
     private String password;
     private String email;
     private String profileImageUrl;
-    private int gender;
-    private int age;
+    private Integer gender;
+    private Integer age;
 }
