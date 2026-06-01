@@ -29,7 +29,12 @@ public class LocationService {
         if (cached != null) {
             return Optional.of(cached);
         }
-        Optional<LocationSearchResponse> resolved = kakaoLocalClient.searchAddress(address);
+        Optional<LocationSearchResponse> resolved;
+        try {
+            resolved = kakaoLocalClient.searchAddress(address);
+        } catch (RuntimeException e) {
+            return Optional.empty();
+        }
         resolved.ifPresent(location -> addressCache.put(address, location));
         return resolved;
     }
@@ -43,7 +48,12 @@ public class LocationService {
         if (cached != null) {
             return Optional.of(cached);
         }
-        Optional<String> resolved = kakaoLocalClient.reverseRegion(lat, lng);
+        Optional<String> resolved;
+        try {
+            resolved = kakaoLocalClient.reverseRegion(lat, lng);
+        } catch (RuntimeException e) {
+            return Optional.empty();
+        }
         resolved.ifPresent(region -> coordinateRegionCache.put(key, region));
         return resolved;
     }
