@@ -27,7 +27,7 @@ public class AuthController {
     // TODO: POST /auth/kakao    — 카카오 로그인
     @PostMapping("/kakao")
     public ApiResponse<TokenResponse> loginWithKakao(@Valid @RequestBody KakaoLoginRequest request){
-        TokenResponse tokenResponse = authService.refresh(request.refreshToken());
+        TokenResponse tokenResponse = authService.loginWithKakao(request.kakaoAccessToken());
         return ApiResponse.success(tokenResponse);
     }
     // TODO: POST /auth/refresh  — 토큰 재발급

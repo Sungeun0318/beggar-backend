@@ -41,8 +41,8 @@ public class User extends BaseTimeEntity {
     @Column(name = "gender")
     private Integer gender;
 
-    @Column(name = "age")
-    private Integer age;
+    @Column(name = "age_range", length = 20)
+    private Integer ageRange;
 
     @Builder
     public User(String userName, String passwordHash, String profileImageUrl, String email,
