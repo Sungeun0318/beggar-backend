@@ -5,6 +5,7 @@ import com.beggar.api.common.exception.ErrorCode;
 import com.beggar.api.dto.room.RoomCreateRequest;
 import com.beggar.api.dto.room.RoomResponse;
 import com.beggar.api.entity.Room;
+import com.beggar.api.entity.RoomPurposeTag;
 import com.beggar.api.entity.User;
 import com.beggar.api.repository.RoomMemberRepository;
 import com.beggar.api.repository.RoomPurposeTagRepository;
@@ -14,11 +15,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true) // 데이터 조회 속도 최적화
 public class RoomService {
     private final RoomRepository roomRepository;
+
+    private  final RoomPurposeTagRepository roomPurposeTagRepository;
 
     /* 방 생성(create) */
     @Transactional
@@ -26,15 +31,23 @@ public class RoomService {
         String roomCode = generateRandomCode(12);
         System.out.println("생성된 12자리 초대 코드:" + roomCode);
 
+        // 1. 방 기본 정보 저장
         Room room = new Room(
                 request.getRoomName(),
                 roomCode,
                 userNo,
                 request.getIsFriends()
         );
-
         Room savedRoom = roomRepository.save(room);
 
+        // 2. 태그 일괄 저장
+        List<String> tagNames = request.getTags();
+        if (tagNames != null){
+            for(String tagName : tagNames){
+                RoomPurposeTag tag = new RoomPurposeTag(savedRoom,tagName);
+                roomPurposeTagRepository.save(tag);
+            }
+        }
         return new RoomResponse(
                 savedRoom.getRoomNo(),
                 savedRoom.getRoomName(),
@@ -42,7 +55,8 @@ public class RoomService {
                 savedRoom.getOwnerUserNo(),
                 savedRoom.getTotalBudget(),
                 savedRoom.getIsFriends(),
-                savedRoom.getRoomCreated()
+                savedRoom.getRoomCreated(),
+                tagNames
         );
     }
 
