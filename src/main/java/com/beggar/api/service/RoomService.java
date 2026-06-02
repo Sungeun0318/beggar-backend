@@ -23,7 +23,7 @@ public class RoomService {
     /* 방 생성(create) */
     @Transactional
     public RoomResponse createRoom(RoomCreateRequest request,Long userNo){
-        String roomCode = generateRandomCode(12);
+        String roomCode = generateRandomCode();
         System.out.println("생성된 12자리 초대 코드:" + roomCode);
 
         // 1. 방 기본 정보 저장
@@ -55,11 +55,11 @@ public class RoomService {
         );
     }
 
-    private String generateRandomCode(int length){
+    private String generateRandomCode(){
         String codeList = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         StringBuilder sb = new StringBuilder();
 
-        for (int i = 0; i < length; i++){
+        for (int i = 0; i < 12; i++){
             int index = (int) (codeList.length() * Math.random());
             sb.append(codeList.charAt(index));
         }
