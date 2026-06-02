@@ -35,11 +35,11 @@ public class RoomService {
         );
         Room savedRoom = roomRepository.save(room);
 
-        // 2. 태그 일괄 저장
+        // 2. 목적 태그 리스트 일괄 DB 저장
         List<String> tagNames = request.getTags();
-        if (tagNames != null){
+        if (tagNames != null) {
             for(String tagName : tagNames){
-                RoomPurposeTag tag = new RoomPurposeTag(savedRoom,tagName);
+                RoomPurposeTag tag = new RoomPurposeTag(savedRoom, tagName);
                 roomPurposeTagRepository.save(tag);
             }
         }
