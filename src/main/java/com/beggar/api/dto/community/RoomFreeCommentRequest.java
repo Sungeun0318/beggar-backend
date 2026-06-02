@@ -1,4 +1,4 @@
-package com.beggar.api.dto.room;
+package com.beggar.api.dto.community;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;

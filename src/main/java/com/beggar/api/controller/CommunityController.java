@@ -1,14 +1,31 @@
 package com.beggar.api.controller;
 
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import com.beggar.api.common.response.ApiResponse;
+import com.beggar.api.dto.community.RoomFreePostDetailResponse;
+import com.beggar.api.dto.community.RoomFreePostResponse;
+import com.beggar.api.service.CommunityService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
-@RequestMapping("/community")
+@RequiredArgsConstructor
+@RequestMapping("/api/community")
 public class CommunityController {
 
-    // TODO: GET  /community/posts      — 게시글 목록
-    // TODO: POST /community/posts      — 게시글 작성
-    // TODO: GET  /community/chat-room  — 전체 채팅방 조회
-    // TODO: POST /community/messages   — 전체 채팅 메시지 전송
+    private final CommunityService communityService;
+
+    // 1. 게시글 목록 조회 및 검색
+    @GetMapping("/posts")
+    public ApiResponse<List<RoomFreePostResponse>> getPosts(@RequestParam(required = false) String keyword) {
+        return ApiResponse.success(communityService.getPosts(keyword));
+    }
+
+    // 2. 게시글 상세 조회 (댓글 포함)
+    @GetMapping("/posts/{postId}")
+    public ApiResponse<RoomFreePostDetailResponse> getPostDetail(@PathVariable Long postId) {
+        return ApiResponse.success(communityService.getPostDetail(postId));
+    }
+
 }
