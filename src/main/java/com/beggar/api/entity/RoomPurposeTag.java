@@ -25,8 +25,7 @@ public class RoomPurposeTag {
     @Column(name = "tag_tags", length = 30, nullable = false)
     private String tag;
 
-    @Builder
-    public RoomPurposeTag(Room room, String tag) {
+    public RoomPurposeTag( Room room , String tag ){
         this.room = room;
         this.tag = tag;
     }
