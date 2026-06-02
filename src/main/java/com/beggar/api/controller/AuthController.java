@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
     private final AuthService authService;
 
-    // 일반회원 로그인
+    // TODO: POST /auth/login      — 일반회원 로그인
     @PostMapping("/login")
     public ApiResponse<TokenResponse> loginWithEmail(@RequestBody UserRequest request){
         TokenResponse response = authService.loginWithEmail(request);
