@@ -2,11 +2,16 @@ package com.beggar.api.service;
 
 import com.beggar.api.common.exception.CustomException;
 import com.beggar.api.common.exception.ErrorCode;
+import com.beggar.api.config.PasswordEncoderConfig;
+import com.beggar.api.dto.auth.KakaoLoginRequest;
 import com.beggar.api.dto.auth.TokenResponse;
+import com.beggar.api.dto.user.UserRequest;
 import com.beggar.api.entity.User;
 import com.beggar.api.repository.UserRepository;
 import com.beggar.api.security.JwtTokenProvider;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -15,16 +20,34 @@ import java.util.UUID;
 
 @Service
 @Transactional(readOnly = true)
+@RequiredArgsConstructor
 public class AuthService {
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
+    private final PasswordEncoder passwordEncoder; // 비밀번호 해시 비교를 위한 의존성 주입
 
-    @Qualifier("kakaoWebClient")
-    private final WebClient kakaoWebClient;
+    // 카카오 통신용 WebClient (현재 미사용으로 주석 처리)
+    // @Qualifier("kakaoWebClient")
+    // private final WebClient kakaoWebClient;
 
-    // * loginWithKakao — 카카오 액세스 토큰 → 카카오 계정 이메일/성별/연령대 조회 → 자체 JWT 발급
-    // * 신규 회원인 경우 users 테이블만 INSERT 수행 (email 기준 식별, 전역 거지력 행 미생성)
+    // 일반회원 로그인
+    @Transactional
+    public TokenResponse loginWithEmail(UserRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND, "이메일 또는 비밀번호가 일치하지 않습니다."));
 
+        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            throw new CustomException(ErrorCode.USER_NOT_FOUND, "이메일 또는 비밀번호가 일치하지 않습니다.");
+        }
+        String accessToken = jwtTokenProvider.createToken(user.getUserNo());
+        String refreshToken = jwtTokenProvider.createToken(user.getUserNo());
+
+        return new TokenResponse(accessToken, refreshToken, user.getUserNo(), user.getUserName());
+
+
+    }
+
+    /*
     // 카카오 유저 정보 매핑을 위한 내부 레코드 정의
     public record KakaoUserInfoResponse(
             Long id,
@@ -88,7 +111,7 @@ public class AuthService {
     }
 
 
-}
+
 
 // 전역 거지력 스코어 행을 추가 생성하지 않고 오직 users만 insert
             return userRepository.
@@ -99,12 +122,13 @@ save(newUser);
 String accessToken = jwtTokenProvider.createToken(user.getUserNo());
 String refreshToken = jwtTokenProvider.createToken(user.getUserNo());
 
-        return new
+            return new
 
-TokenResponse(accessToken, refreshToken, user.getUserNo(),user.
+TokenResponse(accessToken, refreshToken, user.getUserNo(),user)
 
 getUserName());
         }
+*/
 
 // TODO: refresh        — 리프레시 토큰 검증 → 액세스 토큰 재발급
 @Transactional
@@ -125,7 +149,7 @@ public TokenResponse refresh(String refreshToken) {
     return new TokenResponse(newAccessToken, newRefreshToken, user.getUserNo(), user.getUserName());
 }
 
-// TODO: signOut        — (필요 시) 리프레시 블랙리스트
+// TODO: signOut        — 로그아웃
 public void signOut(String token) {// 토큰의 남은 유효시간만큼 블랙리스트 세팅을 처리
 }
 
@@ -137,6 +161,7 @@ public void withdraw(Long userNo) {
     userRepository.delete(user);
 }
 
+/*
 // ─── 카카오 API Jackson 바인딩용 내부 매핑 Record 정의 ───
 private record KakaoUserInfoResponse(
         Long id,
@@ -154,5 +179,9 @@ private record KakaoUserInfoResponse(
         ) {
         }
     }
+
+ */
 }
-}
+
+
+

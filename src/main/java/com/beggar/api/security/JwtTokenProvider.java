@@ -40,9 +40,9 @@ public class JwtTokenProvider {
                 .signWith(key)
                 .compact();
     }
-    public String refreshToken(Long userNo) {
+    public String createRefreshToken(Long userNo) {
         Date now = new Date();
-        Date validity = new Date(now.getTime() + accessTokenValidityMs);
+        Date validity = new Date(now.getTime() + refreshTokenValidityMs);
 
         return Jwts.builder()
                 .subject(String.valueOf(userNo))

@@ -19,7 +19,7 @@ public record UserResponse(
                 user.getProfileImageUrl(),
                 user.getRole(),
                 user.getGender(),
-                user.getAge()
+                user.getAgeRange()
         );
     }
 }
