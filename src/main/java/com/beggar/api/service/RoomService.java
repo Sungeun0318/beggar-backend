@@ -31,7 +31,8 @@ public class RoomService {
                 request.getRoomName(),
                 roomCode,
                 userNo,
-                request.getIsFriends()
+                request.getIsFriends(),
+                request.getLocation()
         );
         Room savedRoom = roomRepository.save(room);
 
