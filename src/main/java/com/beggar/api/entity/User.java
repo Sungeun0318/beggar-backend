@@ -41,8 +41,8 @@ public class User extends BaseTimeEntity {
     @Column(name = "gender")
     private Integer gender;
 
-    @Column(name = "age")
-    private Integer age;
+    @Column(name = "age_range", length = 20)
+    private Integer ageRange;
 
     @Builder
     public User(String userName, String passwordHash, String profileImageUrl, String email,
@@ -53,7 +53,7 @@ public class User extends BaseTimeEntity {
         this.email = email;
         this.role = (role == null) ? "USER" : role;
         this.gender = gender;
-        this.age = age;
+        this.ageRange = ageRange;
     }
 
     // 회원가입용 정적 팩토리 메서드 추가 (UserService)
@@ -64,7 +64,7 @@ public class User extends BaseTimeEntity {
                 .email(requestDto.getEmail())
                 .profileImageUrl(requestDto.getProfileImageUrl())
                 .gender(requestDto.getGender())
-                .age(requestDto.getAge())
+                .age(requestDto.getAgeRange())
                 .role("USER") // 기본 권한 세팅
                 .build();
     }
