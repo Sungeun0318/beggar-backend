@@ -8,8 +8,8 @@ import java.time.LocalDateTime;
 @Getter
 @Builder
 public class RoomFreeChatResponse {
-    private Long chatId;
-    private String senderName;
+    private Long id;
+    private String sender;
     private String message;
     private LocalDateTime createdAt;
 }
