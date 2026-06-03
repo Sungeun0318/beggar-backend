@@ -1,11 +1,11 @@
 package com.beggar.api.security;
 
-public @interface LoginUser {
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-    // TODO: 컨트롤러 메서드 파라미터에 붙여 userNo 자동 주입용 어노테이션.
-    //   @Target(ElementType.PARAMETER)
-    //   @Retention(RetentionPolicy.RUNTIME)
-    //   를 추가하고, LoginUserArgumentResolver 에서 처리.
-    //
-    // 사용 예: public ApiResponse<?> foo(@LoginUser Long userNo) { ... }
+@Target(ElementType.PARAMETER)
+@Retention(RetentionPolicy.RUNTIME)
+public @interface LoginUser {
 }

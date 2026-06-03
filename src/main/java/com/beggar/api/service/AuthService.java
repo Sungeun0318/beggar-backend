@@ -26,7 +26,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder; // 비밀번호 해시 비교를 위한 의존성 주입
 
-    // 카카오 통신용 WebClient (현재 미사용으로 주석 처리)
+    // 카카오 통신용 WebClient
     @Qualifier("kakaoWebClient")
     private final WebClient kakaoWebClient;
 
