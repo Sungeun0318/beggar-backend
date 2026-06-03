@@ -68,6 +68,9 @@ public class RoomFreeService {
     // 3. 게시글 작성
     @Transactional
     public void createPost(Long userNo, RoomFreePostRequest request) {
+        if (userNo == null) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
         User user = userRepository.findById(userNo)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
@@ -84,6 +87,9 @@ public class RoomFreeService {
     // 4. 댓글 작성
     @Transactional
     public void createComment(Long userNo, Long postId, String content) {
+        if (userNo == null) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
         User user = userRepository.findById(userNo)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
         RoomFreePost post = postRepository.findById(postId)
@@ -115,7 +121,10 @@ public class RoomFreeService {
 
     // 6. 채팅 전송
     @Transactional
-    public void sendChat(Long userNo, String content) {
+    public RoomFreeChatResponse sendChat(Long userNo, String content) {
+        if (userNo == null) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
         User user = userRepository.findById(userNo)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
@@ -124,6 +133,13 @@ public class RoomFreeService {
                 .message(content)
                 .build();
 
-        chatRepository.save(chat);
+        RoomFreeChat savedChat = chatRepository.save(chat);
+
+        return RoomFreeChatResponse.builder()
+                .id(savedChat.getChatId())
+                .sender(savedChat.getUser().getUserName())
+                .message(savedChat.getMessage())
+                .createdAt(savedChat.getCreatedAt())
+                .build();
     }
 }
