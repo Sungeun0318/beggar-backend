@@ -34,13 +34,17 @@ public class RoomFreePost extends BaseTimeEntity {
     @Column(name = "content", columnDefinition = "TEXT", nullable = false)
     private String content;
 
+    @Column(name = "tag")
+    private String tag;
+
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RoomFreeComment> comments = new ArrayList<>();
 
     @Builder
-    public RoomFreePost(User author, String title, String content) {
+    public RoomFreePost(User author, String title, String content, String tag) {
         this.author = author;
         this.title = title;
         this.content = content;
+        this.tag = tag;
     }
 }
