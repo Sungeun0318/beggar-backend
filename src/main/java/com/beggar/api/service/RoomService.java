@@ -1,18 +1,16 @@
 package com.beggar.api.service;
 
-import com.beggar.api.common.exception.CustomException;
-import com.beggar.api.common.exception.ErrorCode;
 import com.beggar.api.dto.room.RoomCreateRequest;
 import com.beggar.api.dto.room.RoomResponse;
 import com.beggar.api.entity.Room;
-import com.beggar.api.entity.User;
-import com.beggar.api.repository.RoomMemberRepository;
+import com.beggar.api.entity.RoomPurposeTag;
 import com.beggar.api.repository.RoomPurposeTagRepository;
 import com.beggar.api.repository.RoomRepository;
-import com.beggar.api.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -20,21 +18,32 @@ import org.springframework.transaction.annotation.Transactional;
 public class RoomService {
     private final RoomRepository roomRepository;
 
+    private  final RoomPurposeTagRepository roomPurposeTagRepository;
+
     /* 방 생성(create) */
     @Transactional
     public RoomResponse createRoom(RoomCreateRequest request,Long userNo){
-        String roomCode = generateRandomCode(12);
+        String roomCode = generateRandomCode();
         System.out.println("생성된 12자리 초대 코드:" + roomCode);
 
+        // 1. 방 기본 정보 저장
         Room room = new Room(
                 request.getRoomName(),
                 roomCode,
                 userNo,
-                request.getIsFriends()
+                request.getIsFriends(),
+                request.getLocation()
         );
-
         Room savedRoom = roomRepository.save(room);
 
+        // 2. 목적 태그 리스트 일괄 DB 저장
+        List<String> tagNames = request.getTags();
+        if (tagNames != null) {
+            for(String tagName : tagNames){
+                RoomPurposeTag tag = new RoomPurposeTag(savedRoom, tagName);
+                roomPurposeTagRepository.save(tag);
+            }
+        }
         return new RoomResponse(
                 savedRoom.getRoomNo(),
                 savedRoom.getRoomName(),
@@ -42,15 +51,16 @@ public class RoomService {
                 savedRoom.getOwnerUserNo(),
                 savedRoom.getTotalBudget(),
                 savedRoom.getIsFriends(),
-                savedRoom.getRoomCreated()
+                savedRoom.getRoomCreated(),
+                tagNames
         );
     }
 
-    private String generateRandomCode(int length){
+    private String generateRandomCode(){
         String codeList = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
         StringBuilder sb = new StringBuilder();
 
-        for (int i = 0; i < length; i++){
+        for (int i = 0; i < 12; i++){
             int index = (int) (codeList.length() * Math.random());
             sb.append(codeList.charAt(index));
         }

@@ -23,9 +23,9 @@ public class RoomController {
             @RequestBody RoomCreateRequest request){
         Long loginUserNo = 5L; // 로그인 연동하지 않은 상태에서 방 생성 로직만 테스트하고 싶을 때.. 임시로 가짜변수 5번 유저라고 적어둔 거.
 
-        RoomResponse response = roomService.createRoom(request,loginUserNo);
+        RoomResponse roomResponse = roomService.createRoom(request,loginUserNo);
 
-        return ResponseEntity.ok(ApiResponse.success(response));
+        return ResponseEntity.ok(ApiResponse.success(roomResponse));
     }
 
     // TODO: GET  /rooms/my              — 내가 참여 중인 방 목록
