@@ -3,6 +3,7 @@ package com.beggar.api.dto.room;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @AllArgsConstructor
@@ -14,4 +15,5 @@ public class RoomResponse {
     private Integer totalBudget;
     private Boolean isFriends;
     private LocalDateTime roomCreated;
+    private List<String> tags;
 }

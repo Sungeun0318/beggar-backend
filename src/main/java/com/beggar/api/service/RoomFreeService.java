@@ -2,7 +2,7 @@ package com.beggar.api.service;
 
 import com.beggar.api.common.exception.CustomException;
 import com.beggar.api.common.exception.ErrorCode;
-import com.beggar.api.dto.room.*;
+import com.beggar.api.dto.community.*;
 import com.beggar.api.entity.RoomFreeChat;
 import com.beggar.api.entity.RoomFreeComment;
 import com.beggar.api.entity.RoomFreePost;
@@ -29,10 +29,11 @@ public class RoomFreeService {
     public List<RoomFreePostResponse> getPosts(String keyword) {
         return postRepository.findAllWithAuthorByKeyword(keyword).stream()
                 .map(post -> RoomFreePostResponse.builder()
-                        .postId(post.getPostId())
+                        .id(post.getPostId())
                         .title(post.getTitle())
-                        .authorName(post.getAuthor().getUserName())
-                        .contentPreview(post.getContent().substring(0, Math.min(post.getContent().length(), 50)))
+                        .author(post.getAuthor().getUserName())
+                        .content(post.getContent().substring(0, Math.min(post.getContent().length(), 50)))
+                        .tag(post.getTag())
                         .createdAt(post.getCreatedAt())
                         .commentCount(post.getComments().size())
                         .build())
@@ -46,26 +47,49 @@ public class RoomFreeService {
 
         List<RoomFreeCommentResponse> comments = post.getComments().stream()
                 .map(comment -> RoomFreeCommentResponse.builder()
-                        .commentId(comment.getCommentId())
-                        .authorName(comment.getAuthor().getUserName())
+                        .id(comment.getCommentId())
+                        .author(comment.getAuthor().getUserName())
                         .content(comment.getContent())
                         .createdAt(comment.getCreatedAt())
                         .build())
                 .collect(Collectors.toList());
 
         return RoomFreePostDetailResponse.builder()
-                .postId(post.getPostId())
+                .id(post.getPostId())
                 .title(post.getTitle())
-                .authorName(post.getAuthor().getUserName())
+                .author(post.getAuthor().getUserName())
                 .content(post.getContent())
+                .tag(post.getTag())
                 .createdAt(post.getCreatedAt())
                 .comments(comments)
                 .build();
     }
 
-    // 3. 댓글 작성
+    // 3. 게시글 작성
+    @Transactional
+    public void createPost(Long userNo, RoomFreePostRequest request) {
+        if (userNo == null) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
+        User user = userRepository.findById(userNo)
+                .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+        RoomFreePost post = RoomFreePost.builder()
+                .author(user)
+                .title(request.getTitle())
+                .content(request.getContent())
+                .tag(request.getTag())
+                .build();
+
+        postRepository.save(post);
+    }
+
+    // 4. 댓글 작성
     @Transactional
     public void createComment(Long userNo, Long postId, String content) {
+        if (userNo == null) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
         User user = userRepository.findById(userNo)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
         RoomFreePost post = postRepository.findById(postId)
@@ -80,32 +104,42 @@ public class RoomFreeService {
         commentRepository.save(comment);
     }
 
-    // 4. 채팅 내역 조회
+    // 5. 채팅 내역 조회
     public List<RoomFreeChatResponse> getChatHistory() {
         List<RoomFreeChat> chats = chatRepository.findTop100ByOrderByCreatedAtDesc();
         Collections.reverse(chats); // 최신순으로 가져와서 과거->현재 순으로 반환
 
         return chats.stream()
                 .map(chat -> RoomFreeChatResponse.builder()
-                        .chatId(chat.getChatId())
-                        .senderName(chat.getUser().getUserName())
+                        .id(chat.getChatId())
+                        .sender(chat.getUser().getUserName())
                         .message(chat.getMessage())
                         .createdAt(chat.getCreatedAt())
                         .build())
                 .collect(Collectors.toList());
     }
 
-    // 5. 채팅 전송
+    // 6. 채팅 전송
     @Transactional
-    public void sendChat(Long userNo, String message) {
+    public RoomFreeChatResponse sendChat(Long userNo, String content) {
+        if (userNo == null) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
         User user = userRepository.findById(userNo)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
 
         RoomFreeChat chat = RoomFreeChat.builder()
                 .user(user)
-                .message(message)
+                .message(content)
                 .build();
 
-        chatRepository.save(chat);
+        RoomFreeChat savedChat = chatRepository.save(chat);
+
+        return RoomFreeChatResponse.builder()
+                .id(savedChat.getChatId())
+                .sender(savedChat.getUser().getUserName())
+                .message(savedChat.getMessage())
+                .createdAt(savedChat.getCreatedAt())
+                .build();
     }
 }
