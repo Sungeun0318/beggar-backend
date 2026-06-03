@@ -339,10 +339,12 @@ WebFlux의 `WebClient` 두 개:
   - 착한가격업소 매칭 성공 수 반영
   - UPSERT (없으면 INSERT, 있으면 update)
 
-### `service/CommunityService.java` ⚠ 구현 예정
-- `findPosts(category)` — 커뮤니티 게시글 최신순 조회
+### `service/RoomFreeService.java` ✅ 1차 구현
+- `getPosts(keyword)` — 커뮤니티 게시글 최신순 조회 및 검색
+- `getPostDetail(postId)` — 게시글 상세 및 댓글 조회
 - `createPost(userNo, request)` — 게시글 작성
-- `findGlobalChatRoom()` / `sendChatMessage(...)` — 전체 채팅 후보 API. 저장 테이블은 추후 확정
+- `createComment(userNo, postId, content)` — 댓글 작성
+- `getChatHistory()` / `sendChat(userNo, content)` — 전체 채팅 조회/전송
 
 ---
 
@@ -381,11 +383,13 @@ WebFlux의 `WebClient` 두 개:
 ### `controller/RecommendationController.java` ✅ 1차 구현 — `/rooms/{roomNo}/recommend`
 - `GET /rooms/{roomNo}/recommend?tag={tag}&region={region}&lat={lat}&lng={lng}&radius={radius}` → `RecommendationResponse`
 
-### `controller/CommunityController.java` ⚠ 구현 예정 — `/community/**`
-- `GET /community/posts` → 게시글 목록
-- `POST /community/posts` → 게시글 작성
-- `GET /community/chat-room` → 전체 채팅방 조회 후보
-- `POST /community/messages` → 전체 채팅 메시지 전송 후보
+### `controller/RoomFreeController.java` ✅ 1차 구현 — `/api/freerooms/**`
+- `GET /api/freerooms/posts` → 게시글 목록/검색
+- `GET /api/freerooms/posts/{postId}` → 게시글 상세
+- `POST /api/freerooms/posts` → 게시글 작성
+- `POST /api/freerooms/posts/{postId}/comments` → 댓글 작성
+- `GET /api/freerooms/chats` → 전체 채팅 내역
+- `POST /api/freerooms/chats` → 채팅 메시지 전송
 
 ---
 
@@ -456,7 +460,7 @@ WebFlux의 `WebClient` 두 개:
 6. **`BudgetService` + `BudgetController`** — 프론트 예산 입력/결과 화면 연결
 7. **`ReceiptService` + `ReceiptController`** — 프론트 영수증/지출 화면 연결 (OCR 콜백은 마지막)
 8. **`BeggarScoreService`** — 영수증/예산 트리거에서 호출 + 방별 평가 API
-9. **`CommunityService` + `CommunityController`** — 게시글 API
+9. **`RoomFreeService` + `RoomFreeController`** ✅ 1차 구현 — 게시글/채팅 API
 10. **`RecommendationService`** — Spring 착한가격업소 추천 유지, Python은 후순위 AI Hub 고도화
 
 각 단계마다 `application.properties`의 DB 연결 + JWT 시크릿이 정상인지 먼저 확인하면 빠름.

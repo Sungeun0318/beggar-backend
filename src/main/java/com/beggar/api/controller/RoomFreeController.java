@@ -1,7 +1,7 @@
 package com.beggar.api.controller;
 
 import com.beggar.api.common.response.ApiResponse;
-import com.beggar.api.dto.room.*;
+import com.beggar.api.dto.community.*;
 import com.beggar.api.security.LoginUser;
 import com.beggar.api.service.RoomFreeService;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +27,16 @@ public class RoomFreeController {
         return ApiResponse.success(roomFreeService.getPostDetail(postId));
     }
 
-    // 3. 댓글 작성
+    // 3. 게시글 작성
+    @PostMapping("/posts")
+    public ApiResponse<Void> createPost(
+            @LoginUser Long userNo,
+            @RequestBody RoomFreePostRequest request) {
+        roomFreeService.createPost(userNo, request);
+        return ApiResponse.success();
+    }
+
+    // 4. 댓글 작성
     @PostMapping("/posts/{postId}/comments")
     public ApiResponse<Void> createComment(
             @LoginUser Long userNo,
@@ -37,16 +46,18 @@ public class RoomFreeController {
         return ApiResponse.success();
     }
 
-    // 4. 전체 채팅 내역 조회
+    // 5. 전체 채팅 내역 조회
     @GetMapping("/chats")
     public ApiResponse<List<RoomFreeChatResponse>> getChatHistory() {
         return ApiResponse.success(roomFreeService.getChatHistory());
     }
 
-    // 5. 채팅 메시지 전송
+    // 6. 채팅 메시지 전송
     @PostMapping("/chats")
-    public ApiResponse<Void> sendChat(@LoginUser Long userNo, @RequestBody String message) {
-        roomFreeService.sendChat(userNo, message);
+    public ApiResponse<Void> sendChat(
+            @LoginUser Long userNo,
+            @RequestBody RoomFreeChatRequest request) {
+        roomFreeService.sendChat(userNo, request.getContent());
         return ApiResponse.success();
     }
 }
