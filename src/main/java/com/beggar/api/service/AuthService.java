@@ -1,16 +1,17 @@
 package com.beggar.api.service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.beggar.api.common.exception.CustomException;
 import com.beggar.api.common.exception.ErrorCode;
-import com.beggar.api.config.PasswordEncoderConfig;
-import com.beggar.api.dto.auth.KakaoLoginRequest;
 import com.beggar.api.dto.auth.TokenResponse;
 import com.beggar.api.dto.user.UserRequest;
 import com.beggar.api.entity.User;
 import com.beggar.api.repository.UserRepository;
 import com.beggar.api.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,14 +22,13 @@ import java.util.UUID;
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
+@Slf4j
 public class AuthService {
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder; // 비밀번호 해시 비교를 위한 의존성 주입
-
-    // 카카오 통신용 WebClient (현재 미사용으로 주석 처리)
-    // @Qualifier("kakaoWebClient")
-    // private final WebClient kakaoWebClient;
+    @Qualifier("kakaoWebClient")
+    private final WebClient kakaoWebClient;
 
     // 일반회원 로그인
     @Transactional
@@ -47,46 +47,28 @@ public class AuthService {
 
     }
 
-    /*
-    // 카카오 유저 정보 매핑을 위한 내부 레코드 정의
-    public record KakaoUserInfoResponse(
-            Long id,
-            KakaoAccount kakao_account
-    ) {
-        public record KakaoAccount(
-                String email,
-                String gender,
-                String age_range,
-                Profile profile
-        ) {
-            public record Profile(String nickname, String thumbnail_image_url) {
-            }
-        }
-    }
-
-    // TODO: loginWithKakao — 카카오 액세스 토큰 → 카카오 계정 이메일/성별/연령대 조회 → 자체 JWT 발급
     @Transactional
     public TokenResponse loginWithKakao(String kakaoToken) {
-        // 1. 카카오 WebClient를 사용하여 유저프로필 및 계정 정보 조회
-        KakaoUserInfoResponse kakaoResponse = kakaoWebClient.get()
+        JsonNode kakaoResponse = kakaoWebClient.get()
                 .uri("/v2/user/me")
+                .accept(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer " + kakaoToken)
                 .retrieve()
-                .bodyToMono(KakaoUserInfoResponse.class)
+                .bodyToMono(JsonNode.class)
                 .onErrorMap(e -> new CustomException(ErrorCode.KAKAO_LOGIN_FAILED, "카카오 서버 통신 중 오류가 발생했습니다."))
                 .block();
-        if (kakaoResponse == null || kakaoResponse.kakao_account() == null || kakaoResponse.kakao_account().email() == null) {
-            throw new CustomException(ErrorCode.KAKAO_LOGIN_FAILED, "카카오 계정 정보 또는 이메일을 불러올 수 업습니다. ");
+        Long kakaoId = kakaoLong(kakaoResponse, "id");
+        if (kakaoResponse == null || kakaoId == null) {
+            log.warn("Kakao user response missing id: {}", kakaoResponse);
+            throw new CustomException(ErrorCode.KAKAO_LOGIN_FAILED, "카카오 계정 정보를 불러올 수 없습니다.");
         }
-        String email = kakaoResponse.kakao_account().email();
-        // 카카오가 제공한 연령대 데이터 문자열 그대로 변수 할당
-        String rawAgeRange = kakaoResponse.kakao_account().age_range();
+        JsonNode account = kakaoResponse.path("kakao_account");
+        JsonNode profile = account.path("profile");
+        String email = kakaoEmail(kakaoId, account);
+        String rawAgeRange = kakaoText(account, "age_range");
+        String profileImageUrl = kakaoText(profile, "thumbnail_image_url");
 
-        // 성별 가공(male -> 0, female -> 1)
-        Integer parsedGender = null;
-        String gender = kakaoResponse.kakao_account().gender();
-        if ("male".equalsIgnoreCase(gender)) parsedGender = 0;
-        else if ("female".equalsIgnoreCase(gender)) parsedGender = 1;
+        Integer parsedGender = parseKakaoGender(kakaoText(account, "gender"));
 
         User user = userRepository.findByEmail(email)
                 .orElseGet(() -> {
@@ -95,8 +77,7 @@ public class AuthService {
                     User newUser = User.builder()
                             .userName(nickname)
                             .email(email)
-                            .profileImageUrl(kakaoResponse.kakao_account().profile() != null ?
-                                    kakaoResponse.kakao_account().profile().thumbnail_image_url() : null)
+                            .profileImageUrl(profileImageUrl)
                             .gender(parsedGender)
                             .ageRange(rawAgeRange)
                             .role("USER")
@@ -110,25 +91,38 @@ public class AuthService {
 
     }
 
-
-
-
-// 전역 거지력 스코어 행을 추가 생성하지 않고 오직 users만 insert
-            return userRepository.
-
-save(newUser);
-        });
-// 3. 자체 인가 아키텍쳐에 맞추어 JWT 발급 후 Response 조립
-String accessToken = jwtTokenProvider.createToken(user.getUserNo());
-String refreshToken = jwtTokenProvider.createToken(user.getUserNo());
-
-            return new
-
-TokenResponse(accessToken, refreshToken, user.getUserNo(),user)
-
-getUserName());
+    private Integer parseKakaoGender(String gender) {
+        if ("male".equalsIgnoreCase(gender)) {
+            return 0;
         }
-*/
+        if ("female".equalsIgnoreCase(gender)) {
+            return 1;
+        }
+        return null;
+    }
+
+    private String kakaoEmail(Long kakaoId, JsonNode account) {
+        String email = kakaoText(account, "email");
+        if (email != null && !email.isBlank()) {
+            return email;
+        }
+        return "kakao_" + kakaoId + "@kakao.local";
+    }
+
+    private Long kakaoLong(JsonNode node, String fieldName) {
+        if (node == null || !node.hasNonNull(fieldName)) {
+            return null;
+        }
+        return node.get(fieldName).asLong();
+    }
+
+    private String kakaoText(JsonNode node, String fieldName) {
+        if (node == null || !node.hasNonNull(fieldName)) {
+            return null;
+        }
+        String value = node.get(fieldName).asText();
+        return value.isBlank() ? null : value;
+    }
 
 // TODO: refresh        — 리프레시 토큰 검증 → 액세스 토큰 재발급
 @Transactional
@@ -182,6 +176,3 @@ private record KakaoUserInfoResponse(
 
  */
 }
-
-
-

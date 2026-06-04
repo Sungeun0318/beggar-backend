@@ -9,7 +9,7 @@ public record UserResponse(
         String profileImageUrl,
         String role,
         Integer gender,
-        Integer age
+        String ageRange
 ) {
     public static UserResponse from(User user) {
         return new UserResponse(

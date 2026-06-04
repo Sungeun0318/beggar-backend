@@ -5,14 +5,10 @@ import com.beggar.api.dto.auth.KakaoLoginRequest;
 import com.beggar.api.dto.auth.RefreshTokenRequest;
 import com.beggar.api.dto.auth.TokenResponse;
 import com.beggar.api.dto.user.UserRequest;
-import com.beggar.api.security.JwtTokenProvider;
 import com.beggar.api.service.AuthService;
-import com.beggar.api.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,12 +27,11 @@ public class AuthController {
         return ApiResponse.success(response);
     }
 
-//    // TODO: POST /auth/kakao    — 카카오 로그인
-//    @PostMapping("/kakao")
-//    public ApiResponse<TokenResponse> loginWithKakao(@Valid @RequestBody KakaoLoginRequest request){
-//        TokenResponse tokenResponse = authService.loginWithKakao(request.kakaoAccessToken());
-//        return ApiResponse.success(tokenResponse);
-//    }
+    @PostMapping("/kakao")
+    public ApiResponse<TokenResponse> loginWithKakao(@Valid @RequestBody KakaoLoginRequest request){
+        TokenResponse tokenResponse = authService.loginWithKakao(request.kakaoAccessToken());
+        return ApiResponse.success(tokenResponse);
+    }
     // TODO: POST /auth/refresh  — 토큰 재발급
     @PostMapping("/refresh")
     public ApiResponse<TokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest request){
