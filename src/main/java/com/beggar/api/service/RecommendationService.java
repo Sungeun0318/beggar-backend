@@ -1,6 +1,8 @@
 package com.beggar.api.service;
 
 import com.beggar.api.client.goodprice.GoodPriceStoreClient;
+import com.beggar.api.common.exception.CustomException;
+import com.beggar.api.common.exception.ErrorCode;
 import com.beggar.api.dto.goodprice.GoodPriceStore;
 import com.beggar.api.dto.location.LocationSearchResponse;
 import com.beggar.api.dto.recommendation.RecommendationResponse;
@@ -50,7 +52,7 @@ public class RecommendationService {
     public RecommendationResponse recommend(Long roomNo, String requestedTag, String requestedRegion,
                                             Double lat, Double lng, Integer radius) {
         Room room = roomRepository.findById(roomNo)
-                .orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없습니다. roomNo=" + roomNo));
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND, "방을 찾을 수 없습니다. roomNo=" + roomNo));
         String tag = resolveTag(roomNo, requestedTag);
         long spentAmount = receiptRepository.sumAmountByRoomNo(roomNo);
         Integer totalBudget = room.getTotalBudget();
