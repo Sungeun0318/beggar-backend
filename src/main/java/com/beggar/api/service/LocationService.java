@@ -12,13 +12,42 @@ import java.util.concurrent.ConcurrentHashMap;
 @Service
 @RequiredArgsConstructor
 public class LocationService {
+    private static final int SEARCH_RETRY_COUNT = 3;
+    private static final long SEARCH_RETRY_DELAY_MS = 250;
 
     private final KakaoLocalClient kakaoLocalClient;
+    private final ConcurrentHashMap<String, List<LocationSearchResponse>> keywordCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, LocationSearchResponse> addressCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, String> coordinateRegionCache = new ConcurrentHashMap<>();
 
     public List<LocationSearchResponse> search(String query) {
-        return kakaoLocalClient.searchKeyword(query);
+        if (query == null || query.isBlank()) {
+            return List.of();
+        }
+        String normalizedQuery = query.trim();
+        List<LocationSearchResponse> cached = keywordCache.get(normalizedQuery);
+        if (cached != null) {
+            return cached;
+        }
+
+        RuntimeException lastError = null;
+        for (int attempt = 0; attempt < SEARCH_RETRY_COUNT; attempt++) {
+            try {
+                List<LocationSearchResponse> result = kakaoLocalClient.searchKeyword(normalizedQuery);
+                if (!result.isEmpty()) {
+                    List<LocationSearchResponse> stableResult = List.copyOf(result);
+                    keywordCache.put(normalizedQuery, stableResult);
+                    return stableResult;
+                }
+            } catch (RuntimeException e) {
+                lastError = e;
+            }
+            sleepBeforeRetry(attempt);
+        }
+        if (lastError != null) {
+            throw lastError;
+        }
+        return List.of();
     }
 
     public Optional<LocationSearchResponse> resolveAddress(String address) {
@@ -56,5 +85,16 @@ public class LocationService {
         }
         resolved.ifPresent(region -> coordinateRegionCache.put(key, region));
         return resolved;
+    }
+
+    private void sleepBeforeRetry(int attempt) {
+        if (attempt >= SEARCH_RETRY_COUNT - 1) {
+            return;
+        }
+        try {
+            Thread.sleep(SEARCH_RETRY_DELAY_MS * (attempt + 1));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }
