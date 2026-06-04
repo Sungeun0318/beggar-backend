@@ -1,17 +1,39 @@
 package com.beggar.api.security;
 
+import com.beggar.api.common.exception.CustomException;
+import com.beggar.api.common.exception.ErrorCode;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
 @Component
+@RequiredArgsConstructor
 public class JwtInterceptor implements HandlerInterceptor {
 
-    // TODO: preHandle()
-    //   1) Authorization 헤더에서 "Bearer xxx" 추출
-    //   2) JwtTokenProvider.isValid(token) 검증 (실패 시 CustomException(INVALID_TOKEN))
-    //   3) userNo 를 request.setAttribute("userNo", ...) 로 저장
-    //      → LoginUserArgumentResolver 가 꺼내 @LoginUser 에 주입
-    //
-    // 공개 엔드포인트(인터셉터 미적용)는 WebConfig.excludePathPatterns 로 제외:
-    //   /auth/kakao, /auth/refresh, /error, /actuator/health
+    private static final String BEARER_PREFIX = "Bearer ";
+
+    private final JwtTokenProvider jwtTokenProvider;
+
+    @Override
+    public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
+        if (HttpMethod.OPTIONS.matches(request.getMethod())) {
+            return true;
+        }
+
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith(BEARER_PREFIX)) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
+
+        String token = authHeader.substring(BEARER_PREFIX.length()).trim();
+        if (token.isEmpty() || !jwtTokenProvider.isValid(token)) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
+
+        request.setAttribute("userNo", jwtTokenProvider.parseUserNo(token));
+        return true;
+    }
 }
