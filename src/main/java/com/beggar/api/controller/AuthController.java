@@ -5,14 +5,10 @@ import com.beggar.api.dto.auth.KakaoLoginRequest;
 import com.beggar.api.dto.auth.RefreshTokenRequest;
 import com.beggar.api.dto.auth.TokenResponse;
 import com.beggar.api.dto.user.UserRequest;
-import com.beggar.api.security.JwtTokenProvider;
 import com.beggar.api.service.AuthService;
-import com.beggar.api.service.UserService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,26 +20,25 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
     private final AuthService authService;
 
-    // POST /auth/login      — 일반회원 로그인
+    // TODO: POST /auth/login      — 일반회원 로그인
     @PostMapping("/login")
     public ApiResponse<TokenResponse> loginWithEmail(@RequestBody UserRequest request){
         TokenResponse response = authService.loginWithEmail(request);
         return ApiResponse.success(response);
     }
 
-    // POST /auth/kakao    — 카카오 로그인
     @PostMapping("/kakao")
-    public ApiResponse<TokenResponse> loginWithKakao(@RequestBody KakaoLoginRequest request){
+    public ApiResponse<TokenResponse> loginWithKakao(@Valid @RequestBody KakaoLoginRequest request){
         TokenResponse tokenResponse = authService.loginWithKakao(request.kakaoAccessToken());
         return ApiResponse.success(tokenResponse);
     }
-    // POST /auth/refresh  — 토큰 재발급
+    // TODO: POST /auth/refresh  — 토큰 재발급
     @PostMapping("/refresh")
     public ApiResponse<TokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest request){
         TokenResponse tokenResponse = authService.refresh(request.refreshToken());
         return ApiResponse.success(tokenResponse);
     }
-    // POST /auth/signout  — 로그아웃
+    // TODO: POST /auth/signout  — 로그아웃
     @PostMapping("/signout")
     public ApiResponse<Void> signOut(HttpServletRequest request){
         // Http 요청 헤더에서 Authorization 값을 가져옵니다.

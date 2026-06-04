@@ -12,5 +12,5 @@ public class UserRequest {
     private String email;
     private String profileImageUrl;
     private Integer gender;
-    private Integer ageRange;
+    private String ageRange;
 }
