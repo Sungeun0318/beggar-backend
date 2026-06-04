@@ -14,6 +14,9 @@ public class RoomResponse {
     private Long ownerUserNo;
     private Integer totalBudget;
     private Boolean isFriends;
+    private String location;
+    private int maxMemberCount;
     private LocalDateTime roomCreated;
+
     private List<String> tags;
 }

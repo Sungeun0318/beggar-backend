@@ -18,14 +18,17 @@ public class Room {
     @Column(name = "room_no")
     private Long roomNo;
 
-    @Column(nullable = false)
+    @Column(name = "room_name" , nullable = false , unique = true)
     private String roomName;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "room_code" , nullable = false, unique = true)
     private String roomCode;
 
-    @Column(nullable = false)
+    @Column(name = "owner_user_no", nullable = false)
     private Long ownerUserNo;
+
+    @Column(name = "max_member_count", nullable = false)
+    private int maxMemberCount;
 
     private Integer totalBudget; // 처음엔 비어있을 수 있으니 null 허용
 
@@ -44,9 +47,10 @@ public class Room {
     }
 
     // 방 만들 때 쓸 생성자
-    public Room(String roomName, String roomCode, Long ownerUserNo, Boolean isFriends , String location ) {
+    public Room(String roomName, String roomCode, Long ownerUserNo, Boolean isFriends , String location , int maxMemberCount ) {
         this.roomName = roomName;
         this.roomCode = roomCode;
+        this.maxMemberCount = maxMemberCount;
         this.ownerUserNo = ownerUserNo;
         this.isFriends = isFriends;
         this.location = location;
