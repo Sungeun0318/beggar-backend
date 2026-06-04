@@ -11,7 +11,7 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/community")
+@RequestMapping("/api/freerooms")
 public class RoomFreeController {
     private final RoomFreeService roomFreeService;
     private final com.beggar.api.security.JwtTokenProvider jwtTokenProvider;    // 제거
@@ -23,6 +23,12 @@ public class RoomFreeController {
     @GetMapping("/posts")
     public ApiResponse<List<RoomFreePostResponse>> getPosts(@RequestParam(required = false) String keyword) {
         return ApiResponse.success(roomFreeService.getPosts(keyword));
+    }
+
+    // 인기 게시글 조회 (댓글 많은 순)
+    @GetMapping("/posts/popular")
+    public ApiResponse<List<RoomFreePostResponse>> getPopularPosts() {
+        return ApiResponse.success(roomFreeService.getPopularPosts());
     }
 
     // 2. 게시글 상세 조회 (댓글 포함)

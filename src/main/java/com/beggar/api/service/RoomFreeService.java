@@ -28,16 +28,33 @@ public class RoomFreeService {
     // 1. 게시글 목록 조회 및 검색
     public List<RoomFreePostResponse> getPosts(String keyword) {
         return postRepository.findAllWithAuthorByKeyword(keyword).stream()
-                .map(post -> RoomFreePostResponse.builder()
-                        .id(post.getPostId())
-                        .title(post.getTitle())
-                        .author(post.getAuthor().getUserName())
-                        .content(post.getContent().substring(0, Math.min(post.getContent().length(), 50)))
-                        .tag(post.getTag())
-                        .createdAt(post.getCreatedAt())
-                        .commentCount(post.getComments().size())
-                        .build())
+                .map(this::convertToResponse)
                 .collect(Collectors.toList());
+    }
+
+    // 인기글 조회 (댓글 많은 순)
+    public List<RoomFreePostResponse> getPopularPosts() {
+        return postRepository.findPopularPosts().stream()
+                .limit(10) // 상위 10개
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+
+    private RoomFreePostResponse convertToResponse(RoomFreePost post) {
+        String contentSnippet = post.getContent();
+        if (contentSnippet != null && contentSnippet.length() > 50) {
+            contentSnippet = contentSnippet.substring(0, 50);
+        }
+
+        return RoomFreePostResponse.builder()
+                .id(post.getPostId())
+                .title(post.getTitle())
+                .author(post.getAuthor().getUserName())
+                .content(contentSnippet)
+                .tag(post.getTag())
+                .createdAt(post.getCreatedAt())
+                .commentCount(post.getComments().size())
+                .build();
     }
 
     // 2. 게시글 상세 조회
