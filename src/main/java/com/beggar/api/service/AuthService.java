@@ -18,7 +18,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.UUID;
 
@@ -37,6 +39,9 @@ public class AuthService {
 
     @Value("${kakao.rest-api-key}")
     private String kakaoRestApiKey;
+
+    @Value("${kakao.client-secret:}")
+    private String kakaoClientSecret;
 
     // 일반회원 로그인
     @Transactional
@@ -111,6 +116,9 @@ public class AuthService {
         form.add("client_id", kakaoRestApiKey);
         form.add("redirect_uri", redirectUri);
         form.add("code", code);
+        if (StringUtils.hasText(kakaoClientSecret)) {
+            form.add("client_secret", kakaoClientSecret);
+        }
 
         JsonNode tokenResponse = kakaoAuthWebClient.post()
                 .uri("/oauth/token")
@@ -118,7 +126,16 @@ public class AuthService {
                 .bodyValue(form)
                 .retrieve()
                 .bodyToMono(JsonNode.class)
-                .onErrorMap(e -> new CustomException(ErrorCode.KAKAO_LOGIN_FAILED, "카카오 토큰 교환에 실패했습니다."))
+                .onErrorMap(WebClientResponseException.class, e -> {
+                    String responseBody = e.getResponseBodyAsString();
+                    log.warn("Kakao token exchange failed. status={}, body={}", e.getStatusCode(), responseBody);
+                    return new CustomException(
+                            ErrorCode.KAKAO_LOGIN_FAILED,
+                            "카카오 토큰 교환에 실패했습니다: " + responseBody
+                    );
+                })
+                .onErrorMap(e -> !(e instanceof CustomException),
+                        e -> new CustomException(ErrorCode.KAKAO_LOGIN_FAILED, "카카오 토큰 교환에 실패했습니다."))
                 .block();
 
         String accessToken = kakaoText(tokenResponse, "access_token");
