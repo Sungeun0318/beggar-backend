@@ -47,9 +47,10 @@ public class Room {
     }
 
     // 방 만들 때 쓸 생성자
-    public Room(String roomName, String roomCode, Long ownerUserNo, Boolean isFriends , String location ) {
+    public Room(String roomName, String roomCode, Long ownerUserNo, Boolean isFriends , String location , int maxMemberCount ) {
         this.roomName = roomName;
         this.roomCode = roomCode;
+        this.maxMemberCount = maxMemberCount;
         this.ownerUserNo = ownerUserNo;
         this.isFriends = isFriends;
         this.location = location;
