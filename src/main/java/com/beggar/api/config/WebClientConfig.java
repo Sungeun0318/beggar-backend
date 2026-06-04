@@ -22,6 +22,14 @@ public class WebClientConfig {
     }
 
     @Bean
+    public WebClient kakaoAuthWebClient() {
+        return WebClient.builder()
+                .baseUrl("https://kauth.kakao.com")
+                .defaultHeader("Content-Type", "application/x-www-form-urlencoded;charset=utf-8")
+                .build();
+    }
+
+    @Bean
     public WebClient aiServerWebClient(@Value("${ai-server.base-url}") String baseUrl) {
         return WebClient.builder()
                 .baseUrl(baseUrl)

@@ -11,10 +11,13 @@ import com.beggar.api.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.UUID;
@@ -29,6 +32,11 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder; // 비밀번호 해시 비교를 위한 의존성 주입
     @Qualifier("kakaoWebClient")
     private final WebClient kakaoWebClient;
+    @Qualifier("kakaoAuthWebClient")
+    private final WebClient kakaoAuthWebClient;
+
+    @Value("${kakao.rest-api-key}")
+    private String kakaoRestApiKey;
 
     // 일반회원 로그인
     @Transactional
@@ -89,6 +97,37 @@ public class AuthService {
 
         return new TokenResponse(accessToken, refreshToken, user.getUserNo(), user.getUserName());
 
+    }
+
+    @Transactional
+    public TokenResponse loginWithKakaoCode(String code, String redirectUri) {
+        String accessToken = requestKakaoAccessToken(code, redirectUri);
+        return loginWithKakao(accessToken);
+    }
+
+    private String requestKakaoAccessToken(String code, String redirectUri) {
+        MultiValueMap<String, String> form = new LinkedMultiValueMap<>();
+        form.add("grant_type", "authorization_code");
+        form.add("client_id", kakaoRestApiKey);
+        form.add("redirect_uri", redirectUri);
+        form.add("code", code);
+
+        JsonNode tokenResponse = kakaoAuthWebClient.post()
+                .uri("/oauth/token")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .bodyValue(form)
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .onErrorMap(e -> new CustomException(ErrorCode.KAKAO_LOGIN_FAILED, "카카오 토큰 교환에 실패했습니다."))
+                .block();
+
+        String accessToken = kakaoText(tokenResponse, "access_token");
+        if (accessToken == null) {
+            log.warn("Kakao token response missing access_token: {}", tokenResponse);
+            throw new CustomException(ErrorCode.KAKAO_LOGIN_FAILED, "카카오 access token을 발급받지 못했습니다.");
+        }
+
+        return accessToken;
     }
 
     private Integer parseKakaoGender(String gender) {

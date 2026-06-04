@@ -24,6 +24,7 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/auth/login",
                         "/auth/kakao",
+                        "/auth/kakao/code",
                         "/auth/refresh",
                         "/users/signup",
                         "/locations/search",

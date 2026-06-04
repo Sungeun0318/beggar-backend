@@ -1,6 +1,7 @@
 package com.beggar.api.controller;
 
 import com.beggar.api.common.response.ApiResponse;
+import com.beggar.api.dto.auth.KakaoCodeLoginRequest;
 import com.beggar.api.dto.auth.KakaoLoginRequest;
 import com.beggar.api.dto.auth.RefreshTokenRequest;
 import com.beggar.api.dto.auth.TokenResponse;
@@ -30,6 +31,12 @@ public class AuthController {
     @PostMapping("/kakao")
     public ApiResponse<TokenResponse> loginWithKakao(@Valid @RequestBody KakaoLoginRequest request){
         TokenResponse tokenResponse = authService.loginWithKakao(request.kakaoAccessToken());
+        return ApiResponse.success(tokenResponse);
+    }
+
+    @PostMapping("/kakao/code")
+    public ApiResponse<TokenResponse> loginWithKakaoCode(@Valid @RequestBody KakaoCodeLoginRequest request){
+        TokenResponse tokenResponse = authService.loginWithKakaoCode(request.code(), request.redirectUri());
         return ApiResponse.success(tokenResponse);
     }
     // TODO: POST /auth/refresh  — 토큰 재발급
