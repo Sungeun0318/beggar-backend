@@ -24,13 +24,11 @@ public class WebConfig implements WebMvcConfigurer {
                 .excludePathPatterns(
                         "/auth/login",
                         "/auth/kakao",
+                        "/auth/kakao/code",
                         "/auth/refresh",
                         "/users/signup",
                         "/locations/search",
                         "/rooms/*/recommend",
-                        "/api/freerooms/posts",
-                        "/api/freerooms/posts/*",
-                        "/api/freerooms/chats",
                         "/error",
                         "/actuator/health"
                 ); // 공개 엔드포인트와 상태 체크는 JWT 검사를 제외한다.

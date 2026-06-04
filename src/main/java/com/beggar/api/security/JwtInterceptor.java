@@ -19,7 +19,7 @@ public class JwtInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        if (HttpMethod.OPTIONS.matches(request.getMethod())) {
+        if (HttpMethod.OPTIONS.matches(request.getMethod()) || isPublicCommunityRead(request)) {
             return true;
         }
 
@@ -35,5 +35,16 @@ public class JwtInterceptor implements HandlerInterceptor {
 
         request.setAttribute("userNo", jwtTokenProvider.parseUserNo(token));
         return true;
+    }
+
+    private boolean isPublicCommunityRead(HttpServletRequest request) {
+        if (!HttpMethod.GET.matches(request.getMethod())) {
+            return false;
+        }
+
+        String path = request.getRequestURI();
+        return path.equals("/api/freerooms/posts")
+                || path.matches("/api/freerooms/posts/\\d+")
+                || path.equals("/api/freerooms/chats");
     }
 }
