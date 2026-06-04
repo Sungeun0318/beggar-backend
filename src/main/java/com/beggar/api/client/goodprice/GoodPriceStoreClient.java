@@ -23,6 +23,10 @@ import java.util.regex.Pattern;
 public class GoodPriceStoreClient {
 
     private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d[\\d,]*");
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(8);
+    private static final int REQUEST_RETRY_COUNT = 3;
+    private static final long REQUEST_RETRY_DELAY_MS = 250;
+    private final WebClient webClient = WebClient.create();
 
     @Value("${good-price.base-url}")
     private String baseUrl;
@@ -53,13 +57,7 @@ public class GoodPriceStoreClient {
                         + URLEncoder.encode(addressKeyword, StandardCharsets.UTF_8);
             }
 
-            JsonNode response = WebClient.create()
-                    .get()
-                    .uri(URI.create(url))
-                    .retrieve()
-                    .bodyToMono(JsonNode.class)
-                    .block(Duration.ofSeconds(5));
-
+            JsonNode response = requestJson(url);
             return toStores(response);
         } catch (WebClientResponseException e) {
             throw new CustomException(ErrorCode.EXTERNAL_API_FAILED,
@@ -67,6 +65,39 @@ public class GoodPriceStoreClient {
         } catch (Exception e) {
             throw new CustomException(ErrorCode.EXTERNAL_API_FAILED,
                     "착한가격업소 API 응답을 처리할 수 없습니다. " + e.getClass().getSimpleName() + ": " + e.getMessage());
+        }
+    }
+
+    private JsonNode requestJson(String url) {
+        RuntimeException lastError = null;
+        for (int attempt = 0; attempt < REQUEST_RETRY_COUNT; attempt++) {
+            try {
+                return webClient
+                        .get()
+                        .uri(URI.create(url))
+                        .retrieve()
+                        .bodyToMono(JsonNode.class)
+                        .block(REQUEST_TIMEOUT);
+            } catch (WebClientResponseException e) {
+                throw e;
+            } catch (RuntimeException e) {
+                lastError = e;
+                sleepBeforeRetry(attempt);
+            }
+        }
+        throw lastError == null
+                ? new CustomException(ErrorCode.EXTERNAL_API_FAILED, "착한가격업소 API 응답이 없습니다.")
+                : lastError;
+    }
+
+    private void sleepBeforeRetry(int attempt) {
+        if (attempt >= REQUEST_RETRY_COUNT - 1) {
+            return;
+        }
+        try {
+            Thread.sleep(REQUEST_RETRY_DELAY_MS * (attempt + 1));
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 

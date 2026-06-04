@@ -19,6 +19,8 @@ import java.util.Optional;
 public class KakaoLocalClient {
 
     private static final String BASE_URL = "https://dapi.kakao.com";
+    private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(8);
+    private final WebClient webClient = WebClient.create(BASE_URL);
 
     @Value("${kakao.rest-api-key}")
     private String restApiKey;
@@ -55,7 +57,7 @@ public class KakaoLocalClient {
 
     private JsonNode request(String path, String query) {
         try {
-            return WebClient.create(BASE_URL)
+            return webClient
                     .get()
                     .uri(uriBuilder -> uriBuilder
                             .path(path)
@@ -64,7 +66,7 @@ public class KakaoLocalClient {
                     .header("Authorization", "KakaoAK " + restApiKey)
                     .retrieve()
                     .bodyToMono(JsonNode.class)
-                    .block(Duration.ofSeconds(2));
+                    .block(REQUEST_TIMEOUT);
         } catch (WebClientResponseException e) {
             throw new CustomException(ErrorCode.EXTERNAL_API_FAILED,
                     "카카오 Local API 응답 오류: " + e.getStatusCode());
@@ -76,7 +78,7 @@ public class KakaoLocalClient {
 
     private JsonNode requestCoordinate(Double x, Double y) {
         try {
-            return WebClient.create(BASE_URL)
+            return webClient
                     .get()
                     .uri(uriBuilder -> uriBuilder
                             .path("/v2/local/geo/coord2address.json")
@@ -86,7 +88,7 @@ public class KakaoLocalClient {
                     .header("Authorization", "KakaoAK " + restApiKey)
                     .retrieve()
                     .bodyToMono(JsonNode.class)
-                    .block(Duration.ofSeconds(2));
+                    .block(REQUEST_TIMEOUT);
         } catch (WebClientResponseException e) {
             throw new CustomException(ErrorCode.EXTERNAL_API_FAILED,
                     "카카오 좌표 변환 API 응답 오류: " + e.getStatusCode());
