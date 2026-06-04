@@ -24,26 +24,26 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
     private final AuthService authService;
 
-    // TODO: POST /auth/login      — 일반회원 로그인
+    // POST /auth/login      — 일반회원 로그인
     @PostMapping("/login")
     public ApiResponse<TokenResponse> loginWithEmail(@RequestBody UserRequest request){
         TokenResponse response = authService.loginWithEmail(request);
         return ApiResponse.success(response);
     }
 
-//    // TODO: POST /auth/kakao    — 카카오 로그인
-//    @PostMapping("/kakao")
-//    public ApiResponse<TokenResponse> loginWithKakao(@Valid @RequestBody KakaoLoginRequest request){
-//        TokenResponse tokenResponse = authService.loginWithKakao(request.kakaoAccessToken());
-//        return ApiResponse.success(tokenResponse);
-//    }
-    // TODO: POST /auth/refresh  — 토큰 재발급
+    // POST /auth/kakao    — 카카오 로그인
+    @PostMapping("/kakao")
+    public ApiResponse<TokenResponse> loginWithKakao(@RequestBody KakaoLoginRequest request){
+        TokenResponse tokenResponse = authService.loginWithKakao(request.kakaoAccessToken());
+        return ApiResponse.success(tokenResponse);
+    }
+    // POST /auth/refresh  — 토큰 재발급
     @PostMapping("/refresh")
     public ApiResponse<TokenResponse> refresh(@Valid @RequestBody RefreshTokenRequest request){
         TokenResponse tokenResponse = authService.refresh(request.refreshToken());
         return ApiResponse.success(tokenResponse);
     }
-    // TODO: POST /auth/signout  — 로그아웃
+    // POST /auth/signout  — 로그아웃
     @PostMapping("/signout")
     public ApiResponse<Void> signOut(HttpServletRequest request){
         // Http 요청 헤더에서 Authorization 값을 가져옵니다.

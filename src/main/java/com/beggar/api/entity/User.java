@@ -46,7 +46,7 @@ public class User extends BaseTimeEntity {
 
     @Builder
     public User(String userName, String passwordHash, String profileImageUrl, String email,
-                String role, Integer gender, Integer age) {
+                String role, Integer gender, Integer ageRange) {
         this.userName = userName;
         this.passwordHash = passwordHash;
         this.profileImageUrl = profileImageUrl;
@@ -64,7 +64,7 @@ public class User extends BaseTimeEntity {
                 .email(requestDto.getEmail())
                 .profileImageUrl(requestDto.getProfileImageUrl())
                 .gender(requestDto.getGender())
-                .age(requestDto.getAgeRange())
+                .ageRange(requestDto.getAgeRange())
                 .role("USER") // 기본 권한 세팅
                 .build();
     }
