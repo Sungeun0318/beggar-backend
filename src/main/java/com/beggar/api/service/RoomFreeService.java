@@ -84,7 +84,7 @@ public class RoomFreeService {
 
     // 3. 게시글 작성
     @Transactional
-    public void createPost(Long userNo, RoomFreePostRequest request) {
+    public RoomFreePostResponse createPost(Long userNo, RoomFreePostRequest request) {
         if (userNo == null) {
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
@@ -98,12 +98,13 @@ public class RoomFreeService {
                 .tag(request.getTag())
                 .build();
 
-        postRepository.save(post);
+        RoomFreePost savedPost = postRepository.save(post);
+        return convertToResponse(savedPost);
     }
 
     // 4. 댓글 작성
     @Transactional
-    public void createComment(Long userNo, Long postId, String content) {
+    public RoomFreeCommentResponse createComment(Long userNo, Long postId, String content) {
         if (userNo == null) {
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
@@ -118,7 +119,14 @@ public class RoomFreeService {
                 .content(content)
                 .build();
 
-        commentRepository.save(comment);
+        RoomFreeComment savedComment = commentRepository.save(comment);
+
+        return RoomFreeCommentResponse.builder()
+                .id(savedComment.getCommentId())
+                .author(savedComment.getAuthor().getUserName())
+                .content(savedComment.getContent())
+                .createdAt(savedComment.getCreatedAt())
+                .build();
     }
 
     // 5. 채팅 내역 조회
