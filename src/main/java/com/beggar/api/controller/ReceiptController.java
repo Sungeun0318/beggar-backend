@@ -4,6 +4,7 @@ import com.beggar.api.dto.receipt.ReceiptCreateRequest;
 import com.beggar.api.dto.receipt.ReceiptResponse;
 import com.beggar.api.dto.receipt.ReceiptUpdateRequest;
 import com.beggar.api.service.ReceiptService;
+import com.beggar.api.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,8 +16,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ReceiptController {
     private final ReceiptService receiptService;
+    private final S3Service s3Service;
 
     // TODO: @LoginUser가 연결되면 request.uploaderUserNo 대신 로그인 사용자 번호를 사용한다.
+
+    @PostMapping("/upload-url")
+    public String getUploadUrl(@PathVariable Long roomNo, @RequestParam String fileName) {
+        return s3Service.generatePresignedUrl(fileName);
+    }
 
     @PostMapping
     public ReceiptResponse create(@PathVariable Long roomNo, @RequestBody ReceiptCreateRequest request) {

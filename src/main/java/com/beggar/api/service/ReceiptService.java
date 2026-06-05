@@ -14,10 +14,12 @@ import com.beggar.api.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,18 +32,15 @@ public class ReceiptService {
     private final RoomMemberRepository roomMemberRepository;
     private final GoodPriceMatchService goodPriceMatchService;
     private final LocationService locationService;
+    private final BeggarScoreService beggarScoreService;
+    private final WebClient aiServerWebClient;
 
-    // TODO: create(roomNo, userNo, request)        — 통합/분할 영수증 등록
-    //                                                CAMERA/GALLERY는 OCR PENDING, MANUAL은 OCR MANUAL
-    //                                                SPLIT이면 receipt_splits까지 저장
-    //                                                동일 트랜잭션 내 room_beggar_scores 재계산
-    // TODO: updateAmount(roomNo, userNo, receiptId, req) — 수동 금액 보정 → 방 점수 재계산
-    // TODO: listByRoom(roomNo)                     — 방별 영수증 (최신순)
     // TODO: applyOcrResult(receiptId, payload)     — OCR 콜백 (AI 서버 → 결과 반영)
 
     @Transactional
     public ReceiptResponse create(Long roomNo, ReceiptCreateRequest request) {
-        Room room = roomRepository.getReferenceById(roomNo);
+        Room room = roomRepository.findById(roomNo)
+                .orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없습니다. ID: " + roomNo));
         RoomMember uploader = roomMemberRepository
                 .findByRoom_RoomNoAndUser_UserNo(roomNo, request.uploaderUserNo())
                 .orElseThrow(() -> new IllegalArgumentException("방 멤버만 영수증을 등록할 수 있습니다."));
@@ -64,7 +63,6 @@ public class ReceiptService {
                 .receiptType(request.receiptType())
                 .inputMethod(request.inputMethod())
                 .imageUrl(request.imageUrl())
-                .ocrStatus(null)
                 .storeName(request.storeName())
                 .totalAmount(request.totalAmount())
                 .amount(request.amount())
@@ -87,7 +85,27 @@ public class ReceiptService {
             });
         }
 
+        // 카메라/갤러리 입력인 경우 파이썬 OCR 서버 호출
+        if (request.inputMethod() != Receipt.InputMethod.MANUAL) {
+            triggerOcr(roomNo, saved);
+        }
+
         return ReceiptResponse.from(saved);
+    }
+
+    private void triggerOcr(Long roomNo, Receipt receipt) {
+        Map<String, Object> body = Map.of(
+                "room_no", roomNo,
+                "receipt_id", receipt.getReceiptId(),
+                "image_url", receipt.getImageUrl()
+        );
+
+        aiServerWebClient.post()
+                .uri("/api/v1/ocr")
+                .bodyValue(body)
+                .retrieve()
+                .bodyToMono(Void.class)
+                .subscribe();
     }
 
     public List<ReceiptResponse> read(Long roomNo) {
@@ -109,6 +127,7 @@ public class ReceiptService {
                 .filter(found -> found.getRoom().getRoomNo().equals(roomNo))
                 .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
         receipt.updateAmount(request.amount());
+
         return ReceiptResponse.from(receipt);
     }
 
@@ -134,6 +153,7 @@ public class ReceiptService {
                 request.address(), lat, lng
         );
         applyGoodPriceMatch(receipt);
+
         return ReceiptResponse.from(receipt);
     }
 

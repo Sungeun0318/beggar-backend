@@ -121,7 +121,7 @@ application-secret.properties
 application-prod.yml
 application-prod.yaml
 application-prod.properties
-application.properties
+src/main/resources/application.properties
 application.yml
 application.yaml
 !application-example.properties
