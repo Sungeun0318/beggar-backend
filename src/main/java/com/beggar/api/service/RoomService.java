@@ -31,7 +31,6 @@ public class RoomService {
                 roomCode,
                 userNo,
                 request.getIsFriends(),
-                request.getLocation(),
                 request.getMaxMemberCount()
         );
         Room savedRoom = roomRepository.save(room);
@@ -52,7 +51,6 @@ public class RoomService {
                 savedRoom.getOwnerUserNo(),
                 savedRoom.getTotalBudget(),
                 savedRoom.getIsFriends(),
-                savedRoom.getLocation(),
                 savedRoom.getMaxMemberCount(),
                 savedRoom.getRoomCreated(),
                 tagNames
