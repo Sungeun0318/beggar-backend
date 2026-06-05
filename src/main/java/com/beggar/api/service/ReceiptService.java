@@ -12,6 +12,8 @@ import com.beggar.api.repository.ReceiptSplitRepository;
 import com.beggar.api.repository.RoomMemberRepository;
 import com.beggar.api.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -22,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -33,9 +36,11 @@ public class ReceiptService {
     private final GoodPriceMatchService goodPriceMatchService;
     private final LocationService locationService;
     private final BeggarScoreService beggarScoreService;
-    private final WebClient aiServerWebClient;
-
-    // TODO: applyOcrResult(receiptId, payload)     — OCR 콜백 (AI 서버 → 결과 반영)
+    private final OcrService ocrService;
+    
+    @org.springframework.beans.factory.annotation.Autowired
+    @org.springframework.context.annotation.Lazy
+    private ReceiptService self;
 
     @Transactional
     public ReceiptResponse create(Long roomNo, ReceiptCreateRequest request) {
@@ -85,27 +90,66 @@ public class ReceiptService {
             });
         }
 
-        // 카메라/갤러리 입력인 경우 파이썬 OCR 서버 호출
+        // 카메라/갤러리 입력인 경우 직접 OCR 처리 (비동기)
         if (request.inputMethod() != Receipt.InputMethod.MANUAL) {
-            triggerOcr(roomNo, saved);
+            processOcrAsync(roomNo, saved);
         }
 
         return ReceiptResponse.from(saved);
     }
 
-    private void triggerOcr(Long roomNo, Receipt receipt) {
-        Map<String, Object> body = Map.of(
-                "room_no", roomNo,
-                "receipt_id", receipt.getReceiptId(),
-                "image_url", receipt.getImageUrl()
-        );
+    @Async
+    public void processOcrAsync(Long roomNo, Receipt receipt) {
+        try {
+            String allText = ocrService.detectText(receipt.getImageUrl());
+            if (allText == null || allText.isBlank()) {
+                log.error("OCR 텍스트 추출 실패: {}", receipt.getReceiptId());
+                return;
+            }
 
-        aiServerWebClient.post()
-                .uri("/api/v1/ocr")
-                .bodyValue(body)
-                .retrieve()
-                .bodyToMono(Void.class)
-                .subscribe();
+            Map<String, Object> data = ocrService.analyzeWithGroq(allText);
+            if (data == null) {
+                log.error("Groq 분석 실패: {}", receipt.getReceiptId());
+                return;
+            }
+
+            String storeName = (String) data.get("store_name");
+            String address = (String) data.get("address");
+            Object totalAmountObj = data.get("total_amount");
+            Integer totalAmount = totalAmountObj instanceof Integer ? (Integer) totalAmountObj : ((Double) totalAmountObj).intValue();
+
+            // 주소 보정 (괄호 제거 등)
+            if (address != null) {
+                address = address.split("\\(")[0].trim();
+            }
+
+            // 결과 반영 (프록시를 통해 호출하여 @Transactional이 동작하게 함)
+            self.updateOcrResultInternal(roomNo, receipt.getReceiptId(), storeName, totalAmount, address);
+
+        } catch (Exception e) {
+            log.error("비동기 OCR 처리 중 오류 발생: {}", receipt.getReceiptId(), e);
+        }
+    }
+
+    @Transactional
+    public void updateOcrResultInternal(Long roomNo, Long receiptId, String storeName, Integer totalAmount, String address) {
+        Receipt receipt = receiptRepository.findById(receiptId)
+                .filter(found -> found.getRoom().getRoomNo().equals(roomNo))
+                .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
+
+        BigDecimal lat = null;
+        BigDecimal lng = null;
+
+        if (address != null && !address.isBlank()) {
+            var resolved = locationService.resolveAddress(address);
+            if (resolved.isPresent()) {
+                lat = BigDecimal.valueOf(resolved.get().lat());
+                lng = BigDecimal.valueOf(resolved.get().lng());
+            }
+        }
+
+        receipt.applyOcrResult(storeName, totalAmount, address, lat, lng);
+        applyGoodPriceMatch(receipt);
     }
 
     public List<ReceiptResponse> read(Long roomNo) {
