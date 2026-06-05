@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -28,6 +29,7 @@ public class ReceiptService {
     private final RoomRepository roomRepository;
     private final RoomMemberRepository roomMemberRepository;
     private final GoodPriceMatchService goodPriceMatchService;
+    private final LocationService locationService;
 
     // TODO: create(roomNo, userNo, request)        — 통합/분할 영수증 등록
     //                                                CAMERA/GALLERY는 OCR PENDING, MANUAL은 OCR MANUAL
@@ -44,6 +46,18 @@ public class ReceiptService {
                 .findByRoom_RoomNoAndUser_UserNo(roomNo, request.uploaderUserNo())
                 .orElseThrow(() -> new IllegalArgumentException("방 멤버만 영수증을 등록할 수 있습니다."));
 
+        BigDecimal lat = request.centerLat();
+        BigDecimal lng = request.centerLng();
+
+        // 주소는 있는데 좌표가 없는 경우 자동 변환
+        if ((lat == null || lng == null) && request.address() != null && !request.address().isBlank()) {
+            var resolved = locationService.resolveAddress(request.address());
+            if (resolved.isPresent()) {
+                lat = BigDecimal.valueOf(resolved.get().lat());
+                lng = BigDecimal.valueOf(resolved.get().lng());
+            }
+        }
+
         Receipt receipt = Receipt.builder()
                 .room(room)
                 .uploader(uploader)
@@ -55,8 +69,8 @@ public class ReceiptService {
                 .totalAmount(request.totalAmount())
                 .amount(request.amount())
                 .address(request.address())
-                .centerLat(request.centerLat())
-                .centerLng(request.centerLng())
+                .centerLat(lat)
+                .centerLng(lng)
                 .build();
 
         Receipt saved = receiptRepository.save(receipt);
@@ -103,9 +117,21 @@ public class ReceiptService {
         Receipt receipt = receiptRepository.findById(receiptId)
                 .filter(found -> found.getRoom().getRoomNo().equals(roomNo))
                 .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
+
+        BigDecimal lat = request.centerLat();
+        BigDecimal lng = request.centerLng();
+
+        if ((lat == null || lng == null) && request.address() != null && !request.address().isBlank()) {
+            var resolved = locationService.resolveAddress(request.address());
+            if (resolved.isPresent()) {
+                lat = BigDecimal.valueOf(resolved.get().lat());
+                lng = BigDecimal.valueOf(resolved.get().lng());
+            }
+        }
+
         receipt.applyOcrResult(
                 request.storeName(), request.totalAmount(),
-                request.address(), request.centerLat(), request.centerLng()
+                request.address(), lat, lng
         );
         applyGoodPriceMatch(receipt);
         return ReceiptResponse.from(receipt);
