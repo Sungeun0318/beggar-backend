@@ -34,9 +34,6 @@ public class Room {
     @Column(nullable = false)
     private Boolean isFriends;
 
-    @Column(name="location" , length = 100)
-    private String location;
-
     private LocalDateTime roomCreated;
 
     // DB에 저장되기 직전에 현재 시간으로 세팅해주는 함수
@@ -46,13 +43,12 @@ public class Room {
     }
 
     // 방 만들 때 쓸 생성자
-    public Room(String roomName, String roomCode, Long ownerUserNo, Boolean isFriends , String location , int maxMemberCount ) {
+    public Room(String roomName, String roomCode, Long ownerUserNo, Boolean isFriends , int maxMemberCount ) {
         this.roomName = roomName;
         this.roomCode = roomCode;
         this.maxMemberCount = maxMemberCount;
         this.ownerUserNo = ownerUserNo;
         this.isFriends = isFriends;
-        this.location = location;
         this.roomCreated = LocalDateTime.now();
     }
 
