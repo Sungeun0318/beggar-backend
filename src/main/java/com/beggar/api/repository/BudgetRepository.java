@@ -12,4 +12,6 @@ public interface BudgetRepository extends JpaRepository<Budget, Long> {
     List<Budget> findByRoomNo(Long roomNo);
 
     long countByRoomNo(Long roomNo);
+
+    boolean existsByRoomNoAndUserNo(Long roomNo, Long userNo);
 }
