@@ -4,6 +4,7 @@ import com.beggar.api.entity.Receipt;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public record ReceiptResponse(
         Long receiptId,
@@ -25,8 +26,15 @@ public record ReceiptResponse(
         String goodPriceStoreAddress,
         LocalDateTime goodPriceVerifiedAt,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt
+        LocalDateTime updatedAt,
+        List<SplitResponse> splits
 ) {
+    public record SplitResponse(
+            Long roomMemberId,
+            String userName,
+            Integer amount
+    ) {}
+
     public static ReceiptResponse from(Receipt r) {
         return new ReceiptResponse(
                 r.getReceiptId(),
@@ -48,7 +56,13 @@ public record ReceiptResponse(
                 r.getGoodPriceStoreAddress(),
                 r.getGoodPriceVerifiedAt(),
                 r.getCreatedAt(),
-                r.getUpdatedAt()
+                r.getUpdatedAt(),
+                r.getSplits().stream()
+                        .map(s -> new SplitResponse(
+                                s.getRoomMember().getRoomMemberId(),
+                                s.getRoomMember().getUser().getUserName(),
+                                s.getAmount()))
+                        .toList()
         );
     }
 }

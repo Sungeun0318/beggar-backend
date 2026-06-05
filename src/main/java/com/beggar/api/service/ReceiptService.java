@@ -53,7 +53,6 @@ public class ReceiptService {
         BigDecimal lat = request.centerLat();
         BigDecimal lng = request.centerLng();
 
-        // 주소는 있는데 좌표가 없는 경우 자동 변환
         if ((lat == null || lng == null) && request.address() != null && !request.address().isBlank()) {
             var resolved = locationService.resolveAddress(request.address());
             if (resolved.isPresent()) {
@@ -80,17 +79,21 @@ public class ReceiptService {
         applyGoodPriceMatch(saved);
 
         if (request.receiptType() == Receipt.ReceiptType.SPLIT && request.splits() != null) {
-            request.splits().forEach(split -> {
-                RoomMember splitMember = roomMemberRepository.getReferenceById(split.roomMemberId());
-                receiptSplitRepository.save(ReceiptSplit.builder()
+            request.splits().forEach(splitItem -> {
+                RoomMember splitMember = roomMemberRepository.findById(splitItem.roomMemberId())
+                        .orElseThrow(() -> new IllegalArgumentException("분할 대상 멤버를 찾을 수 없습니다. ID: " + splitItem.roomMemberId()));
+                
+                ReceiptSplit split = ReceiptSplit.builder()
                         .receipt(saved)
                         .roomMember(splitMember)
-                        .amount(split.amount())
-                        .build());
+                        .amount(splitItem.amount())
+                        .build();
+                
+                receiptSplitRepository.save(split);
+                saved.addSplit(split);
             });
         }
 
-        // 카메라/갤러리 입력인 경우 직접 OCR 처리 (비동기)
         if (request.inputMethod() != Receipt.InputMethod.MANUAL) {
             processOcrAsync(roomNo, saved);
         }
@@ -118,12 +121,10 @@ public class ReceiptService {
             Object totalAmountObj = data.get("total_amount");
             Integer totalAmount = totalAmountObj instanceof Integer ? (Integer) totalAmountObj : ((Double) totalAmountObj).intValue();
 
-            // 주소 보정 (괄호 제거 등)
             if (address != null) {
                 address = address.split("\\(")[0].trim();
             }
 
-            // 결과 반영 (프록시를 통해 호출하여 @Transactional이 동작하게 함)
             self.updateOcrResultInternal(roomNo, receipt.getReceiptId(), storeName, totalAmount, address);
 
         } catch (Exception e) {
