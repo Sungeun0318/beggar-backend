@@ -3,6 +3,7 @@ package com.beggar.api.service;
 import com.beggar.api.entity.Budget;
 import com.beggar.api.entity.Room;
 import com.beggar.api.entity.RoomBudgetResult;
+import com.beggar.api.entity.RoomMember;
 import com.beggar.api.dto.budget.BudgetResultResponse;
 import com.beggar.api.repository.BudgetRepository;
 import com.beggar.api.repository.RoomRepository;
@@ -43,7 +44,7 @@ public class BudgetService {
         budgetRepository.save(budget);
 
         // 👑 [자동 확정 체크] 이 방의 총 active 멤버 수와 예산 제출자 수 비교
-        long totalMembers = roomMemberRepository.countByRoomNoAndStatus(roomNo, "ACTIVE"); // 예시 규칙
+        long totalMembers = roomMemberRepository.countByRoom_RoomNoAndStatus(roomNo, RoomMember.Status.ACTIVE);
         long submittedCount = budgetRepository.countByRoomNo(roomNo);
 
         if (totalMembers > 0 && totalMembers == submittedCount) {
