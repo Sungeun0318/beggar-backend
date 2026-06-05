@@ -240,3 +240,7 @@ notes/
 scratch/
 .scratch/
 src/main/resources/application.properties
+
+# Google 서비스 계정 키 (절대 커밋 금지)
+src/main/resources/google-service-account-key.json
+**/google-service-account-key.json
