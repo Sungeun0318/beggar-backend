@@ -28,16 +28,33 @@ public class RoomFreeService {
     // 1. 게시글 목록 조회 및 검색
     public List<RoomFreePostResponse> getPosts(String keyword) {
         return postRepository.findAllWithAuthorByKeyword(keyword).stream()
-                .map(post -> RoomFreePostResponse.builder()
-                        .id(post.getPostId())
-                        .title(post.getTitle())
-                        .author(post.getAuthor().getUserName())
-                        .content(post.getContent().substring(0, Math.min(post.getContent().length(), 50)))
-                        .tag(post.getTag())
-                        .createdAt(post.getCreatedAt())
-                        .commentCount(post.getComments().size())
-                        .build())
+                .map(this::convertToResponse)
                 .collect(Collectors.toList());
+    }
+
+    // 인기글 조회 (댓글 많은 순)
+    public List<RoomFreePostResponse> getPopularPosts() {
+        return postRepository.findPopularPosts().stream()
+                .limit(10) // 상위 10개
+                .map(this::convertToResponse)
+                .collect(Collectors.toList());
+    }
+
+    private RoomFreePostResponse convertToResponse(RoomFreePost post) {
+        String contentSnippet = post.getContent();
+        if (contentSnippet != null && contentSnippet.length() > 50) {
+            contentSnippet = contentSnippet.substring(0, 50);
+        }
+
+        return RoomFreePostResponse.builder()
+                .id(post.getPostId())
+                .title(post.getTitle())
+                .author(post.getAuthor().getUserName())
+                .content(contentSnippet)
+                .tag(post.getTag())
+                .createdAt(post.getCreatedAt())
+                .commentCount(post.getComments().size())
+                .build();
     }
 
     // 2. 게시글 상세 조회
@@ -67,7 +84,7 @@ public class RoomFreeService {
 
     // 3. 게시글 작성
     @Transactional
-    public void createPost(Long userNo, RoomFreePostRequest request) {
+    public RoomFreePostResponse createPost(Long userNo, RoomFreePostRequest request) {
         if (userNo == null) {
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
@@ -81,12 +98,13 @@ public class RoomFreeService {
                 .tag(request.getTag())
                 .build();
 
-        postRepository.save(post);
+        RoomFreePost savedPost = postRepository.save(post);
+        return convertToResponse(savedPost);
     }
 
     // 4. 댓글 작성
     @Transactional
-    public void createComment(Long userNo, Long postId, String content) {
+    public RoomFreeCommentResponse createComment(Long userNo, Long postId, String content) {
         if (userNo == null) {
             throw new CustomException(ErrorCode.INVALID_TOKEN);
         }
@@ -101,7 +119,14 @@ public class RoomFreeService {
                 .content(content)
                 .build();
 
-        commentRepository.save(comment);
+        RoomFreeComment savedComment = commentRepository.save(comment);
+
+        return RoomFreeCommentResponse.builder()
+                .id(savedComment.getCommentId())
+                .author(savedComment.getAuthor().getUserName())
+                .content(savedComment.getContent())
+                .createdAt(savedComment.getCreatedAt())
+                .build();
     }
 
     // 5. 채팅 내역 조회

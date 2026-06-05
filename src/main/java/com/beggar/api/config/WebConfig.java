@@ -21,7 +21,17 @@ public class WebConfig implements WebMvcConfigurer {
     public void addInterceptors(InterceptorRegistry registry){
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/**") // 해당 인터셉터가 동작할 URL 패턴을 지정. "/**" = 모든 경로
-                .excludePathPatterns("/auth/kakao", "/auth/refresh", "/error", "/actuator/health"); // 인터셉터 검사를 예외로 처리할 경로들을 설정합니다. (로그인, 토큰 갱신, 에러, 상태 체크 등)
+                .excludePathPatterns(
+                        "/auth/login",
+                        "/auth/kakao",
+                        "/auth/kakao/code",
+                        "/auth/refresh",
+                        "/users/signup",
+                        "/locations/search",
+                        "/rooms/*/recommend",
+                        "/error",
+                        "/actuator/health"
+                ); // 공개 엔드포인트와 상태 체크는 JWT 검사를 제외한다.
     }
 
     @Override

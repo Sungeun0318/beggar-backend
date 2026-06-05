@@ -37,6 +37,7 @@ public class RoomFreePost extends BaseTimeEntity {
     @Column(name = "tag")
     private String tag;
 
+    @org.hibernate.annotations.BatchSize(size = 100)
     @OneToMany(mappedBy = "post", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RoomFreeComment> comments = new ArrayList<>();
 
