@@ -9,7 +9,7 @@ public record RoomMemberResponse(
 ) {
     public static RoomMemberResponse from(RoomMember member, Long loginUserNo, boolean budgetSubmitted) {
         String displayStatus = budgetSubmitted ? "제출 완료" : "입장 완료";
-        if (member.getRoom().getOwnerUserNo().equals(member.getUser().getUserNo())) {
+        if (!budgetSubmitted && member.getRoom().getOwnerUserNo().equals(member.getUser().getUserNo())) {
             displayStatus = "방장";
         }
 
