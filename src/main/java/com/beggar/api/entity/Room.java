@@ -1,7 +1,6 @@
 package com.beggar.api.entity;
 
 import jakarta.persistence.*;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -55,5 +54,9 @@ public class Room {
         this.isFriends = isFriends;
         this.location = location;
         this.roomCreated = LocalDateTime.now();
+    }
+
+    public void updateTotalBudget(Integer totalBudget) {
+        this.totalBudget = totalBudget;
     }
 }

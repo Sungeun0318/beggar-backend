@@ -1,10 +1,7 @@
 package com.beggar.api.entity;
 
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -14,7 +11,9 @@ import java.time.LocalDateTime;
                 name = "uk_results_room", columnNames = "room_no"
         ))
 @Getter
+@Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor
 public class RoomBudgetResult {
 
     @Id
