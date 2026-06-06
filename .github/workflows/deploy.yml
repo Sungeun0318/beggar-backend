@@ -27,7 +27,9 @@ jobs:                       # [필수] 작업(Job) 집합 정의
 
       # 4. Google 서비스 계정 키 파일 생성
       - name: Create Google credentials file        # [필수] OCR용 인증 파일 생성
-        run: echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > src/main/resources/google-service-account-key.json
+        run: |
+          mkdir -p src/main/resources
+          echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > src/main/resources/google-service-account-key.json
         shell: bash
 
       # 5. Build
