@@ -1,12 +1,10 @@
 package com.beggar.api.service;
 
 import com.beggar.api.dto.room.RoomCreateRequest;
+import com.beggar.api.dto.room.RoomEventDto;
 import com.beggar.api.dto.room.RoomMemberResponse;
 import com.beggar.api.dto.room.RoomResponse;
-import com.beggar.api.entity.Room;
-import com.beggar.api.entity.RoomMember;
-import com.beggar.api.entity.RoomPurposeTag;
-import com.beggar.api.entity.User;
+import com.beggar.api.entity.*;
 import com.beggar.api.repository.BudgetRepository;
 import com.beggar.api.repository.RoomMemberRepository;
 import com.beggar.api.repository.RoomPurposeTagRepository;

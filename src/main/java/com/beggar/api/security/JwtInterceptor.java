@@ -19,7 +19,12 @@ public class JwtInterceptor implements HandlerInterceptor {
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
-        if (HttpMethod.OPTIONS.matches(request.getMethod()) || isPublicCommunityRead(request)) {
+        if (HttpMethod.OPTIONS.matches(request.getMethod())) {
+            return true;
+        }
+
+        if (isPublicCommunityRead(request) || isExcludedPath(request)) {
+            request.setAttribute("userNo", 5L); // 테스트용 기본 유저 세팅
             return true;
         }
 
@@ -35,6 +40,19 @@ public class JwtInterceptor implements HandlerInterceptor {
 
         request.setAttribute("userNo", jwtTokenProvider.parseUserNo(token));
         return true;
+    }
+
+    private boolean isExcludedPath(HttpServletRequest request) {
+        String path = request.getRequestURI();
+        return path.startsWith("/rooms/")
+                || path.equals("/auth/login")
+                || path.equals("/auth/kakao")
+                || path.equals("/auth/kakao/code")
+                || path.equals("/auth/refresh")
+                || path.equals("/users/signup")
+                || path.equals("/locations/search")
+                || path.equals("/error")
+                || path.equals("/actuator/health");
     }
 
     private boolean isPublicCommunityRead(HttpServletRequest request) {
