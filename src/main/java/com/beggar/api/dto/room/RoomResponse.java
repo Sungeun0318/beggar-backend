@@ -2,12 +2,10 @@ package com.beggar.api.dto.room;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
-@NoArgsConstructor
 @AllArgsConstructor
 public class RoomResponse {
     private Long roomNo;
@@ -16,7 +14,10 @@ public class RoomResponse {
     private Long ownerUserNo;
     private Integer totalBudget;
     private Boolean isFriends;
-    private Integer maxMemberCount;
+    private String location;
+    private long memberCount;
+    private int maxMemberCount;
     private LocalDateTime roomCreated;
+
     private List<String> tags;
 }

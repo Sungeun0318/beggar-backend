@@ -87,14 +87,16 @@ public class BudgetService {
         room.updateTotalBudget(totalBudget);
         roomRepository.save(room);
 
-        // 2. 📊 RoomBudgetResult 엔티티 생성 후 기록 저장!
-        RoomBudgetResult result = RoomBudgetResult.builder()
-                .room(room)
-                .minBudgetPerPerson(minAmount)
-                .memberCount(memberCount)
-                .totalBudget(totalBudget)
-                .confirmedAt(LocalDateTime.now())
-                .build();
+        // 2. 📊 같은 방의 결과는 중복 생성하지 않고 최신 값으로 갱신
+        RoomBudgetResult result = roomBudgetResultRepository.findByRoom_RoomNo(roomNo)
+                .orElseGet(() -> RoomBudgetResult.builder()
+                        .room(room)
+                        .minBudgetPerPerson(minAmount)
+                        .memberCount(memberCount)
+                        .totalBudget(totalBudget)
+                        .confirmedAt(LocalDateTime.now())
+                        .build());
+        result.update(minAmount, memberCount, totalBudget);
         roomBudgetResultRepository.save(result);
 
         // 3. TODO: 거지력/거지등급 점수 재계산 로직이 필요하다면 여기에 트리거

@@ -3,6 +3,7 @@ package com.beggar.api.controller;
 import com.beggar.api.common.response.ApiResponse;
 import com.beggar.api.dto.budget.BudgetResultResponse;
 import com.beggar.api.dto.budget.SubmitBudgetRequest;
+import com.beggar.api.security.LoginUser;
 import com.beggar.api.service.BudgetService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -23,11 +24,8 @@ public class BudgetController {
     @PostMapping
     public ResponseEntity<ApiResponse<Void>> submitBudget(
             @PathVariable Long roomNo,
+            @LoginUser Long loginUserNo,
             @Valid @RequestBody SubmitBudgetRequest request) { // 🌟 소영님의 SubmitBudgetRequest 레코드 매핑!
-
-        // 로그인 연동 전 임시 가짜 유저 번호 (5번 유저)
-        Long loginUserNo = 5L;
-
         // 레코드 문법에 맞춰 request.budgetAmount()로 금액을 꺼내옵니다.
         budgetService.submitBudget(loginUserNo, roomNo, request.budgetAmount());
 
