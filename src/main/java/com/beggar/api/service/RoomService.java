@@ -28,6 +28,7 @@ public class RoomService {
     private final RoomMemberRepository roomMemberRepository;
     private final BudgetRepository budgetRepository;
     private final UserRepository userRepository;
+    private final RoomEventService roomEventService;
 
     /* 👑 방 생성(create) */
     @Transactional
@@ -168,6 +169,10 @@ public class RoomService {
             }
             // ACTIVE인 경우는 그대로 통과
         }
+
+        // 멤버 갱신 이벤트 발행
+        List<RoomMemberResponse> members = findMembers(room.getRoomNo(), null);
+        roomEventService.publishMembersUpdated(room.getRoomNo(), members);
 
         return toResponse(room);
     }
