@@ -53,7 +53,7 @@ public class AuthService {
             throw new CustomException(ErrorCode.USER_NOT_FOUND, "이메일 또는 비밀번호가 일치하지 않습니다.");
         }
         String accessToken = jwtTokenProvider.createToken(user.getUserNo());
-        String refreshToken = jwtTokenProvider.createToken(user.getUserNo());
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getUserNo());
 
         return new TokenResponse(accessToken, refreshToken, user.getUserNo(), user.getUserName());
 
@@ -98,7 +98,7 @@ public class AuthService {
                     return userRepository.save(newUser);
                 });
         String accessToken = jwtTokenProvider.createToken(user.getUserNo());
-        String refreshToken = jwtTokenProvider.createToken(user.getUserNo());
+        String refreshToken = jwtTokenProvider.createRefreshToken(user.getUserNo());
 
         return new TokenResponse(accessToken, refreshToken, user.getUserNo(), user.getUserName());
 
@@ -194,7 +194,7 @@ public TokenResponse refresh(String refreshToken) {
             .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
     // 4. 새로운 토큰 체인 구성 및 응답 반환
     String newAccessToken = jwtTokenProvider.createToken(user.getUserNo());
-    String newRefreshToken = jwtTokenProvider.createToken(user.getUserNo());
+    String newRefreshToken = jwtTokenProvider.createRefreshToken(user.getUserNo());
 
     return new TokenResponse(newAccessToken, newRefreshToken, user.getUserNo(), user.getUserName());
 }
