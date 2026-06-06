@@ -74,6 +74,7 @@ public class RoomService {
                 room.getTotalBudget(),
                 room.getIsFriends(),
                 room.getLocation(),
+                room.getStatus(),
                 memberCount,
                 room.getMaxMemberCount(),
                 room.getRoomCreated(),
