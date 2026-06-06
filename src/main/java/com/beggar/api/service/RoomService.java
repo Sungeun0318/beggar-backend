@@ -129,15 +129,45 @@ public class RoomService {
 
         Room room = roomRepository.findByRoomCode(roomCode.trim())
                 .orElseThrow(() -> new IllegalArgumentException("올바르지 않은 초대 코드입니다."));
+        
+        // 방 상태가 INVITING 또는 BUDGET_INPUT일 때만 입장 허용 (기획 5.2 참고)
+        if (room.getStatus() != RoomStatus.INVITING && room.getStatus() != RoomStatus.BUDGET_INPUT) {
+            throw new IllegalArgumentException("현재는 입장이 불가능한 상태의 방입니다.");
+        }
+
         User user = userRepository.findById(userNo)
                 .orElseThrow(() -> new IllegalArgumentException("로그인 사용자를 찾을 수 없습니다."));
 
-        roomMemberRepository.findByRoom_RoomNoAndUser_UserNo(room.getRoomNo(), userNo)
-                .orElseGet(() -> roomMemberRepository.save(RoomMember.builder()
-                        .room(room)
-                        .user(user)
-                        .status(RoomMember.Status.ACTIVE)
-                        .build()));
+        RoomMember member = roomMemberRepository.findByRoom_RoomNoAndUser_UserNo(room.getRoomNo(), userNo)
+                .orElse(null);
+
+        if (member == null) {
+            // 신규 입장 시 인원 제한 체크
+            long activeCount = roomMemberRepository.countByRoom_RoomNoAndStatus(room.getRoomNo(), RoomMember.Status.ACTIVE);
+            if (activeCount >= room.getMaxMemberCount()) {
+                throw new IllegalArgumentException("정원이 초과되어 입장할 수 없습니다.");
+            }
+
+            roomMemberRepository.save(RoomMember.builder()
+                    .room(room)
+                    .user(user)
+                    .status(RoomMember.Status.ACTIVE)
+                    .build());
+        } else {
+            // 기존 멤버 상태에 따른 처리
+            if (member.getStatus() == RoomMember.Status.KICKED) {
+                throw new IllegalArgumentException("강퇴당한 방에는 다시 입장할 수 없습니다.");
+            }
+            if (member.getStatus() == RoomMember.Status.LEFT) {
+                // 재입장 시에도 인원 제한 체크 필요할 수 있음
+                long activeCount = roomMemberRepository.countByRoom_RoomNoAndStatus(room.getRoomNo(), RoomMember.Status.ACTIVE);
+                if (activeCount >= room.getMaxMemberCount()) {
+                    throw new IllegalArgumentException("정원이 초과되어 입장할 수 없습니다.");
+                }
+                member.rejoin();
+            }
+            // ACTIVE인 경우는 그대로 통과
+        }
 
         return toResponse(room);
     }

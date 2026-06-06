@@ -61,4 +61,9 @@ public class RoomMember {
         this.status = Status.KICKED;
         this.leftAt = LocalDateTime.now();
     }
+
+    public void rejoin() {
+        this.status = Status.ACTIVE;
+        this.leftAt = null;
+    }
 }
