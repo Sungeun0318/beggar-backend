@@ -73,4 +73,10 @@ public class Room {
             this.status = RoomStatus.BUDGET_INPUT;
         }
     }
+
+    public void completeBudgetInput() {
+        if (this.status == RoomStatus.BUDGET_INPUT) {
+            this.status = RoomStatus.BUDGET_DONE;
+        }
+    }
 }
