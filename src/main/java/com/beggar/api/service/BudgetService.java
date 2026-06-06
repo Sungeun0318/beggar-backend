@@ -115,7 +115,7 @@ public class BudgetService {
         System.out.println("거지방 [" + roomNo + "] 예산 최종 확정 완료!");
     }
 
-    /**
+    /*
      *  3. 확정된 예산 결과 조회
      */
     public BudgetResultResponse getResult(Long roomNo) {
