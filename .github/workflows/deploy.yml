@@ -2,7 +2,7 @@ name: Spring Server Deploy   # [필수] GitHub Actions 이름 (가독성용)
 
 on:                         # [필수] 언제 실행할지 정의
   push:                     # [필수] push 이벤트 기반 실행
-    branches: [ "STEP6" ]   # [필수] aws-1 브랜치에 push될 때만 실행됨
+    branches: [ "aws-1" ]   # [필수] aws-1 브랜치에 push될 때만 실행됨
 
 jobs:                       # [필수] 작업(Job) 집합 정의
   build-and-deploy:         # [필수] Job 이름
