@@ -1,5 +1,6 @@
 package com.beggar.api.dto.room;
 
+import com.beggar.api.entity.RoomStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import java.time.LocalDateTime;
@@ -15,6 +16,7 @@ public class RoomResponse {
     private Integer totalBudget;
     private Boolean isFriends;
     private String location;
+    private RoomStatus status;
     private long memberCount;
     private int maxMemberCount;
     private LocalDateTime roomCreated;

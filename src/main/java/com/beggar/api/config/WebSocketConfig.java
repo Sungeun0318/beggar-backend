@@ -21,7 +21,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void configureMessageBroker(MessageBrokerRegistry registry) {
         // 메시지를 받을 때 사용하는 경로 설정 (구독)
-        registry.enableSimpleBroker("/sub");
+        registry.enableSimpleBroker("/sub", "/topic");
         
         // 메시지를 보낼 때 사용하는 경로 설정 (발행)
         registry.setApplicationDestinationPrefixes("/pub");

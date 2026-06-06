@@ -1,12 +1,10 @@
 package com.beggar.api.service;
 
 import com.beggar.api.dto.room.RoomCreateRequest;
+import com.beggar.api.dto.room.RoomEventDto;
 import com.beggar.api.dto.room.RoomMemberResponse;
 import com.beggar.api.dto.room.RoomResponse;
-import com.beggar.api.entity.Room;
-import com.beggar.api.entity.RoomMember;
-import com.beggar.api.entity.RoomPurposeTag;
-import com.beggar.api.entity.User;
+import com.beggar.api.entity.*;
 import com.beggar.api.repository.BudgetRepository;
 import com.beggar.api.repository.RoomMemberRepository;
 import com.beggar.api.repository.RoomPurposeTagRepository;
@@ -28,6 +26,7 @@ public class RoomService {
     private final RoomMemberRepository roomMemberRepository;
     private final BudgetRepository budgetRepository;
     private final UserRepository userRepository;
+    private final RoomEventService roomEventService;
 
     /* 👑 방 생성(create) */
     @Transactional
@@ -74,6 +73,7 @@ public class RoomService {
                 room.getTotalBudget(),
                 room.getIsFriends(),
                 room.getLocation(),
+                room.getStatus(),
                 memberCount,
                 room.getMaxMemberCount(),
                 room.getRoomCreated(),
@@ -128,15 +128,49 @@ public class RoomService {
 
         Room room = roomRepository.findByRoomCode(roomCode.trim())
                 .orElseThrow(() -> new IllegalArgumentException("올바르지 않은 초대 코드입니다."));
+        
+        // 방 상태가 INVITING 또는 BUDGET_INPUT일 때만 입장 허용 (기획 5.2 참고)
+        if (room.getStatus() != RoomStatus.INVITING && room.getStatus() != RoomStatus.BUDGET_INPUT) {
+            throw new IllegalArgumentException("현재는 입장이 불가능한 상태의 방입니다.");
+        }
+
         User user = userRepository.findById(userNo)
                 .orElseThrow(() -> new IllegalArgumentException("로그인 사용자를 찾을 수 없습니다."));
 
-        roomMemberRepository.findByRoom_RoomNoAndUser_UserNo(room.getRoomNo(), userNo)
-                .orElseGet(() -> roomMemberRepository.save(RoomMember.builder()
-                        .room(room)
-                        .user(user)
-                        .status(RoomMember.Status.ACTIVE)
-                        .build()));
+        RoomMember member = roomMemberRepository.findByRoom_RoomNoAndUser_UserNo(room.getRoomNo(), userNo)
+                .orElse(null);
+
+        if (member == null) {
+            // 신규 입장 시 인원 제한 체크
+            long activeCount = roomMemberRepository.countByRoom_RoomNoAndStatus(room.getRoomNo(), RoomMember.Status.ACTIVE);
+            if (activeCount >= room.getMaxMemberCount()) {
+                throw new IllegalArgumentException("정원이 초과되어 입장할 수 없습니다.");
+            }
+
+            roomMemberRepository.save(RoomMember.builder()
+                    .room(room)
+                    .user(user)
+                    .status(RoomMember.Status.ACTIVE)
+                    .build());
+        } else {
+            // 기존 멤버 상태에 따른 처리
+            if (member.getStatus() == RoomMember.Status.KICKED) {
+                throw new IllegalArgumentException("강퇴당한 방에는 다시 입장할 수 없습니다.");
+            }
+            if (member.getStatus() == RoomMember.Status.LEFT) {
+                // 재입장 시에도 인원 제한 체크 필요할 수 있음
+                long activeCount = roomMemberRepository.countByRoom_RoomNoAndStatus(room.getRoomNo(), RoomMember.Status.ACTIVE);
+                if (activeCount >= room.getMaxMemberCount()) {
+                    throw new IllegalArgumentException("정원이 초과되어 입장할 수 없습니다.");
+                }
+                member.rejoin();
+            }
+            // ACTIVE인 경우는 그대로 통과
+        }
+
+        // 멤버 갱신 이벤트 발행
+        List<RoomMemberResponse> members = findMembers(room.getRoomNo(), null);
+        roomEventService.publishMembersUpdated(room.getRoomNo(), members);
 
         return toResponse(room);
     }
@@ -166,6 +200,26 @@ public class RoomService {
         if (!room.getOwnerUserNo().equals(ownerUserNo)) {
             throw new IllegalArgumentException("방장만 설정을 변경할 수 있습니다.");
         }
+    }
+
+    @Transactional
+    public void startBudget(Long roomNo, Long loginUserNo) {
+        Room room = roomRepository.findById(roomNo)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 거지방입니다."));
+
+        if (!room.getOwnerUserNo().equals(loginUserNo)) {
+            throw new IllegalArgumentException("방장만 예산 입력을 시작할 수 있습니다.");
+        }
+
+        if (room.getStatus() != RoomStatus.INVITING) {
+            throw new IllegalArgumentException("이미 예산 입력이 시작되었거나 입장이 불가능한 상태입니다.");
+        }
+
+        // 상태 변경
+        room.startBudgetInput();
+
+        // 이벤트 발행
+        roomEventService.publishStateChanged(roomNo, RoomEventDto.EventType.BUDGET_INPUT_STARTED, "/budget/input?roomNo=" + roomNo);
     }
 }
 
