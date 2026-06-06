@@ -32,6 +32,11 @@ jobs:                       # [필수] 작업(Job) 집합 정의
           echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > src/main/resources/google-service-account-key.json
         shell: bash
 
+      # +) 파일 생성 확인 임시 추가
+      - name: Check credentials file
+        run: cat src/main/resources/google-service-account-key.json | head -3
+        shell: bash
+
       # 5. Build
       - name: Build Spring Boot (bootJar)       # [필수] Spring Boot JAR 빌드
         run: ./gradlew clean bootJar            # [필수] bootJar만 빌드
