@@ -203,6 +203,26 @@ public class RoomService {
             throw new IllegalArgumentException("방장만 설정을 변경할 수 있습니다.");
         }
     }
+
+    @Transactional
+    public void startBudget(Long roomNo, Long loginUserNo) {
+        Room room = roomRepository.findById(roomNo)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 거지방입니다."));
+
+        if (!room.getOwnerUserNo().equals(loginUserNo)) {
+            throw new IllegalArgumentException("방장만 예산 입력을 시작할 수 있습니다.");
+        }
+
+        if (room.getStatus() != RoomStatus.INVITING) {
+            throw new IllegalArgumentException("이미 예산 입력이 시작되었거나 입장이 불가능한 상태입니다.");
+        }
+
+        // 상태 변경
+        room.startBudgetInput();
+
+        // 이벤트 발행
+        roomEventService.publishStateChanged(roomNo, RoomEventDto.EventType.BUDGET_INPUT_STARTED, "/budget/input?roomNo=" + roomNo);
+    }
 }
 
 

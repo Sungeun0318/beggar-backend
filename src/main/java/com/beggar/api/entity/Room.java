@@ -67,4 +67,10 @@ public class Room {
     public void updateTotalBudget(Integer totalBudget) {
         this.totalBudget = totalBudget;
     }
+
+    public void startBudgetInput() {
+        if (this.status == RoomStatus.INVITING) {
+            this.status = RoomStatus.BUDGET_INPUT;
+        }
+    }
 }
