@@ -1,11 +1,18 @@
 package com.beggar.api.service;
 
 import com.beggar.api.dto.room.RoomCreateRequest;
+import com.beggar.api.dto.room.RoomMemberResponse;
 import com.beggar.api.dto.room.RoomResponse;
 import com.beggar.api.entity.Room;
+import com.beggar.api.entity.RoomMember;
 import com.beggar.api.entity.RoomPurposeTag;
+import com.beggar.api.entity.User;
+import com.beggar.api.repository.BudgetRepository;
+import com.beggar.api.repository.RoomMemberRepository;
 import com.beggar.api.repository.RoomPurposeTagRepository;
 import com.beggar.api.repository.RoomRepository;
+import com.beggar.api.repository.UserRepository;
+import org.springframework.util.StringUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +25,9 @@ import java.util.List;
 public class RoomService {
     private final RoomRepository roomRepository;
     private final RoomPurposeTagRepository roomPurposeTagRepository;
+    private final RoomMemberRepository roomMemberRepository;
+    private final BudgetRepository budgetRepository;
+    private final UserRepository userRepository;
 
     /* 👑 방 생성(create) */
     @Transactional
@@ -31,9 +41,17 @@ public class RoomService {
                 roomCode,
                 userNo,
                 request.getIsFriends(),
+                request.getLocation(),
                 request.getMaxMemberCount()
         );
         Room savedRoom = roomRepository.save(room);
+        User owner = userRepository.findById(userNo)
+                .orElseThrow(() -> new IllegalArgumentException("임시 로그인 유저를 찾을 수 없습니다."));
+        roomMemberRepository.save(RoomMember.builder()
+                .room(savedRoom)
+                .user(owner)
+                .status(RoomMember.Status.ACTIVE)
+                .build());
 
         // 2. 목적 태그 리스트 일괄 DB 저장
         List<String> tagNames = request.getTags();
@@ -44,17 +62,32 @@ public class RoomService {
             }
         }
 
+        return toResponse(savedRoom, tagNames, 1);
+    }
+
+    private RoomResponse toResponse(Room room, List<String> tagNames, long memberCount) {
         return new RoomResponse(
-                savedRoom.getRoomNo(),
-                savedRoom.getRoomName(),
-                savedRoom.getRoomCode(),
-                savedRoom.getOwnerUserNo(),
-                savedRoom.getTotalBudget(),
-                savedRoom.getIsFriends(),
-                savedRoom.getMaxMemberCount(),
-                savedRoom.getRoomCreated(),
+                room.getRoomNo(),
+                room.getRoomName(),
+                room.getRoomCode(),
+                room.getOwnerUserNo(),
+                room.getTotalBudget(),
+                room.getIsFriends(),
+                room.getLocation(),
+                memberCount,
+                room.getMaxMemberCount(),
+                room.getRoomCreated(),
                 tagNames
         );
+    }
+
+    private RoomResponse toResponse(Room room) {
+        List<String> tagNames = roomPurposeTagRepository.findAllByRoom_RoomNo(room.getRoomNo()).stream()
+                .map(RoomPurposeTag::getTag)
+                .toList();
+        long memberCount = roomMemberRepository.countByRoom_RoomNoAndStatus(room.getRoomNo(), RoomMember.Status.ACTIVE);
+
+        return toResponse(room, tagNames, memberCount);
     }
 
     /* 12자리 고유 랜덤 초대 코드 생성기 */
@@ -78,19 +111,50 @@ public class RoomService {
     public RoomResponse findById(Long roomNo) {
         Room room = roomRepository.findById(roomNo)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 거지방입니다."));
-        return null;
+        List<String> tagNames = roomPurposeTagRepository.findAllByRoom_RoomNo(roomNo).stream()
+                .map(RoomPurposeTag::getTag)
+                .toList();
+        long memberCount = roomMemberRepository.countByRoom_RoomNoAndStatus(roomNo, RoomMember.Status.ACTIVE);
+
+        return toResponse(room, tagNames, memberCount);
     }
 
     // TODO: joinByCode(userNo, roomCode) — 코드로 입장
     @Transactional
-    public void joinByCode(Long userNo, String roomCode) {
-        Room room = roomRepository.findByRoomCode(roomCode)
+    public RoomResponse joinByCode(Long userNo, String roomCode) {
+        if (!StringUtils.hasText(roomCode)) {
+            throw new IllegalArgumentException("초대 코드가 필요합니다.");
+        }
+
+        Room room = roomRepository.findByRoomCode(roomCode.trim())
                 .orElseThrow(() -> new IllegalArgumentException("올바르지 않은 초대 코드입니다."));
+        User user = userRepository.findById(userNo)
+                .orElseThrow(() -> new IllegalArgumentException("로그인 사용자를 찾을 수 없습니다."));
+
+        roomMemberRepository.findByRoom_RoomNoAndUser_UserNo(room.getRoomNo(), userNo)
+                .orElseGet(() -> roomMemberRepository.save(RoomMember.builder()
+                        .room(room)
+                        .user(user)
+                        .status(RoomMember.Status.ACTIVE)
+                        .build()));
+
+        return toResponse(room);
     }
 
     // TODO: findMembers(roomNo) — 입장 현황
-    public List<Object> findMembers(Long roomNo) {
-        return null;
+    public List<RoomMemberResponse> findMembers(Long roomNo, Long loginUserNo) {
+        if (!roomRepository.existsById(roomNo)) {
+            throw new IllegalArgumentException("존재하지 않는 거지방입니다.");
+        }
+
+        return roomMemberRepository.findByRoom_RoomNoOrderByJoinedAtAsc(roomNo).stream()
+                .filter(member -> member.getStatus() == RoomMember.Status.ACTIVE)
+                .map(member -> RoomMemberResponse.from(
+                        member,
+                        loginUserNo,
+                        budgetRepository.existsByRoomNoAndUserNo(roomNo, member.getUser().getUserNo())
+                ))
+                .toList();
     }
 
     // TODO: updateSettings(roomNo, ownerUserNo, request) — 지역/태그/최대 인원 변경

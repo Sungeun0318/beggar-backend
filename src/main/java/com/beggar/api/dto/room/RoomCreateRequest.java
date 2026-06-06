@@ -10,5 +10,6 @@ public class RoomCreateRequest {
     private String roomName;
     private List<String> tags;
     private Boolean isFriends;
+    private String location;
     private int maxMemberCount;
 }

@@ -136,6 +136,7 @@ application.yaml
 *.key
 *.cert
 *.crt
+src/main/resources/google-service-account-key.json
 
 # ─────────────────────────────────────────────────────────────────────
 # Selenium / WebDriverManager (크롤링 시 자동 생성되는 임시 파일)
@@ -231,6 +232,9 @@ src/main/resources/sql/init.sql
 src/main/resources/sql/seed.sql
 src/main/resources/sql/local.sql
 
+# Google 서비스 계정 키 (절대 커밋 금지)
+**/google-service-account-key.json
+
 # ─────────────────────────────────────────────────────────────────────
 # 로컬 메모 / 작업 파일 (팀원마다 다른 메모)
 # ─────────────────────────────────────────────────────────────────────
@@ -240,4 +244,3 @@ notes/
 scratch/
 .scratch/
 src/main/resources/application.properties
-/src/main/resources/google-service-account-key.json

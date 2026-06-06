@@ -8,5 +8,6 @@ import java.util.List;
 
 @Repository
 public interface RoomPurposeTagRepository extends JpaRepository<RoomPurposeTag, Integer> {
+    List<RoomPurposeTag> findByRoom_RoomNo(Long roomNo);
     List<RoomPurposeTag> findAllByRoom_RoomNo(Long roomNo);
 }
