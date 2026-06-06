@@ -37,6 +37,7 @@ public class RecommendationService {
     private final RoomRepository roomRepository;
     private final RoomPurposeTagRepository roomPurposeTagRepository;
     private final RoomMemberRepository roomMemberRepository;
+    private final RoomBudgetResultRepository roomBudgetResultRepository;
     private final ReceiptRepository receiptRepository;
     private final GoodPriceStoreClient goodPriceStoreClient;
     private final LocationService locationService;
@@ -53,13 +54,21 @@ public class RecommendationService {
                                             Double lat, Double lng, Integer radius) {
         Room room = roomRepository.findById(roomNo)
                 .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND, "방을 찾을 수 없습니다. roomNo=" + roomNo));
+        
         String tag = resolveTag(roomNo, requestedTag);
+        String region = resolveRecommendationRegion(room, requestedRegion, lat, lng);
+        
         long spentAmount = receiptRepository.sumAmountByRoomNo(roomNo);
         Integer totalBudget = room.getTotalBudget();
         Integer remainingBudget = totalBudget == null ? null : Math.max(0, totalBudget - Math.toIntExact(spentAmount));
         long activeMemberCount = Math.max(1, roomMemberRepository.countByRoom_RoomNoAndStatus(roomNo, com.beggar.api.entity.RoomMember.Status.ACTIVE));
-        Integer recommendationBudget = recommendationBudget(remainingBudget, activeMemberCount, tag);
-        String region = resolveRecommendationRegion(requestedRegion, lat, lng);
+        
+        // 확정된 1인 예산 정보가 있으면 우선 사용
+        Integer minBudgetPerPerson = roomBudgetResultRepository.findByRoom_RoomNo(roomNo)
+                .map(com.beggar.api.entity.RoomBudgetResult::getMinBudgetPerPerson)
+                .orElse(perPersonRemainingBudget(remainingBudget, activeMemberCount));
+
+        Integer recommendationBudget = recommendationBudget(minBudgetPerPerson, remainingBudget, activeMemberCount, tag);
 
         RecommendationCandidates candidates = findGoodPriceStores(
                 tag,
@@ -153,11 +162,14 @@ public class RecommendationService {
         return new RecommendationCandidates(filterStores(allStores, tag, null, null, null, null, null), true);
     }
 
-    private String resolveRecommendationRegion(String requestedRegion, Double lat, Double lng) {
+    private String resolveRecommendationRegion(Room room, String requestedRegion, Double lat, Double lng) {
         if (requestedRegion != null && !requestedRegion.isBlank()) {
             return requestedRegion;
         }
-        return locationService.resolveRegion(lat, lng).orElse(requestedRegion);
+        if (room.getLocation() != null && !room.getLocation().isBlank()) {
+            return room.getLocation();
+        }
+        return locationService.resolveRegion(lat, lng).orElse(null);
     }
 
     private String regionKeyword(String region) {
@@ -233,8 +245,8 @@ public class RecommendationService {
         return store.price() <= remainingBudget ? 0 : 2;
     }
 
-    private Integer recommendationBudget(Integer remainingBudget, long activeMemberCount, String tag) {
-        Integer perPerson = perPersonRemainingBudget(remainingBudget, activeMemberCount);
+    private Integer recommendationBudget(Integer minBudgetPerPerson, Integer remainingBudget, long activeMemberCount, String tag) {
+        Integer perPerson = (minBudgetPerPerson != null) ? minBudgetPerPerson : perPersonRemainingBudget(remainingBudget, activeMemberCount);
         if (perPerson == null || perPerson <= 0) {
             return null;
         }
