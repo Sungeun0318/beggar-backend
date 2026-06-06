@@ -25,12 +25,17 @@ jobs:                       # [필수] 작업(Job) 집합 정의
       - name: Add permission for gradlew        # [필수] 실행권한 부여
         run: chmod +x ./gradlew                 # [필수] gradlew 실행 허용
 
-      # 4. Build
+      # 4. Google 서비스 계정 키 파일 생성
+      - name: Create Google credentials file        # [필수] OCR용 인증 파일 생성
+        run: echo '${{ secrets.GOOGLE_CREDENTIALS_JSON }}' > src/main/resources/google-service-account-key.json
+        shell: bash
+
+      # 5. Build
       - name: Build Spring Boot (bootJar)       # [필수] Spring Boot JAR 빌드
         run: ./gradlew clean bootJar            # [필수] bootJar만 빌드
         shell: bash                             # [필수] bash 쉘 사용
 
-      # 5. 현재 시간으로 버전 이름 생성
+      # 6. 현재 시간으로 버전 이름 생성
       - name: Versioning                        # [선택] 시간 기반 버전 라벨 생성
         uses: 1466587594/get-current-time@v2    # [선택] timestamp 생성 액션
         id: time                                # [필수] Step ID (아래에서 값 참조)
@@ -38,12 +43,12 @@ jobs:                       # [필수] 작업(Job) 집합 정의
           format: YYYY-MM-DD-HH-mm-ss           # [선택] 버전 표기 포맷
           utcOffset: "+09:00"                   # [선택] 한국시간
 
-      # 6. 생성된 JAR 파일명 환경변수로 저장
+      # 7. 생성된 JAR 파일명 환경변수로 저장
       - name: Set artifact name                 # [필수] 배포할 jar 파일 이름 추출
         run: echo "ARTIFACT=$(basename build/libs/*SNAPSHOT.jar)" >> $GITHUB_ENV
         # [필수] ARTIFACT 환경변수 등록
 
-      # 7. AWS EB 배포
+      # 8. AWS EB 배포
       - name: Deploy to Elastic Beanstalk       # [필수] EB로 배포하는 단계
         uses: einaregilsson/beanstalk-deploy@v21    # [필수] EB 배포 액션
         with:
