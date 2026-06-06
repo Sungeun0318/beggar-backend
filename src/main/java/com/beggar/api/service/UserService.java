@@ -2,7 +2,6 @@ package com.beggar.api.service;
 
 import com.beggar.api.common.exception.CustomException;
 import com.beggar.api.common.exception.ErrorCode;
-import com.beggar.api.config.PasswordEncoderConfig;
 import com.beggar.api.dto.user.UserRequest;
 import com.beggar.api.entity.User;
 import com.beggar.api.repository.UserRepository;
@@ -10,8 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Optional;
+import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -19,25 +17,22 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
-    // 회원가입
     @Transactional
-    public void userSignup(UserRequest userRequest){
-        // 1. 유저명 중복 검사
-        if(userRepository.existsByUserName(userRequest.getUserName())){
-            throw new CustomException(ErrorCode.DUPLICATE_USER_NAME,"이미 존재하는 유저명입니다.");
+    public void userSignup(UserRequest userRequest) {
+        if (!StringUtils.hasText(userRequest.getUserName())) {
+            throw new CustomException(ErrorCode.INVALID_REQUEST, "닉네임은 필수입니다.");
         }
-        // 2. 이메일 중복 검사
-        if(userRepository.existsByEmail(userRequest.getEmail())){
+
+        if (userRepository.existsByUserName(userRequest.getUserName())) {
+            throw new CustomException(ErrorCode.DUPLICATE_USER_NAME, "이미 존재하는 닉네임입니다.");
+        }
+
+        if (userRepository.existsByEmail(userRequest.getEmail())) {
             throw new CustomException(ErrorCode.DUPLICATE_EMAIL, "이미 사용 중인 이메일입니다.");
         }
-        // 3. 비밀번호 암호화
-        String encodedPassword = passwordEncoder.encode(userRequest.getPassword());
 
-        // 4. 유저 저장
+        String encodedPassword = passwordEncoder.encode(userRequest.getPassword());
         User user = User.signup(userRequest, encodedPassword);
-        System.out.println("userRequest = " + userRequest);
         userRepository.save(user);
     }
-
-   // TODO: getMyProfile(userNo) — 마이페이지 프로필 조회
 }

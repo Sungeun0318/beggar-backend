@@ -136,6 +136,7 @@ application.yaml
 *.key
 *.cert
 *.crt
+src/main/resources/google-service-account-key.json
 
 # ─────────────────────────────────────────────────────────────────────
 # Selenium / WebDriverManager (크롤링 시 자동 생성되는 임시 파일)
