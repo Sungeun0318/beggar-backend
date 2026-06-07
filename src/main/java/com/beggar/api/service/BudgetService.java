@@ -23,16 +23,31 @@ public class BudgetService {
 
     private final BudgetRepository budgetRepository;
     private final RoomRepository roomRepository;
-    private final RoomMemberRepository roomMemberRepository; // 👥 추가
-    private final RoomBudgetResultRepository roomBudgetResultRepository; // 📊 추가
+    private final RoomMemberRepository roomMemberRepository;
+    private final RoomBudgetResultRepository roomBudgetResultRepository;
+    private final RoomEventService roomEventService;
 
     /**
      * 💰 1. 본인 예산 제출 (INSERT or UPDATE)
-     * [테스트 프리패스 버전] 내가 제출하면 묻지도 따지지도 않고 무조건 자동 확정!
      */
     @Transactional
     public void submitBudget(Long userNo, Long roomNo, Integer budgetAmount) {
-        // 기존에 이 방에 제출한 예산이 있는지 조회
+        Room room = roomRepository.findById(roomNo)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 거지방입니다."));
+
+        // 방 상태 검증
+        if (room.getStatus() != RoomStatus.BUDGET_INPUT) {
+            throw new IllegalArgumentException("현재는 예산을 제출할 수 있는 상태가 아닙니다.");
+        }
+
+        // 멤버 상태 검증
+        RoomMember member = roomMemberRepository.findByRoom_RoomNoAndUser_UserNo(roomNo, userNo)
+                .orElseThrow(() -> new IllegalArgumentException("해당 방의 멤버가 아닙니다."));
+        if (member.getStatus() != RoomMember.Status.ACTIVE) {
+            throw new IllegalArgumentException("활성화된 멤버만 예산을 제출할 수 있습니다.");
+        }
+
+        // 예산 저장/수정
         Budget budget = budgetRepository.findByRoomNoAndUserNo(roomNo, userNo)
                 .orElse(null);
 
@@ -43,26 +58,23 @@ public class BudgetService {
         }
         budgetRepository.save(budget);
 
-        System.out.println("💰 예산 제출 임시 성공! 방 번호: " + roomNo + ", 금액: " + budgetAmount);
-
-        // [치트키 방어막] 아직 RoomMember 로직이 연동되지 않아 totalMembers가 0이어도
-        // 혼자 테스트할 때는 제출 즉시 무조건 강제 확정되도록 예외 필터를 뚫어버림
+        // 이벤트 발행 (제출 상태)
         long totalMembers = roomMemberRepository.countByRoom_RoomNoAndStatus(roomNo, RoomMember.Status.ACTIVE);
+        long submittedCount = budgetRepository.countByRoomNo(roomNo);
+        
+        roomEventService.publishBudgetSubmitted(roomNo, java.util.Map.of(
+                "submittedCount", submittedCount,
+                "memberCount", totalMembers
+        ));
 
-        if (totalMembers == 0) {
-            System.out.println("⚠️ 멤버 데이터가 없으므로 1인 테스트 모드로 강제 확정합니다!");
+        // 전원 제출 시 자동 확정
+        if (totalMembers > 0 && totalMembers == submittedCount) {
             this.confirmBudget(roomNo);
-        } else {
-            long submittedCount = budgetRepository.countByRoomNo(roomNo);
-            if (totalMembers == submittedCount) {
-                this.confirmBudget(roomNo);
-            }
         }
     }
 
     /**
      *  2. 강제 확정 / 자동 확정 처리
-     * rooms 테이블 동기화뿐만 아니라 RoomBudgetResult(확정 테이블) 생성까지 완료
      */
     @Transactional
     public void confirmBudget(Long roomNo) {
@@ -83,24 +95,26 @@ public class BudgetService {
         int memberCount = budgets.size();
         int totalBudget = minAmount * memberCount;
 
-        // 1. rooms 테이블 총예산 동기화
+        // 1. rooms 테이블 총예산 및 상태 동기화
         room.updateTotalBudget(totalBudget);
-        roomRepository.save(room);
+        room.completeBudgetInput();
 
-        // 2. 📊 RoomBudgetResult 엔티티 생성 후 기록 저장!
-        RoomBudgetResult result = RoomBudgetResult.builder()
-                .room(room)
-                .minBudgetPerPerson(minAmount)
-                .memberCount(memberCount)
-                .totalBudget(totalBudget)
-                .confirmedAt(LocalDateTime.now())
-                .build();
+        // 2. 📊 결과 테이블 기록
+        RoomBudgetResult result = roomBudgetResultRepository.findByRoom_RoomNo(roomNo)
+                .orElseGet(() -> RoomBudgetResult.builder()
+                        .room(room)
+                        .minBudgetPerPerson(minAmount)
+                        .memberCount(memberCount)
+                        .totalBudget(totalBudget)
+                        .confirmedAt(LocalDateTime.now())
+                        .build());
+        result.update(minAmount, memberCount, totalBudget);
         roomBudgetResultRepository.save(result);
 
-        // 3. TODO: 거지력/거지등급 점수 재계산 로직이 필요하다면 여기에 트리거
-        // beggarScoreService.recalculate(roomNo, minAmount);
+        // 3. 확정 이벤트 발행
+        roomEventService.publishStateChanged(roomNo, RoomEventDto.EventType.BUDGET_CONFIRMED, "/budget/result?roomNo=" + roomNo);
 
-        System.out.println("거지방 [" + roomNo + "] 예산 최종 확정 완료 및 결과 테이블 기록 끝!");
+        System.out.println("거지방 [" + roomNo + "] 예산 최종 확정 완료!");
     }
 
     /**

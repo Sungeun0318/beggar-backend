@@ -46,4 +46,11 @@ public class RoomBudgetResult {
         this.totalBudget = totalBudget;
         this.confirmedAt = LocalDateTime.now();
     }
+
+    public void update(Integer minBudgetPerPerson, Integer memberCount, Integer totalBudget) {
+        this.minBudgetPerPerson = minBudgetPerPerson;
+        this.memberCount = memberCount;
+        this.totalBudget = totalBudget;
+        this.confirmedAt = LocalDateTime.now();
+    }
 }

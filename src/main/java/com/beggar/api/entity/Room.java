@@ -34,25 +34,49 @@ public class Room {
     @Column(nullable = false)
     private Boolean isFriends;
 
+    @Column(name="location" , length = 100)
+    private String location;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private RoomStatus status;
+
     private LocalDateTime roomCreated;
 
     // DB에 저장되기 직전에 현재 시간으로 세팅해주는 함수
     @PrePersist
     public void prePersist() {
         this.roomCreated = LocalDateTime.now();
+        if (this.status == null) {
+            this.status = RoomStatus.INVITING;
+        }
     }
 
     // 방 만들 때 쓸 생성자
-    public Room(String roomName, String roomCode, Long ownerUserNo, Boolean isFriends , int maxMemberCount ) {
+    public Room(String roomName, String roomCode, Long ownerUserNo, Boolean isFriends , String location , int maxMemberCount ) {
         this.roomName = roomName;
         this.roomCode = roomCode;
         this.maxMemberCount = maxMemberCount;
         this.ownerUserNo = ownerUserNo;
         this.isFriends = isFriends;
+        this.location = location;
+        this.status = RoomStatus.INVITING;
         this.roomCreated = LocalDateTime.now();
     }
 
     public void updateTotalBudget(Integer totalBudget) {
         this.totalBudget = totalBudget;
+    }
+
+    public void startBudgetInput() {
+        if (this.status == RoomStatus.INVITING) {
+            this.status = RoomStatus.BUDGET_INPUT;
+        }
+    }
+
+    public void completeBudgetInput() {
+        if (this.status == RoomStatus.BUDGET_INPUT) {
+            this.status = RoomStatus.BUDGET_DONE;
+        }
     }
 }
