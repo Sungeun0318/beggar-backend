@@ -10,6 +10,7 @@ import com.beggar.api.entity.Room;
 import com.beggar.api.entity.RoomPurposeTag;
 import com.beggar.api.repository.ReceiptRepository;
 import com.beggar.api.repository.RoomMemberRepository;
+import com.beggar.api.repository.RoomBudgetResultRepository;
 import com.beggar.api.repository.RoomPurposeTagRepository;
 import com.beggar.api.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
