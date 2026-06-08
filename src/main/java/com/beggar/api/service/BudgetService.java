@@ -35,7 +35,7 @@ public class BudgetService {
     private final RoomEventService roomEventService;
 
     /**
-     * 💰 1. 본인 예산 제출 (INSERT or UPDATE)
+     *  본인 예산 제출 (INSERT or UPDATE)
      */
     @Transactional
     public void submitBudget(Long userNo, Long roomNo, Integer budgetAmount) {
@@ -115,7 +115,7 @@ public class BudgetService {
         room.updateTotalBudget(totalBudget);
         room.completeBudgetInput();
 
-        // 2. 📊 결과 테이블 기록
+        // 2. 결과 테이블 기록
         RoomBudgetResult result = roomBudgetResultRepository.findByRoom_RoomNo(roomNo)
                 .orElseGet(() -> RoomBudgetResult.builder()
                         .room(room)
@@ -144,7 +144,7 @@ public class BudgetService {
     }
 
     /**
-     * 📊 4. 확정된 예산 결과 엑셀 다운로드
+     * 4. 확정된 예산 결과 엑셀 다운로드
      */
     public void exportBudgetToExcel(Long roomNo, OutputStream outputStream) throws IOException {
         Room room = roomRepository.findById(roomNo)
