@@ -35,7 +35,7 @@ public class BudgetService {
 
         // 방 상태 검증
         if (room.getStatus() != RoomStatus.BUDGET_INPUT) {
-            throw new IllegalArgumentException("현재는 예산을 제출할 수 있는 상태가 아닙니다.");
+            throw new IllegalArgumentException("현재 방 상태가 '" + room.getStatus() + "'입니다. 예산 입력 단계(BUDGET_INPUT)에서만 제출이 가능합니다.");
         }
 
         // 멤버 상태 검증
@@ -69,6 +69,15 @@ public class BudgetService {
         if (totalMembers > 0 && totalMembers == submittedCount) {
             this.confirmBudget(roomNo);
         }
+    }
+
+    /**
+     *  1-1. 본인이 제출한 예산 조회
+     */
+    public Integer findMyBudget(Long roomNo, Long userNo) {
+        return budgetRepository.findByRoomNoAndUserNo(roomNo, userNo)
+                .map(Budget::getAmount)
+                .orElse(null);
     }
 
     /**

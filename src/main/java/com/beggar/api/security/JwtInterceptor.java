@@ -24,7 +24,6 @@ public class JwtInterceptor implements HandlerInterceptor {
         }
 
         if (isPublicCommunityRead(request) || isExcludedPath(request)) {
-            request.setAttribute("userNo", 5L); // 테스트용 기본 유저 세팅
             return true;
         }
 
@@ -44,8 +43,7 @@ public class JwtInterceptor implements HandlerInterceptor {
 
     private boolean isExcludedPath(HttpServletRequest request) {
         String path = request.getRequestURI();
-        return path.startsWith("/rooms/")
-                || path.equals("/auth/login")
+        return path.equals("/auth/login")
                 || path.equals("/auth/kakao")
                 || path.equals("/auth/kakao/code")
                 || path.equals("/auth/refresh")
