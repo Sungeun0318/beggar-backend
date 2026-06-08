@@ -75,6 +75,14 @@ public class RoomController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
+    @PostMapping("/{roomNo}/close")
+    public ResponseEntity<ApiResponse<Void>> closeRoom(
+            @PathVariable Long roomNo,
+            @LoginUser Long loginUserNo) {
+        roomService.closeRoom(roomNo, loginUserNo);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
     // TODO: GET   /rooms/{roomNo}            — 방 상세 정보 및 태그 조회
     // TODO: GET   /rooms/{roomNo}/members    — 입장 현황 (보안상 예산 금액 미노출)
     // TODO: GET   /rooms/{roomNo}/beggar-score — 방별 거지평가 등급 및 스코어 조회

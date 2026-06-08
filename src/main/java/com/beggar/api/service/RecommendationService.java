@@ -8,6 +8,7 @@ import com.beggar.api.dto.location.LocationSearchResponse;
 import com.beggar.api.dto.recommendation.RecommendationResponse;
 import com.beggar.api.entity.Room;
 import com.beggar.api.entity.RoomPurposeTag;
+import com.beggar.api.entity.RoomStatus;
 import com.beggar.api.repository.ReceiptRepository;
 import com.beggar.api.repository.RoomBudgetResultRepository;
 import com.beggar.api.repository.RoomMemberRepository;
@@ -56,6 +57,10 @@ public class RecommendationService {
         Room room = roomRepository.findById(roomNo)
                 .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND, "방을 찾을 수 없습니다. roomNo=" + roomNo));
         
+        if (room.getStatus() == RoomStatus.ENDED) {
+            throw new CustomException(ErrorCode.ROOM_ALREADY_ENDED);
+        }
+
         String tag = resolveTag(roomNo, requestedTag);
         String region = resolveRecommendationRegion(room, requestedRegion, lat, lng);
         
