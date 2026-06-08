@@ -188,7 +188,11 @@ public class ReceiptService {
         Receipt receipt = receiptRepository.findById(receiptId)
                 .filter(found -> found.getRoom().getRoomNo().equals(roomNo))
                 .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
+        
         receipt.updateAmount(request.amount());
+        receipt.updateManualInfo(request.storeName(), request.address(), request.centerLat(), request.centerLng());
+
+        applyGoodPriceMatch(receipt);
 
         return toResponse(receipt);
     }
