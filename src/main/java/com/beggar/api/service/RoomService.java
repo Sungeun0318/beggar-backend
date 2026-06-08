@@ -199,6 +199,24 @@ public class RoomService {
         if (!room.getOwnerUserNo().equals(ownerUserNo)) {
             throw new IllegalArgumentException("방장만 설정을 변경할 수 있습니다.");
         }
+
+        // 1. 최대 인원 제한 체크 (현재 참여 중인 인원보다 적게 설정 불가)
+        long currentMemberCount = roomMemberRepository.countByRoom_RoomNoAndStatus(roomNo, RoomMember.Status.ACTIVE);
+        if (request.getMaxMemberCount() < currentMemberCount) {
+            throw new IllegalArgumentException("현재 참여 중인 인원(" + currentMemberCount + "명)보다 적게 최대 인원을 설정할 수 없습니다.");
+        }
+
+        // 2. 방 기본 정보 업데이트
+        room.update(request.getRoomName(), request.getLocation(), request.getMaxMemberCount());
+
+        // 3. 태그 업데이트 (기존 태그 삭제 후 재등록)
+        roomPurposeTagRepository.deleteAllByRoom_RoomNo(roomNo);
+        List<String> tagNames = request.getTags();
+        if (tagNames != null) {
+            for (String tagName : tagNames) {
+                roomPurposeTagRepository.save(new RoomPurposeTag(room, tagName));
+            }
+        }
     }
 
     @Transactional

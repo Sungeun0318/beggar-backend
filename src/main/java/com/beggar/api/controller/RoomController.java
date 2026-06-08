@@ -65,8 +65,17 @@ public class RoomController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
+    /* 🛠️ 방 설정 변경 (방장 전용) */
+    @PatchMapping("/{roomNo}/settings")
+    public ResponseEntity<ApiResponse<Void>> updateSettings(
+            @PathVariable Long roomNo,
+            @LoginUser Long loginUserNo,
+            @RequestBody RoomCreateRequest request) {
+        roomService.updateSettings(roomNo, loginUserNo, request);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
     // TODO: GET   /rooms/{roomNo}            — 방 상세 정보 및 태그 조회
-    // TODO: PATCH /rooms/{roomNo}/settings   — 방장 전용 지역/태그/최대 인원 변경
     // TODO: GET   /rooms/{roomNo}/members    — 입장 현황 (보안상 예산 금액 미노출)
     // TODO: GET   /rooms/{roomNo}/beggar-score — 방별 거지평가 등급 및 스코어 조회
 }
