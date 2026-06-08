@@ -19,6 +19,18 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(code.getCode(), e.getMessage()));
     }
 
+    @ExceptionHandler({
+            IllegalArgumentException.class,
+            IllegalStateException.class,
+            jakarta.persistence.EntityNotFoundException.class,
+            org.springframework.dao.DataAccessException.class
+    })
+    public ResponseEntity<ApiResponse<Void>> handleBadRequest(RuntimeException e) {
+        log.warn("BadRequest/DataError: {}", e.getMessage());
+        return ResponseEntity.badRequest()
+                .body(ApiResponse.error(ErrorCode.INVALID_REQUEST.getCode(), e.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidation(MethodArgumentNotValidException e) {
         String message = e.getBindingResult().getFieldErrors().stream()

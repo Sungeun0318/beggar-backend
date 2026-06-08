@@ -20,6 +20,14 @@ public class BudgetController {
         this.budgetService = budgetService;
     }
 
+    /* 💰 0. [GET] /rooms/{roomNo}/budget — 본인이 제출한 예산 조회 */
+    @GetMapping
+    public ResponseEntity<ApiResponse<Integer>> getMyBudget(
+            @PathVariable Long roomNo,
+            @LoginUser Long loginUserNo) {
+        return ResponseEntity.ok(ApiResponse.success(budgetService.findMyBudget(roomNo, loginUserNo)));
+    }
+
     /* 💸 1. [POST] /rooms/{roomNo}/budget — 본인 예산 익명 제출 및 수정 */
     @PostMapping
     public ResponseEntity<ApiResponse<Void>> submitBudget(
