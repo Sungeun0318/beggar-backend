@@ -1,6 +1,5 @@
 package com.beggar.api.common.response;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Getter;
 
 @Getter

@@ -16,7 +16,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -35,7 +34,6 @@ public class ReceiptService {
     private final RoomMemberRepository roomMemberRepository;
     private final GoodPriceMatchService goodPriceMatchService;
     private final LocationService locationService;
-    private final BeggarScoreService beggarScoreService;
     private final OcrService ocrService;
     private final S3Service s3Service;
     
