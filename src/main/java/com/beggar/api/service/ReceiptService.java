@@ -37,6 +37,7 @@ public class ReceiptService {
     private final LocationService locationService;
     private final BeggarScoreService beggarScoreService;
     private final OcrService ocrService;
+    private final S3Service s3Service;
     
     @org.springframework.beans.factory.annotation.Autowired
     @org.springframework.context.annotation.Lazy
@@ -98,21 +99,27 @@ public class ReceiptService {
             processOcrAsync(roomNo, saved);
         }
 
-        return ReceiptResponse.from(saved);
+        return toResponse(saved);
     }
 
     @Async
     public void processOcrAsync(Long roomNo, Receipt receipt) {
         try {
-            String allText = ocrService.detectText(receipt.getImageUrl());
+            String encodedKey = receipt.getImageUrl().substring(receipt.getImageUrl().lastIndexOf("/") + 1);
+            String key = java.net.URLDecoder.decode(encodedKey, java.nio.charset.StandardCharsets.UTF_8);
+            byte[] imageBytes = s3Service.getFileBytes(key);
+            
+            String allText = ocrService.detectTextFromBytes(imageBytes);
             if (allText == null || allText.isBlank()) {
                 log.error("OCR 텍스트 추출 실패: {}", receipt.getReceiptId());
+                self.updateOcrStatusInternal(receipt.getReceiptId(), Receipt.OcrStatus.FAILED);
                 return;
             }
 
             Map<String, Object> data = ocrService.analyzeWithGroq(allText);
             if (data == null) {
                 log.error("Groq 분석 실패: {}", receipt.getReceiptId());
+                self.updateOcrStatusInternal(receipt.getReceiptId(), Receipt.OcrStatus.FAILED);
                 return;
             }
 
@@ -129,7 +136,17 @@ public class ReceiptService {
 
         } catch (Exception e) {
             log.error("비동기 OCR 처리 중 오류 발생: {}", receipt.getReceiptId(), e);
+            self.updateOcrStatusInternal(receipt.getReceiptId(), Receipt.OcrStatus.FAILED);
         }
+    }
+
+    @Transactional
+    public void updateOcrStatusInternal(Long receiptId, Receipt.OcrStatus status) {
+        receiptRepository.findById(receiptId).ifPresent(r -> {
+            if (status == Receipt.OcrStatus.FAILED) {
+                r.markOcrFailed();
+            }
+        });
     }
 
     @Transactional
@@ -155,14 +172,14 @@ public class ReceiptService {
 
     public List<ReceiptResponse> read(Long roomNo) {
         return receiptRepository.findAllByRoom_RoomNoOrderByCreatedAtDesc(roomNo).stream()
-                .map(ReceiptResponse::from)
+                .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
     public ReceiptResponse readOne(Long roomNo, Long receiptId) {
         return receiptRepository.findById(receiptId)
                 .filter(receipt -> receipt.getRoom().getRoomNo().equals(roomNo))
-                .map(ReceiptResponse::from)
+                .map(this::toResponse)
                 .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
     }
 
@@ -173,7 +190,7 @@ public class ReceiptService {
                 .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
         receipt.updateAmount(request.amount());
 
-        return ReceiptResponse.from(receipt);
+        return toResponse(receipt);
     }
 
     @Transactional
@@ -199,7 +216,36 @@ public class ReceiptService {
         );
         applyGoodPriceMatch(receipt);
 
-        return ReceiptResponse.from(receipt);
+        return toResponse(receipt);
+    }
+
+    private ReceiptResponse toResponse(Receipt receipt) {
+        String presignedUrl = s3Service.generatePresignedGetUrl(receipt.getImageUrl());
+        ReceiptResponse original = ReceiptResponse.from(receipt);
+        
+        return new ReceiptResponse(
+                original.receiptId(),
+                original.roomNo(),
+                original.uploaderUserNo(),
+                original.receiptType(),
+                original.inputMethod(),
+                presignedUrl,
+                original.ocrStatus(),
+                original.storeName(),
+                original.totalAmount(),
+                original.amount(),
+                original.address(),
+                original.centerLat(),
+                original.centerLng(),
+                original.goodPriceMatched(),
+                original.goodPriceStoreId(),
+                original.goodPriceStoreName(),
+                original.goodPriceStoreAddress(),
+                original.goodPriceVerifiedAt(),
+                original.createdAt(),
+                original.updatedAt(),
+                original.splits()
+        );
     }
 
     @Transactional
