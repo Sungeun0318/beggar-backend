@@ -200,6 +200,10 @@ public class RoomService {
             throw new IllegalArgumentException("방장만 설정을 변경할 수 있습니다.");
         }
 
+        if (room.getStatus() == RoomStatus.ENDED) {
+            throw new IllegalArgumentException("이미 종료된 방의 설정은 변경할 수 없습니다.");
+        }
+
         // 1. 최대 인원 제한 체크 (현재 참여 중인 인원보다 적게 설정 불가)
         long currentMemberCount = roomMemberRepository.countByRoom_RoomNoAndStatus(roomNo, RoomMember.Status.ACTIVE);
         if (request.getMaxMemberCount() < currentMemberCount) {
@@ -237,5 +241,24 @@ public class RoomService {
 
         // 이벤트 발행
         roomEventService.publishStateChanged(roomNo, RoomEventDto.EventType.BUDGET_INPUT_STARTED, "/budget/input?roomNo=" + roomNo);
+    }
+
+    @Transactional
+    public void closeRoom(Long roomNo, Long loginUserNo) {
+        Room room = roomRepository.findById(roomNo)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 거지방입니다."));
+
+        if (!room.getOwnerUserNo().equals(loginUserNo)) {
+            throw new IllegalArgumentException("방장만 방을 종료할 수 있습니다.");
+        }
+
+        if (room.getStatus() == RoomStatus.ENDED) {
+            throw new IllegalArgumentException("이미 종료된 방입니다.");
+        }
+
+        room.close();
+
+        // 방 종료 이벤트 발행 (필요하다면 EventType 추가 가능, 현재는 상태 변경만 발행)
+        roomEventService.publishStateChanged(roomNo, RoomEventDto.EventType.ROOM_ENDED, null);
     }
 }

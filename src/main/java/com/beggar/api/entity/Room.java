@@ -85,4 +85,8 @@ public class Room {
         if (location != null) this.location = location;
         this.maxMemberCount = maxMemberCount;
     }
+
+    public void close() {
+        this.status = RoomStatus.ENDED;
+    }
 }
