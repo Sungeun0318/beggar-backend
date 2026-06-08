@@ -28,7 +28,6 @@ public class WebConfig implements WebMvcConfigurer {
                         "/auth/refresh",
                         "/users/signup",
                         "/locations/search",
-                        "/rooms/**",
                         "/error",
                         "/actuator/health"
                 ); // 공개 엔드포인트와 상태 체크는 JWT 검사를 제외한다.

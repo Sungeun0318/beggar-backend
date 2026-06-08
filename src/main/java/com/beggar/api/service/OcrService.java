@@ -26,9 +26,18 @@ public class OcrService {
 
     public String detectText(String imageUrl) {
         List<AnnotateImageRequest> requests = new ArrayList<>();
-
         ImageSource imgSource = ImageSource.newBuilder().setImageUri(imageUrl).build();
         Image img = Image.newBuilder().setSource(imgSource).build();
+        return process(img);
+    }
+
+    public String detectTextFromBytes(byte[] imageBytes) {
+        Image img = Image.newBuilder().setContent(com.google.protobuf.ByteString.copyFrom(imageBytes)).build();
+        return process(img);
+    }
+
+    private String process(Image img) {
+        List<AnnotateImageRequest> requests = new ArrayList<>();
         Feature feat = Feature.newBuilder().setType(Feature.Type.TEXT_DETECTION).build();
         AnnotateImageRequest request = AnnotateImageRequest.newBuilder()
                 .addFeatures(feat)
@@ -45,8 +54,6 @@ public class OcrService {
                     log.error("Error: {}", res.getError().getMessage());
                     return null;
                 }
-
-                // For full-text description
                 TextAnnotation annotation = res.getFullTextAnnotation();
                 if (annotation != null) {
                     return annotation.getText();

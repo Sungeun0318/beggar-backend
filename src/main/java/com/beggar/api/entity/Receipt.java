@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "receipts")
@@ -15,7 +17,7 @@ import java.math.BigDecimal;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Receipt extends BaseTimeEntity {
 
-    public enum ReceiptType { COMBINED, SPLIT }
+    public enum ReceiptType { COMBINED, SPLIT, PERSONAL }
     public enum InputMethod { CAMERA, GALLERY, MANUAL }
     public enum OcrStatus { PENDING, SUCCESS, FAILED, CANCELED, MANUAL }
 
@@ -82,6 +84,9 @@ public class Receipt extends BaseTimeEntity {
     @Column(name = "good_price_verified_at")
     private java.time.LocalDateTime goodPriceVerifiedAt;
 
+    @OneToMany(mappedBy = "receipt", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ReceiptSplit> splits = new ArrayList<>();
+
     @Builder
     public Receipt(Room room, RoomMember uploader, ReceiptType receiptType,
                    InputMethod inputMethod, String imageUrl, OcrStatus ocrStatus,
@@ -102,6 +107,10 @@ public class Receipt extends BaseTimeEntity {
         this.centerLat = centerLat;
         this.centerLng = centerLng;
         this.goodPriceMatched = false;
+    }
+
+    public void addSplit(ReceiptSplit split) {
+        this.splits.add(split);
     }
 
     public void applyOcrResult(String storeName, Integer totalAmount,
