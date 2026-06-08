@@ -3,20 +3,24 @@ package com.beggar.api.service;
 import com.beggar.api.repository.RoomFreeChatRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
 @Slf4j
-@Component
+@Configuration
+@EnableScheduling
 @RequiredArgsConstructor
-public class ChatCleanupWorker {
+public class RoomFreeChatCleanupWorker {
 
     private final RoomFreeChatRepository chatRepository;
 
-    // 매일 새벽 3시에 10일이 지난 채팅 내역 삭제
+    /**
+     * 매일 새벽 3시에 10일이 지난 채팅 내역 삭제
+     */
     @Scheduled(cron = "0 0 3 * * *")
     @Transactional
     public void deleteOldChats() {
