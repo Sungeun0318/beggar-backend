@@ -10,10 +10,15 @@ import com.beggar.api.repository.RoomRepository;
 import com.beggar.api.repository.RoomMemberRepository; // 👥 멤버수 체크용 (프로젝트 상황에 맞게 확인!)
 import com.beggar.api.repository.RoomBudgetResultRepository; // 📊 확정 결과 저장용
 import lombok.RequiredArgsConstructor;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.io.OutputStream;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 @Service
@@ -125,5 +130,60 @@ public class BudgetService {
                 .orElseThrow(() -> new IllegalArgumentException("아직 예산이 확정되지 않은 방입니다."));
 
         return BudgetResultResponse.from(roomBudgetResult);
+    }
+
+    /**
+     * 📊 4. 확정된 예산 결과 엑셀 다운로드
+     */
+    public void exportBudgetToExcel(Long roomNo, OutputStream outputStream) throws IOException {
+        Room room = roomRepository.findById(roomNo)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 거지방입니다."));
+
+        RoomBudgetResult result = roomBudgetResultRepository.findByRoom_RoomNo(roomNo)
+                .orElseThrow(() -> new IllegalArgumentException("아직 예산이 확정되지 않은 방입니다."));
+
+        // 1. 엑셀 워크북 및 시트 생성
+        try (Workbook workbook = new XSSFWorkbook()) {
+            Sheet sheet = workbook.createSheet("거지방 예산 정산서");
+
+            // 스타일 설정 (헤더용)
+            CellStyle headerStyle = workbook.createCellStyle();
+            headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+            headerStyle.setAlignment(HorizontalAlignment.CENTER);
+
+            // 2. 헤더 행 생성
+            String[] headers = {"항목", "내용"};
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                cell.setCellStyle(headerStyle);
+            }
+
+            // 3. 데이터 채우기
+            int rowIdx = 1;
+            addExcelRow(sheet, rowIdx++, "거지방 이름", room.getRoomName());
+            addExcelRow(sheet, rowIdx++, "최종 확정 일시", result.getConfirmedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+            addExcelRow(sheet, rowIdx++, "참여 인원", result.getMemberCount() + "명");
+            addExcelRow(sheet, rowIdx++, "1인당 목표 예산", String.format("%,d원", result.getMinBudgetPerPerson()));
+            addExcelRow(sheet, rowIdx++, "방 전체 총 예산", String.format("%,d원", result.getTotalBudget()));
+
+            // 컬럼 너비 자동 조정
+            sheet.autoSizeColumn(0);
+            sheet.autoSizeColumn(1);
+
+            // 4. 출력 스트림에 쓰기
+            workbook.write(outputStream);
+        }
+    }
+
+    private void addExcelRow(Sheet sheet, int rowIdx, String label, String value) {
+        Row row = sheet.createRow(rowIdx);
+        row.createCell(0).setCellValue(label);
+        row.createCell(1).setCellValue(value);
     }
 }
