@@ -96,48 +96,49 @@ public class ReceiptService {
         }
 
         if (request.inputMethod() != Receipt.InputMethod.MANUAL) {
-            processOcrAsync(roomNo, saved);
+            self.processOcrAsync(roomNo, saved);
         }
 
         return toResponse(saved);
     }
 
-    @Async
     public void processOcrAsync(Long roomNo, Receipt receipt) {
-        try {
-            String encodedKey = receipt.getImageUrl().substring(receipt.getImageUrl().lastIndexOf("/") + 1);
-            String key = java.net.URLDecoder.decode(encodedKey, java.nio.charset.StandardCharsets.UTF_8);
-            byte[] imageBytes = s3Service.getFileBytes(key);
-            
-            String allText = ocrService.detectTextFromBytes(imageBytes);
-            if (allText == null || allText.isBlank()) {
-                log.error("OCR 텍스트 추출 실패: {}", receipt.getReceiptId());
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                String encodedKey = receipt.getImageUrl().substring(receipt.getImageUrl().lastIndexOf("/") + 1);
+                String key = java.net.URLDecoder.decode(encodedKey, java.nio.charset.StandardCharsets.UTF_8);
+                byte[] imageBytes = s3Service.getFileBytes(key);
+                
+                String allText = ocrService.detectTextFromBytes(imageBytes);
+                if (allText == null || allText.isBlank()) {
+                    log.error("OCR 텍스트 추출 실패: {}", receipt.getReceiptId());
+                    self.updateOcrStatusInternal(receipt.getReceiptId(), Receipt.OcrStatus.FAILED);
+                    return;
+                }
+
+                Map<String, Object> data = ocrService.analyzeWithGroq(allText);
+                if (data == null) {
+                    log.error("Groq 분석 실패: {}", receipt.getReceiptId());
+                    self.updateOcrStatusInternal(receipt.getReceiptId(), Receipt.OcrStatus.FAILED);
+                    return;
+                }
+
+                String storeName = (String) data.get("store_name");
+                String address = (String) data.get("address");
+                Object totalAmountObj = data.get("total_amount");
+                Integer totalAmount = totalAmountObj instanceof Integer ? (Integer) totalAmountObj : ((Double) totalAmountObj).intValue();
+
+                if (address != null) {
+                    address = address.split("\\(")[0].trim();
+                }
+
+                self.updateOcrResultInternal(roomNo, receipt.getReceiptId(), storeName, totalAmount, address);
+
+            } catch (Exception e) {
+                log.error("비동기 OCR 처리 중 오류 발생: {}", receipt.getReceiptId(), e);
                 self.updateOcrStatusInternal(receipt.getReceiptId(), Receipt.OcrStatus.FAILED);
-                return;
             }
-
-            Map<String, Object> data = ocrService.analyzeWithGroq(allText);
-            if (data == null) {
-                log.error("Groq 분석 실패: {}", receipt.getReceiptId());
-                self.updateOcrStatusInternal(receipt.getReceiptId(), Receipt.OcrStatus.FAILED);
-                return;
-            }
-
-            String storeName = (String) data.get("store_name");
-            String address = (String) data.get("address");
-            Object totalAmountObj = data.get("total_amount");
-            Integer totalAmount = totalAmountObj instanceof Integer ? (Integer) totalAmountObj : ((Double) totalAmountObj).intValue();
-
-            if (address != null) {
-                address = address.split("\\(")[0].trim();
-            }
-
-            self.updateOcrResultInternal(roomNo, receipt.getReceiptId(), storeName, totalAmount, address);
-
-        } catch (Exception e) {
-            log.error("비동기 OCR 처리 중 오류 발생: {}", receipt.getReceiptId(), e);
-            self.updateOcrStatusInternal(receipt.getReceiptId(), Receipt.OcrStatus.FAILED);
-        }
+        });
     }
 
     @Transactional
