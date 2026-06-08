@@ -78,6 +78,10 @@ dependencies {
     // (추가) 테스트
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly    'org.junit.platform:junit-platform-launcher'
+
+    // Apache POI (Excel 기능
+    implementation 'org.apache.poi:poi:5.2.5'
+    implementation 'org.apache.poi:poi-ooxml:5.2.5'
 }
 
 tasks.named('test') {

@@ -102,12 +102,14 @@ public class RoomService {
         return sb.toString();
     }
 
-    // TODO: findMyRooms(userNo) — ACTIVE 멤버인 방 목록
+    /* 👑 내가 참여 중인 방 목록 조회 */
     public List<RoomResponse> findMyRooms(Long userNo) {
-        return null;
+        return roomMemberRepository.findByUser_UserNoAndStatus(userNo, RoomMember.Status.ACTIVE).stream()
+                .map(RoomMember::getRoom)
+                .map(this::toResponse)
+                .toList();
     }
 
-    // TODO: findById(roomNo) — 방 상세 + 태그
     public RoomResponse findById(Long roomNo) {
         Room room = roomRepository.findById(roomNo)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 거지방입니다."));
@@ -119,7 +121,6 @@ public class RoomService {
         return toResponse(room, tagNames, memberCount);
     }
 
-    // TODO: joinByCode(userNo, roomCode) — 코드로 입장
     @Transactional
     public RoomResponse joinByCode(Long userNo, String roomCode) {
         if (!StringUtils.hasText(roomCode)) {
@@ -175,7 +176,6 @@ public class RoomService {
         return toResponse(room);
     }
 
-    // TODO: findMembers(roomNo) — 입장 현황
     public List<RoomMemberResponse> findMembers(Long roomNo, Long loginUserNo) {
         if (!roomRepository.existsById(roomNo)) {
             throw new IllegalArgumentException("존재하지 않는 거지방입니다.");
@@ -191,7 +191,6 @@ public class RoomService {
                 .toList();
     }
 
-    // TODO: updateSettings(roomNo, ownerUserNo, request) — 지역/태그/최대 인원 변경
     @Transactional
     public void updateSettings(Long roomNo, Long ownerUserNo, RoomCreateRequest request) {
         Room room = roomRepository.findById(roomNo)
@@ -222,15 +221,3 @@ public class RoomService {
         roomEventService.publishStateChanged(roomNo, RoomEventDto.EventType.BUDGET_INPUT_STARTED, "/budget/input?roomNo=" + roomNo);
     }
 }
-
-
-
-
-
-    // TODO: Room INSERT(maxMemberCount 포함) + 방장 RoomMember(ACTIVE) INSERT + tags 일괄 INSERT
-    // TODO: create(ownerUserNo, request)  — 방 생성 + 방장 자동 입장 + 태그 INSERT + maxMemberCount 저장
-    // TODO: findMyRooms(userNo)           — ACTIVE 멤버인 방 목록
-    // TODO: findById(roomNo)              — 방 상세 + 태그
-    // TODO: joinByCode(userNo, roomCode)  — 코드로 입장 (중복 입장 차단)
-    // TODO: findMembers(roomNo)           — 입장 현황 (예산 제출 여부만, 금액 X)
-    // TODO: updateSettings(roomNo, ownerUserNo, request) — 지역/태그/최대 인원 변경

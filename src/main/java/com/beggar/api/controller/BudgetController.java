@@ -58,4 +58,21 @@ public class BudgetController {
 
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    /* 📊 4. [GET] /rooms/{roomNo}/budget/excel — 확정된 예산 결과 엑셀 다운로드 */
+    @GetMapping("/excel")
+    public void downloadBudgetExcel(
+            @PathVariable Long roomNo,
+            jakarta.servlet.http.HttpServletResponse response) throws java.io.IOException {
+
+        // 1. 브라우저에게 "이건 엑셀 파일이고, 받자마자 다운로드창 띄워라" 라고 헤더 세팅
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+
+        // 파일명이 한글일 때 깨지지 않도록 인코딩 처리
+        String fileName = java.net.URLEncoder.encode("거지방_최종예산정산서", "UTF-8").replaceAll("\\+", "%20");
+        response.setHeader("Content-Disposition", "attachment; filename=" + fileName + ".xlsx");
+
+        // 2. 서비스단에 다운로드 파이프라인 전달
+        budgetService.exportBudgetToExcel(roomNo, response.getOutputStream());
+    }
 }

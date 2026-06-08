@@ -38,6 +38,11 @@ public class RoomController {
         return ResponseEntity.ok(ApiResponse.success(roomService.findById(roomNo)));
     }
 
+    @GetMapping("/my")
+    public ResponseEntity<ApiResponse<List<RoomResponse>>> getMyRooms(@LoginUser Long loginUserNo) {
+        return ResponseEntity.ok(ApiResponse.success(roomService.findMyRooms(loginUserNo)));
+    }
+
     @GetMapping("/{roomNo}/members")
     public ResponseEntity<ApiResponse<List<RoomMemberResponse>>> getMembers(
             @PathVariable Long roomNo,
@@ -60,7 +65,6 @@ public class RoomController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
-    // TODO: GET   /rooms/my                  — 내가 참여 중인 방 목록
     // TODO: GET   /rooms/{roomNo}            — 방 상세 정보 및 태그 조회
     // TODO: PATCH /rooms/{roomNo}/settings   — 방장 전용 지역/태그/최대 인원 변경
     // TODO: GET   /rooms/{roomNo}/members    — 입장 현황 (보안상 예산 금액 미노출)
