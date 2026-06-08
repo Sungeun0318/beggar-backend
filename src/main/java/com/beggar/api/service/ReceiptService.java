@@ -192,6 +192,25 @@ public class ReceiptService {
         receipt.updateAmount(request.amount());
         receipt.updateManualInfo(request.storeName(), request.address(), request.centerLat(), request.centerLng());
 
+        if (receipt.getReceiptType() == Receipt.ReceiptType.SPLIT && request.splits() != null) {
+            receiptSplitRepository.deleteAllByReceipt_ReceiptId(receipt.getReceiptId());
+            receipt.getSplits().clear();
+            
+            request.splits().forEach(splitItem -> {
+                RoomMember splitMember = roomMemberRepository.findById(splitItem.roomMemberId())
+                        .orElseThrow(() -> new IllegalArgumentException("분할 대상 멤버를 찾을 수 없습니다. ID: " + splitItem.roomMemberId()));
+                
+                ReceiptSplit split = ReceiptSplit.builder()
+                        .receipt(receipt)
+                        .roomMember(splitMember)
+                        .amount(splitItem.amount())
+                        .build();
+                
+                receiptSplitRepository.save(split);
+                receipt.addSplit(split);
+            });
+        }
+
         applyGoodPriceMatch(receipt);
 
         return toResponse(receipt);
