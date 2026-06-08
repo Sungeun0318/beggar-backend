@@ -17,7 +17,7 @@ public record RoomMemberResponse(
         return new RoomMemberResponse(
                 member.getUser().getUserName(),
                 displayStatus,
-                member.getUser().getUserNo().equals(loginUserNo),
+                loginUserNo != null && member.getUser().getUserNo().equals(loginUserNo),
                 budgetSubmitted
         );
     }

@@ -1,16 +1,16 @@
 package com.beggar.api.service;
 
+import com.beggar.api.dto.budget.BudgetResultResponse;
+import com.beggar.api.dto.room.RoomEventDto;
 import com.beggar.api.entity.Budget;
 import com.beggar.api.entity.Room;
 import com.beggar.api.entity.RoomBudgetResult;
 import com.beggar.api.entity.RoomMember;
 import com.beggar.api.entity.RoomStatus;
-import com.beggar.api.dto.budget.BudgetResultResponse;
-import com.beggar.api.dto.room.RoomEventDto;
 import com.beggar.api.repository.BudgetRepository;
+import com.beggar.api.repository.RoomBudgetResultRepository;
+import com.beggar.api.repository.RoomMemberRepository;
 import com.beggar.api.repository.RoomRepository;
-import com.beggar.api.repository.RoomMemberRepository; // 👥 멤버수 체크용 (프로젝트 상황에 맞게 확인!)
-import com.beggar.api.repository.RoomBudgetResultRepository; // 📊 확정 결과 저장용
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,7 +39,7 @@ public class BudgetService {
 
         // 방 상태 검증
         if (room.getStatus() != RoomStatus.BUDGET_INPUT) {
-            throw new IllegalArgumentException("현재는 예산을 제출할 수 있는 상태가 아닙니다.");
+            throw new IllegalArgumentException("현재 방 상태가 '" + room.getStatus() + "'입니다. 예산 입력 단계(BUDGET_INPUT)에서만 제출이 가능합니다.");
         }
 
         // 멤버 상태 검증
@@ -73,6 +73,15 @@ public class BudgetService {
         if (totalMembers > 0 && totalMembers == submittedCount) {
             this.confirmBudget(roomNo);
         }
+    }
+
+    /**
+     *  1-1. 본인이 제출한 예산 조회
+     */
+    public Integer findMyBudget(Long roomNo, Long userNo) {
+        return budgetRepository.findByRoomNoAndUserNo(roomNo, userNo)
+                .map(Budget::getAmount)
+                .orElse(null);
     }
 
     /**
