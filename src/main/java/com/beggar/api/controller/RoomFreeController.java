@@ -2,7 +2,6 @@ package com.beggar.api.controller;
 
 import com.beggar.api.common.response.ApiResponse;
 import com.beggar.api.dto.community.*;
-import com.beggar.api.security.LoginUser;
 import com.beggar.api.service.RoomFreeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
