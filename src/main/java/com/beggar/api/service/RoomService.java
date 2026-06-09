@@ -172,6 +172,7 @@ public class RoomService {
         // 멤버 갱신 이벤트 발행
         List<RoomMemberResponse> members = findMembers(room.getRoomNo(), null);
         roomEventService.publishMembersUpdated(room.getRoomNo(), members);
+        System.out.println("DEBUG: [" + room.getRoomNo() + "] 멤버 갱신 방송 송출 - 현재 인원: " + members.size());
 
         // [추가] 정원이 다 찼다면 자동으로 예산 입력 단계로 전환
         long activeCount = members.size();
@@ -182,6 +183,15 @@ public class RoomService {
                     RoomEventDto.EventType.BUDGET_INPUT_STARTED,
                     "/budget/input?roomNo=" + room.getRoomNo()
             );
+            System.out.println("DEBUG: [" + room.getRoomNo() + "] 정원 충족! 자동 전환 방송 송출 (INVITING -> BUDGET_INPUT)");
+        } else if (room.getStatus() == RoomStatus.BUDGET_INPUT) {
+            // 이미 예산 입력 단계인 방에 추가 입장/재입장 시에도 상태 동기화를 위해 이벤트 재송출
+            roomEventService.publishStateChanged(
+                    room.getRoomNo(),
+                    RoomEventDto.EventType.BUDGET_INPUT_STARTED,
+                    "/budget/input?roomNo=" + room.getRoomNo()
+            );
+            System.out.println("DEBUG: [" + room.getRoomNo() + "] 이미 BUDGET_INPUT 단계인 방 - 상태 동기화 방송 송출");
         }
 
         return toResponse(room);
