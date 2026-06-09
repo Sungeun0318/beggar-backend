@@ -1,14 +1,18 @@
 package com.beggar.api.service;
 
+import com.beggar.api.common.exception.CustomException;
+import com.beggar.api.common.exception.ErrorCode;
+import com.beggar.api.dto.budget.BudgetResultResponse;
+import com.beggar.api.dto.room.RoomEventDto;
 import com.beggar.api.entity.Budget;
 import com.beggar.api.entity.Room;
 import com.beggar.api.entity.RoomBudgetResult;
 import com.beggar.api.entity.RoomMember;
-import com.beggar.api.dto.budget.BudgetResultResponse;
+import com.beggar.api.entity.RoomStatus;
 import com.beggar.api.repository.BudgetRepository;
+import com.beggar.api.repository.RoomBudgetResultRepository;
+import com.beggar.api.repository.RoomMemberRepository;
 import com.beggar.api.repository.RoomRepository;
-import com.beggar.api.repository.RoomMemberRepository; // 👥 멤버수 체크용 (프로젝트 상황에 맞게 확인!)
-import com.beggar.api.repository.RoomBudgetResultRepository; // 📊 확정 결과 저장용
 import lombok.RequiredArgsConstructor;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -33,16 +37,20 @@ public class BudgetService {
     private final RoomEventService roomEventService;
 
     /**
-     * 💰 1. 본인 예산 제출 (INSERT or UPDATE)
+     *  본인 예산 제출 (INSERT or UPDATE)
      */
     @Transactional
     public void submitBudget(Long userNo, Long roomNo, Integer budgetAmount) {
         Room room = roomRepository.findById(roomNo)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 거지방입니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND, "존재하지 않는 거지방입니다."));
 
         // 방 상태 검증
+        if (room.getStatus() == RoomStatus.ENDED) {
+            throw new CustomException(ErrorCode.ROOM_ALREADY_ENDED);
+        }
+
         if (room.getStatus() != RoomStatus.BUDGET_INPUT) {
-            throw new IllegalArgumentException("현재는 예산을 제출할 수 있는 상태가 아닙니다.");
+            throw new IllegalArgumentException("현재 방 상태가 '" + room.getStatus() + "'입니다. 예산 입력 단계(BUDGET_INPUT)에서만 제출이 가능합니다.");
         }
 
         // 멤버 상태 검증
@@ -79,12 +87,25 @@ public class BudgetService {
     }
 
     /**
+     *  1-1. 본인이 제출한 예산 조회
+     */
+    public Integer findMyBudget(Long roomNo, Long userNo) {
+        return budgetRepository.findByRoomNoAndUserNo(roomNo, userNo)
+                .map(Budget::getAmount)
+                .orElse(null);
+    }
+
+    /**
      *  2. 강제 확정 / 자동 확정 처리
      */
     @Transactional
     public void confirmBudget(Long roomNo) {
         Room room = roomRepository.findById(roomNo)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 거지방입니다."));
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND, "존재하지 않는 거지방입니다."));
+
+        if (room.getStatus() == RoomStatus.ENDED) {
+            throw new CustomException(ErrorCode.ROOM_ALREADY_ENDED);
+        }
 
         List<Budget> budgets = budgetRepository.findByRoomNo(roomNo);
         if (budgets.isEmpty()) {
@@ -104,7 +125,7 @@ public class BudgetService {
         room.updateTotalBudget(totalBudget);
         room.completeBudgetInput();
 
-        // 2. 📊 결과 테이블 기록
+        // 2. 결과 테이블 기록
         RoomBudgetResult result = roomBudgetResultRepository.findByRoom_RoomNo(roomNo)
                 .orElseGet(() -> RoomBudgetResult.builder()
                         .room(room)
@@ -133,7 +154,7 @@ public class BudgetService {
     }
 
     /**
-     * 📊 4. 확정된 예산 결과 엑셀 다운로드
+     * 4. 확정된 예산 결과 엑셀 다운로드
      */
     public void exportBudgetToExcel(Long roomNo, OutputStream outputStream) throws IOException {
         Room room = roomRepository.findById(roomNo)

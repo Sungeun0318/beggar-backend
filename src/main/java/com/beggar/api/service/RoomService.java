@@ -172,6 +172,27 @@ public class RoomService {
         // 멤버 갱신 이벤트 발행
         List<RoomMemberResponse> members = findMembers(room.getRoomNo(), null);
         roomEventService.publishMembersUpdated(room.getRoomNo(), members);
+        System.out.println("DEBUG: [" + room.getRoomNo() + "] 멤버 갱신 방송 송출 - 현재 인원: " + members.size());
+
+        // [추가] 정원이 다 찼다면 자동으로 예산 입력 단계로 전환
+        long activeCount = members.size();
+        if (activeCount >= room.getMaxMemberCount() && room.getStatus() == RoomStatus.INVITING) {
+            room.startBudgetInput();
+            roomEventService.publishStateChanged(
+                    room.getRoomNo(),
+                    RoomEventDto.EventType.BUDGET_INPUT_STARTED,
+                    "/budget/input?roomNo=" + room.getRoomNo()
+            );
+            System.out.println("DEBUG: [" + room.getRoomNo() + "] 정원 충족! 자동 전환 방송 송출 (INVITING -> BUDGET_INPUT)");
+        } else if (room.getStatus() == RoomStatus.BUDGET_INPUT) {
+            // 이미 예산 입력 단계인 방에 추가 입장/재입장 시에도 상태 동기화를 위해 이벤트 재송출
+            roomEventService.publishStateChanged(
+                    room.getRoomNo(),
+                    RoomEventDto.EventType.BUDGET_INPUT_STARTED,
+                    "/budget/input?roomNo=" + room.getRoomNo()
+            );
+            System.out.println("DEBUG: [" + room.getRoomNo() + "] 이미 BUDGET_INPUT 단계인 방 - 상태 동기화 방송 송출");
+        }
 
         return toResponse(room);
     }
@@ -199,6 +220,28 @@ public class RoomService {
         if (!room.getOwnerUserNo().equals(ownerUserNo)) {
             throw new IllegalArgumentException("방장만 설정을 변경할 수 있습니다.");
         }
+
+        if (room.getStatus() == RoomStatus.ENDED) {
+            throw new IllegalArgumentException("이미 종료된 방의 설정은 변경할 수 없습니다.");
+        }
+
+        // 1. 최대 인원 제한 체크 (현재 참여 중인 인원보다 적게 설정 불가)
+        long currentMemberCount = roomMemberRepository.countByRoom_RoomNoAndStatus(roomNo, RoomMember.Status.ACTIVE);
+        if (request.getMaxMemberCount() < currentMemberCount) {
+            throw new IllegalArgumentException("현재 참여 중인 인원(" + currentMemberCount + "명)보다 적게 최대 인원을 설정할 수 없습니다.");
+        }
+
+        // 2. 방 기본 정보 업데이트
+        room.update(request.getRoomName(), request.getLocation(), request.getMaxMemberCount());
+
+        // 3. 태그 업데이트 (기존 태그 삭제 후 재등록)
+        roomPurposeTagRepository.deleteAllByRoom_RoomNo(roomNo);
+        List<String> tagNames = request.getTags();
+        if (tagNames != null) {
+            for (String tagName : tagNames) {
+                roomPurposeTagRepository.save(new RoomPurposeTag(room, tagName));
+            }
+        }
     }
 
     @Transactional
@@ -219,5 +262,24 @@ public class RoomService {
 
         // 이벤트 발행
         roomEventService.publishStateChanged(roomNo, RoomEventDto.EventType.BUDGET_INPUT_STARTED, "/budget/input?roomNo=" + roomNo);
+    }
+
+    @Transactional
+    public void closeRoom(Long roomNo, Long loginUserNo) {
+        Room room = roomRepository.findById(roomNo)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 거지방입니다."));
+
+        if (!room.getOwnerUserNo().equals(loginUserNo)) {
+            throw new IllegalArgumentException("방장만 방을 종료할 수 있습니다.");
+        }
+
+        if (room.getStatus() == RoomStatus.ENDED) {
+            throw new IllegalArgumentException("이미 종료된 방입니다.");
+        }
+
+        room.close();
+
+        // 방 종료 이벤트 발행 (필요하다면 EventType 추가 가능, 현재는 상태 변경만 발행)
+        roomEventService.publishStateChanged(roomNo, RoomEventDto.EventType.ROOM_ENDED, null);
     }
 }

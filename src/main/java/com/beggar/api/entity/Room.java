@@ -79,4 +79,14 @@ public class Room {
             this.status = RoomStatus.BUDGET_DONE;
         }
     }
+
+    public void update(String roomName, String location, int maxMemberCount) {
+        if (roomName != null) this.roomName = roomName;
+        if (location != null) this.location = location;
+        this.maxMemberCount = maxMemberCount;
+    }
+
+    public void close() {
+        this.status = RoomStatus.ENDED;
+    }
 }

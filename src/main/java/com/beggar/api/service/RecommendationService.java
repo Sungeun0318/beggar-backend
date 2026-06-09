@@ -8,10 +8,8 @@ import com.beggar.api.dto.location.LocationSearchResponse;
 import com.beggar.api.dto.recommendation.RecommendationResponse;
 import com.beggar.api.entity.Room;
 import com.beggar.api.entity.RoomPurposeTag;
-import com.beggar.api.repository.ReceiptRepository;
-import com.beggar.api.repository.RoomMemberRepository;
-import com.beggar.api.repository.RoomPurposeTagRepository;
-import com.beggar.api.repository.RoomRepository;
+import com.beggar.api.entity.RoomStatus;
+import com.beggar.api.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -55,6 +53,10 @@ public class RecommendationService {
         Room room = roomRepository.findById(roomNo)
                 .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND, "방을 찾을 수 없습니다. roomNo=" + roomNo));
         
+        if (room.getStatus() == RoomStatus.ENDED) {
+            throw new CustomException(ErrorCode.ROOM_ALREADY_ENDED);
+        }
+
         String tag = resolveTag(roomNo, requestedTag);
         String region = resolveRecommendationRegion(room, requestedRegion, lat, lng);
         
@@ -357,14 +359,26 @@ public class RecommendationService {
         String normalizedItem = normalize(itemName);
         String normalizedName = normalize(name);
 
+        if (containsAnyKeyword(new String[]{normalizedCategory, normalizedItem, normalizedName}, "한식", "백반", "국밥", "찌개", "제육")) {
+            return "/assets/images/figma/reco_korean.png";
+        }
+        if (containsAnyKeyword(new String[]{normalizedCategory, normalizedItem, normalizedName}, "양식", "파스타", "피자", "스테이크", "브런치")) {
+            return "/assets/images/figma/reco_western.png";
+        }
+        if (containsAnyKeyword(new String[]{normalizedCategory, normalizedItem, normalizedName}, "일식", "초밥", "돈카츠", "라멘", "우동")) {
+            return "/assets/images/figma/reco_japanese.png";
+        }
+        if (containsAnyKeyword(new String[]{normalizedCategory, normalizedItem, normalizedName}, "중식", "짜장", "짬뽕", "탕수육", "마라")) {
+            return "/assets/images/figma/reco_chinese.png";
+        }
         if ("기타요식업".equals(normalizedCategory)
                 && containsAnyKeyword(new String[]{normalizedItem, normalizedName}, "카페", "커피", "음료", "차", "라떼", "아메리카노")) {
-            return "assets/images/figma/reco_cafe.png";
+            return "/assets/images/figma/reco_cafe.png";
         }
         if (containsAnyKeyword(new String[]{normalizedCategory}, "한식", "양식", "일식", "중식", "기타요식업")) {
-            return "assets/images/figma/reco_food.png";
+            return "/assets/images/figma/reco_etc_food.png";
         }
-        return "assets/images/figma/reco_food.png";
+        return "/assets/images/figma/reco_etc_food.png";
     }
 
     private boolean containsAnyKeyword(String[] values, String... keywords) {
