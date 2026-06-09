@@ -173,6 +173,17 @@ public class RoomService {
         List<RoomMemberResponse> members = findMembers(room.getRoomNo(), null);
         roomEventService.publishMembersUpdated(room.getRoomNo(), members);
 
+        // [추가] 정원이 다 찼다면 자동으로 예산 입력 단계로 전환
+        long activeCount = members.size();
+        if (activeCount >= room.getMaxMemberCount() && room.getStatus() == RoomStatus.INVITING) {
+            room.startBudgetInput();
+            roomEventService.publishStateChanged(
+                    room.getRoomNo(),
+                    RoomEventDto.EventType.BUDGET_INPUT_STARTED,
+                    "/budget/input?roomNo=" + room.getRoomNo()
+            );
+        }
+
         return toResponse(room);
     }
 
