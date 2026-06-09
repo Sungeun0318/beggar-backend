@@ -1,5 +1,7 @@
 package com.beggar.api.service;
 
+import com.beggar.api.common.exception.CustomException;
+import com.beggar.api.common.exception.ErrorCode;
 import com.beggar.api.dto.receipt.ReceiptCreateRequest;
 import com.beggar.api.dto.receipt.ReceiptResponse;
 import com.beggar.api.dto.receipt.ReceiptUpdateRequest;
@@ -7,6 +9,7 @@ import com.beggar.api.entity.Receipt;
 import com.beggar.api.entity.ReceiptSplit;
 import com.beggar.api.entity.Room;
 import com.beggar.api.entity.RoomMember;
+import com.beggar.api.entity.RoomStatus;
 import com.beggar.api.repository.ReceiptRepository;
 import com.beggar.api.repository.ReceiptSplitRepository;
 import com.beggar.api.repository.RoomMemberRepository;
@@ -16,7 +19,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -35,7 +37,6 @@ public class ReceiptService {
     private final RoomMemberRepository roomMemberRepository;
     private final GoodPriceMatchService goodPriceMatchService;
     private final LocationService locationService;
-    private final BeggarScoreService beggarScoreService;
     private final OcrService ocrService;
     private final S3Service s3Service;
     
@@ -46,7 +47,12 @@ public class ReceiptService {
     @Transactional
     public ReceiptResponse create(Long roomNo, ReceiptCreateRequest request) {
         Room room = roomRepository.findById(roomNo)
-                .orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없습니다. ID: " + roomNo));
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND, "방을 찾을 수 없습니다. ID: " + roomNo));
+
+        if (room.getStatus() == RoomStatus.ENDED) {
+            throw new CustomException(ErrorCode.ROOM_ALREADY_ENDED);
+        }
+
         RoomMember uploader = roomMemberRepository
                 .findByRoom_RoomNoAndUser_UserNo(roomNo, request.uploaderUserNo())
                 .orElseThrow(() -> new IllegalArgumentException("방 멤버만 영수증을 등록할 수 있습니다."));
@@ -185,16 +191,34 @@ public class ReceiptService {
 
     @Transactional
     public ReceiptResponse updateAmount(Long roomNo, Long receiptId, ReceiptUpdateRequest request) {
+        Room room = roomRepository.findById(roomNo)
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND, "방을 찾을 수 없습니다. ID: " + roomNo));
+
+        if (room.getStatus() == RoomStatus.ENDED) {
+            throw new CustomException(ErrorCode.ROOM_ALREADY_ENDED);
+        }
+
         Receipt receipt = receiptRepository.findById(receiptId)
                 .filter(found -> found.getRoom().getRoomNo().equals(roomNo))
                 .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
+        
         receipt.updateAmount(request.amount());
+        receipt.updateManualInfo(request.storeName(), request.address(), request.centerLat(), request.centerLng());
+
+        applyGoodPriceMatch(receipt);
 
         return toResponse(receipt);
     }
 
     @Transactional
     public ReceiptResponse applyOcrResult(Long roomNo, Long receiptId, ReceiptCreateRequest request) {
+        Room room = roomRepository.findById(roomNo)
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND, "방을 찾을 수 없습니다. ID: " + roomNo));
+
+        if (room.getStatus() == RoomStatus.ENDED) {
+            throw new CustomException(ErrorCode.ROOM_ALREADY_ENDED);
+        }
+
         Receipt receipt = receiptRepository.findById(receiptId)
                 .filter(found -> found.getRoom().getRoomNo().equals(roomNo))
                 .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
@@ -250,6 +274,13 @@ public class ReceiptService {
 
     @Transactional
     public void delete(Long roomNo, Long receiptId) {
+        Room room = roomRepository.findById(roomNo)
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND, "방을 찾을 수 없습니다. ID: " + roomNo));
+
+        if (room.getStatus() == RoomStatus.ENDED) {
+            throw new CustomException(ErrorCode.ROOM_ALREADY_ENDED);
+        }
+
         Receipt receipt = receiptRepository.findById(receiptId)
                 .filter(found -> found.getRoom().getRoomNo().equals(roomNo))
                 .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));

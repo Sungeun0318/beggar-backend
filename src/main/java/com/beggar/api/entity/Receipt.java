@@ -132,6 +132,21 @@ public class Receipt extends BaseTimeEntity {
         this.amount = newAmount;
     }
 
+    public void updateManualInfo(String storeName, String address, BigDecimal lat, BigDecimal lng) {
+        if (storeName != null && !storeName.isBlank()) {
+            this.storeName = storeName;
+        }
+        if (address != null && !address.isBlank()) {
+            this.address = address;
+        }
+        if (lat != null) {
+            this.centerLat = lat;
+        }
+        if (lng != null) {
+            this.centerLng = lng;
+        }
+    }
+
     public void applyGoodPriceMatch(String storeId, String storeName, String storeAddress,
                                     java.time.LocalDateTime verifiedAt) {
         this.goodPriceStoreId = storeId;

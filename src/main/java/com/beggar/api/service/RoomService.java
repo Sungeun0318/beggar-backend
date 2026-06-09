@@ -102,12 +102,14 @@ public class RoomService {
         return sb.toString();
     }
 
-    // TODO: findMyRooms(userNo) — ACTIVE 멤버인 방 목록
+    /* 👑 내가 참여 중인 방 목록 조회 */
     public List<RoomResponse> findMyRooms(Long userNo) {
-        return null;
+        return roomMemberRepository.findByUser_UserNoAndStatus(userNo, RoomMember.Status.ACTIVE).stream()
+                .map(RoomMember::getRoom)
+                .map(this::toResponse)
+                .toList();
     }
 
-    // TODO: findById(roomNo) — 방 상세 + 태그
     public RoomResponse findById(Long roomNo) {
         Room room = roomRepository.findById(roomNo)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 거지방입니다."));
@@ -119,7 +121,6 @@ public class RoomService {
         return toResponse(room, tagNames, memberCount);
     }
 
-    // TODO: joinByCode(userNo, roomCode) — 코드로 입장
     @Transactional
     public RoomResponse joinByCode(Long userNo, String roomCode) {
         if (!StringUtils.hasText(roomCode)) {
@@ -175,7 +176,6 @@ public class RoomService {
         return toResponse(room);
     }
 
-    // TODO: findMembers(roomNo) — 입장 현황
     public List<RoomMemberResponse> findMembers(Long roomNo, Long loginUserNo) {
         if (!roomRepository.existsById(roomNo)) {
             throw new IllegalArgumentException("존재하지 않는 거지방입니다.");
@@ -191,7 +191,6 @@ public class RoomService {
                 .toList();
     }
 
-    // TODO: updateSettings(roomNo, ownerUserNo, request) — 지역/태그/최대 인원 변경
     @Transactional
     public void updateSettings(Long roomNo, Long ownerUserNo, RoomCreateRequest request) {
         Room room = roomRepository.findById(roomNo)
@@ -199,6 +198,28 @@ public class RoomService {
 
         if (!room.getOwnerUserNo().equals(ownerUserNo)) {
             throw new IllegalArgumentException("방장만 설정을 변경할 수 있습니다.");
+        }
+
+        if (room.getStatus() == RoomStatus.ENDED) {
+            throw new IllegalArgumentException("이미 종료된 방의 설정은 변경할 수 없습니다.");
+        }
+
+        // 1. 최대 인원 제한 체크 (현재 참여 중인 인원보다 적게 설정 불가)
+        long currentMemberCount = roomMemberRepository.countByRoom_RoomNoAndStatus(roomNo, RoomMember.Status.ACTIVE);
+        if (request.getMaxMemberCount() < currentMemberCount) {
+            throw new IllegalArgumentException("현재 참여 중인 인원(" + currentMemberCount + "명)보다 적게 최대 인원을 설정할 수 없습니다.");
+        }
+
+        // 2. 방 기본 정보 업데이트
+        room.update(request.getRoomName(), request.getLocation(), request.getMaxMemberCount());
+
+        // 3. 태그 업데이트 (기존 태그 삭제 후 재등록)
+        roomPurposeTagRepository.deleteAllByRoom_RoomNo(roomNo);
+        List<String> tagNames = request.getTags();
+        if (tagNames != null) {
+            for (String tagName : tagNames) {
+                roomPurposeTagRepository.save(new RoomPurposeTag(room, tagName));
+            }
         }
     }
 
@@ -221,16 +242,23 @@ public class RoomService {
         // 이벤트 발행
         roomEventService.publishStateChanged(roomNo, RoomEventDto.EventType.BUDGET_INPUT_STARTED, "/budget/input?roomNo=" + roomNo);
     }
+
+    @Transactional
+    public void closeRoom(Long roomNo, Long loginUserNo) {
+        Room room = roomRepository.findById(roomNo)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 거지방입니다."));
+
+        if (!room.getOwnerUserNo().equals(loginUserNo)) {
+            throw new IllegalArgumentException("방장만 방을 종료할 수 있습니다.");
+        }
+
+        if (room.getStatus() == RoomStatus.ENDED) {
+            throw new IllegalArgumentException("이미 종료된 방입니다.");
+        }
+
+        room.close();
+
+        // 방 종료 이벤트 발행 (필요하다면 EventType 추가 가능, 현재는 상태 변경만 발행)
+        roomEventService.publishStateChanged(roomNo, RoomEventDto.EventType.ROOM_ENDED, null);
+    }
 }
-
-
-
-
-
-    // TODO: Room INSERT(maxMemberCount 포함) + 방장 RoomMember(ACTIVE) INSERT + tags 일괄 INSERT
-    // TODO: create(ownerUserNo, request)  — 방 생성 + 방장 자동 입장 + 태그 INSERT + maxMemberCount 저장
-    // TODO: findMyRooms(userNo)           — ACTIVE 멤버인 방 목록
-    // TODO: findById(roomNo)              — 방 상세 + 태그
-    // TODO: joinByCode(userNo, roomCode)  — 코드로 입장 (중복 입장 차단)
-    // TODO: findMembers(roomNo)           — 입장 현황 (예산 제출 여부만, 금액 X)
-    // TODO: updateSettings(roomNo, ownerUserNo, request) — 지역/태그/최대 인원 변경
