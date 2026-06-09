@@ -5,6 +5,7 @@ import com.beggar.api.dto.community.*;
 import com.beggar.api.security.LoginUser;
 import com.beggar.api.service.RoomFreeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,10 +15,7 @@ import java.util.List;
 @RequestMapping("/api/freerooms")
 public class RoomFreeController {
     private final RoomFreeService roomFreeService;
-    //private final com.beggar.api.security.JwtTokenProvider jwtTokenProvider;    // 제거
-
-    /* JwtInterceptor가 구현된 후 @LoginUser 사용으로 변경
-    이전엔 JwtInterceptor가 미완 상태라 임시로 @RequestHeader를 사용해 직접 추출함 */
+    private final SimpMessagingTemplate messagingTemplate;
 
     // 1. 게시글 목록 조회 및 검색
     @GetMapping("/posts")
@@ -68,10 +66,10 @@ public class RoomFreeController {
     @PostMapping("/chats")
     public ApiResponse<RoomFreeChatResponse> sendChat(
             @LoginUser Long userNo,
-            //@RequestHeader(value = "Authorization", required = false) String authHeader,    // 제거
             @RequestBody RoomFreeChatRequest request) {
-        //Long userNo = extractUserNo(authHeader);                                            // 제거
-        return ApiResponse.success(roomFreeService.sendChat(userNo, request.getContent()));
+        RoomFreeChatResponse response = roomFreeService.sendChat(userNo, request.getContent());
+        messagingTemplate.convertAndSend("/sub/chats", response);
+        return ApiResponse.success(response);
     }
 
     // 임시 토큰 추출 메서드: JwtInterceptor 완성되면 아래 메서드 제거
