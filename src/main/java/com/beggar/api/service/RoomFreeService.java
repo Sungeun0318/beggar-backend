@@ -102,6 +102,22 @@ public class RoomFreeService {
         return convertToResponse(savedPost);
     }
 
+    // 게시글 삭제
+    @Transactional
+    public void deletePost(Long userNo, Long postId) {
+        if (userNo == null) {
+            throw new CustomException(ErrorCode.INVALID_TOKEN);
+        }
+        RoomFreePost post = postRepository.findById(postId)
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND));
+
+        if (!post.getAuthor().getUserNo().equals(userNo)) {
+            throw new CustomException(ErrorCode.NOT_ROOM_MEMBER); // 권한 없음 (적절한 에러코드가 없어 기존 것 활용 또는 추가 필요)
+        }
+
+        postRepository.delete(post);
+    }
+
     // 4. 댓글 작성
     @Transactional
     public RoomFreeCommentResponse createComment(Long userNo, Long postId, String content) {

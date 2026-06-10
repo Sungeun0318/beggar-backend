@@ -59,8 +59,9 @@ public class JwtInterceptor implements HandlerInterceptor {
         }
 
         String path = request.getRequestURI();
-        return path.equals("/api/freerooms/posts")
-                || path.matches("/api/freerooms/posts/\\d+")
-                || path.equals("/api/freerooms/chats");
+        return path.equals("/community/posts")
+                || path.equals("/community/posts/popular")
+                || path.matches("/community/posts/\\d+")
+                || path.equals("/community/chats");
     }
 }

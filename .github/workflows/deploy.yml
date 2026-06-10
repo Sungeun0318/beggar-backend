@@ -59,7 +59,7 @@ jobs:                       # [필수] 작업(Job) 집합 정의
           region: ap-northeast-2                                  # [필수] AWS 서울리전
 
           application_name: Save My Friendship
-          environment_name: SaveMyFriendship-env
+          environment_name: SaveMyFriendship-env-1
           
           version_label: "springweb-${{ steps.time.outputs.formattedTime }}"
           # [선택] 버전 이름 (Timestamp 포함)

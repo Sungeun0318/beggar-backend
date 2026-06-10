@@ -45,7 +45,7 @@ public class ReceiptService {
     private ReceiptService self;
 
     @Transactional
-    public ReceiptResponse create(Long roomNo, ReceiptCreateRequest request) {
+    public ReceiptResponse create(Long roomNo, Long userNo, ReceiptCreateRequest request) {
         Room room = roomRepository.findById(roomNo)
                 .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND, "방을 찾을 수 없습니다. ID: " + roomNo));
 
@@ -54,7 +54,7 @@ public class ReceiptService {
         }
 
         RoomMember uploader = roomMemberRepository
-                .findByRoom_RoomNoAndUser_UserNo(roomNo, request.uploaderUserNo())
+                .findByRoom_RoomNoAndUser_UserNo(roomNo, userNo)
                 .orElseThrow(() -> new IllegalArgumentException("방 멤버만 영수증을 등록할 수 있습니다."));
 
         BigDecimal lat = request.centerLat();
