@@ -34,4 +34,8 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
             order by r.createdAt desc
            """)
     List<Receipt> findAllByUploaderUserNo(Long userNo);
+
+    void deleteAllByUploader_RoomMemberId(Long roomMemberId);
+
+    void deleteAllByRoom_RoomNo(Long roomNo);
 }

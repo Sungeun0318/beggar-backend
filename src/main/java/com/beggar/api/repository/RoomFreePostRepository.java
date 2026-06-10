@@ -19,4 +19,6 @@ public interface RoomFreePostRepository extends JpaRepository<RoomFreePost, Long
             "GROUP BY p " +
             "ORDER BY COUNT(c) DESC, p.createdAt DESC")
     List<RoomFreePost> findPopularPosts();
+
+    void deleteAllByAuthor_UserNo(Long userNo);
 }

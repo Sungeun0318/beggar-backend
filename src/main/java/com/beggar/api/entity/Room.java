@@ -89,4 +89,8 @@ public class Room {
     public void close() {
         this.status = RoomStatus.ENDED;
     }
+
+    public void changeOwner(Long ownerUserNo) {
+        this.ownerUserNo = ownerUserNo;
+    }
 }

@@ -18,4 +18,6 @@ public interface RoomFreeChatRepository extends JpaRepository<RoomFreeChat, Long
     @Modifying
     @Query("DELETE FROM RoomFreeChat r WHERE r.createdAt < :targetDate")
     void deleteOldChats(@Param("targetDate") LocalDateTime targetDate);
+
+    void deleteAllByUser_UserNo(Long userNo);
 }

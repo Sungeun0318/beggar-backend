@@ -5,7 +5,20 @@ import com.beggar.api.common.exception.CustomException;
 import com.beggar.api.common.exception.ErrorCode;
 import com.beggar.api.dto.auth.TokenResponse;
 import com.beggar.api.dto.user.UserRequest;
+import com.beggar.api.entity.Room;
+import com.beggar.api.entity.RoomMember;
 import com.beggar.api.entity.User;
+import com.beggar.api.repository.BudgetRepository;
+import com.beggar.api.repository.ReceiptRepository;
+import com.beggar.api.repository.ReceiptSplitRepository;
+import com.beggar.api.repository.RoomBeggarScoreRepository;
+import com.beggar.api.repository.RoomBudgetResultRepository;
+import com.beggar.api.repository.RoomFreeChatRepository;
+import com.beggar.api.repository.RoomFreeCommentRepository;
+import com.beggar.api.repository.RoomFreePostRepository;
+import com.beggar.api.repository.RoomMemberRepository;
+import com.beggar.api.repository.RoomPurposeTagRepository;
+import com.beggar.api.repository.RoomRepository;
 import com.beggar.api.repository.UserRepository;
 import com.beggar.api.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +35,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
+import java.util.List;
 import java.util.UUID;
 
 @Service
@@ -30,6 +44,17 @@ import java.util.UUID;
 @Slf4j
 public class AuthService {
     private final UserRepository userRepository;
+    private final RoomRepository roomRepository;
+    private final RoomMemberRepository roomMemberRepository;
+    private final ReceiptRepository receiptRepository;
+    private final ReceiptSplitRepository receiptSplitRepository;
+    private final BudgetRepository budgetRepository;
+    private final RoomFreePostRepository roomFreePostRepository;
+    private final RoomFreeCommentRepository roomFreeCommentRepository;
+    private final RoomFreeChatRepository roomFreeChatRepository;
+    private final RoomPurposeTagRepository roomPurposeTagRepository;
+    private final RoomBudgetResultRepository roomBudgetResultRepository;
+    private final RoomBeggarScoreRepository roomBeggarScoreRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder; // 비밀번호 해시 비교를 위한 의존성 주입
     @Qualifier("kakaoWebClient")
@@ -208,27 +233,60 @@ public void signOut(String token) {// 토큰의 남은 유효시간만큼 블랙
 public void withdraw(Long userNo) {
     User user = userRepository.findById(userNo)
             .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
+
+    List<Room> ownedRooms = roomRepository.findByOwnerUserNo(userNo);
+    List<RoomMember> memberships = roomMemberRepository.findByUser_UserNo(userNo);
+
+    budgetRepository.deleteAllByUserNo(userNo);
+    deleteCommunityData(userNo);
+
+    for (RoomMember membership : memberships) {
+        Long roomMemberId = membership.getRoomMemberId();
+        receiptSplitRepository.deleteAllByReceipt_Uploader_RoomMemberId(roomMemberId);
+        receiptRepository.deleteAllByUploader_RoomMemberId(roomMemberId);
+        receiptSplitRepository.deleteAllByRoomMember_RoomMemberId(roomMemberId);
+    }
+
+    roomMemberRepository.deleteAll(memberships);
+
+    for (Room room : ownedRooms) {
+        transferOwnerOrDeleteRoom(room, userNo);
+    }
+
     userRepository.delete(user);
 }
 
-/*
-// ─── 카카오 API Jackson 바인딩용 내부 매핑 Record 정의 ───
-private record KakaoUserInfoResponse(
-        Long id,
-        KakaoAccount kakao_account
-) {
-    private record KakaoAccount(
-            Profile profile,
-            String email,
-            String gender,
-            String age_range
-    ) {
-        private record Profile(
-                String nickname,
-                String profile_image_url
-        ) {
-        }
-    }
+private void deleteCommunityData(Long userNo) {
+    roomFreeChatRepository.deleteAllByUser_UserNo(userNo);
+    roomFreeCommentRepository.deleteAllByPostAuthorUserNo(userNo);
+    roomFreeCommentRepository.deleteAllByAuthor_UserNo(userNo);
+    roomFreePostRepository.deleteAllByAuthor_UserNo(userNo);
+}
 
- */
+private void transferOwnerOrDeleteRoom(Room room, Long withdrawnUserNo) {
+    roomMemberRepository
+            .findFirstByRoom_RoomNoAndUser_UserNoNotAndStatusOrderByJoinedAtAsc(
+                    room.getRoomNo(),
+                    withdrawnUserNo,
+                    RoomMember.Status.ACTIVE
+            )
+            .ifPresentOrElse(
+                    nextOwner -> room.changeOwner(nextOwner.getUser().getUserNo()),
+                    () -> deleteRoomData(room)
+            );
+}
+
+private void deleteRoomData(Room room) {
+    Long roomNo = room.getRoomNo();
+
+    receiptSplitRepository.deleteAllByReceipt_Room_RoomNo(roomNo);
+    receiptSplitRepository.deleteAllByRoomMember_Room_RoomNo(roomNo);
+    receiptRepository.deleteAllByRoom_RoomNo(roomNo);
+    budgetRepository.deleteAllByRoomNo(roomNo);
+    roomPurposeTagRepository.deleteAllByRoom_RoomNo(roomNo);
+    roomBudgetResultRepository.deleteByRoom_RoomNo(roomNo);
+    roomBeggarScoreRepository.deleteByRoom_RoomNo(roomNo);
+    roomMemberRepository.deleteAllByRoom_RoomNo(roomNo);
+    roomRepository.delete(room);
+    }
 }

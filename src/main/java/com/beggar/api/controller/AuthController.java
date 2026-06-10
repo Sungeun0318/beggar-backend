@@ -6,10 +6,12 @@ import com.beggar.api.dto.auth.KakaoLoginRequest;
 import com.beggar.api.dto.auth.RefreshTokenRequest;
 import com.beggar.api.dto.auth.TokenResponse;
 import com.beggar.api.dto.user.UserRequest;
+import com.beggar.api.security.LoginUser;
 import com.beggar.api.service.AuthService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -53,6 +55,12 @@ public class AuthController {
             String token = authHeader.substring(7);
             authService.signOut(token);
         }
+        return ApiResponse.success();
+    }
+
+    @DeleteMapping("/withdraw")
+    public ApiResponse<Void> withdraw(@LoginUser Long userNo) {
+        authService.withdraw(userNo);
         return ApiResponse.success();
     }
 }
