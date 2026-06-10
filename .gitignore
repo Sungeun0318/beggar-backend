@@ -244,4 +244,3 @@ notes/
 scratch/
 .scratch/
 src/main/resources/application.properties
-/src/main/resources/google-service-account-key.json
