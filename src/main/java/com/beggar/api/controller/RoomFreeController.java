@@ -5,19 +5,17 @@ import com.beggar.api.dto.community.*;
 import com.beggar.api.security.LoginUser;
 import com.beggar.api.service.RoomFreeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/freerooms")
+@RequestMapping("/community")
 public class RoomFreeController {
     private final RoomFreeService roomFreeService;
-    //private final com.beggar.api.security.JwtTokenProvider jwtTokenProvider;    // 제거
-
-    /* JwtInterceptor가 구현된 후 @LoginUser 사용으로 변경
-    이전엔 JwtInterceptor가 미완 상태라 임시로 @RequestHeader를 사용해 직접 추출함 */
+    private final SimpMessagingTemplate messagingTemplate;
 
     // 1. 게시글 목록 조회 및 검색
     @GetMapping("/posts")
@@ -40,21 +38,26 @@ public class RoomFreeController {
     // 3. 게시글 작성
     @PostMapping("/posts")
     public ApiResponse<RoomFreePostResponse> createPost(
-            @LoginUser Long userNo, // <-- 인터셉터 완성 후 이 주석을 풀고 아래 authHeader 관련 로직 제거
-            //@RequestHeader(value = "Authorization", required = false) String authHeader,    // 제거
+            @LoginUser Long userNo,
             @RequestBody RoomFreePostRequest request) {
-        //Long userNo = extractUserNo(authHeader);                                            // 제거
         return ApiResponse.success(roomFreeService.createPost(userNo, request));
+    }
+
+    // 게시글 삭제
+    @DeleteMapping("/posts/{postId}")
+    public ApiResponse<Void> deletePost(
+            @LoginUser Long userNo,
+            @PathVariable Long postId) {
+        roomFreeService.deletePost(userNo, postId);
+        return ApiResponse.success();
     }
 
     // 4. 댓글 작성
     @PostMapping("/posts/{postId}/comments")
     public ApiResponse<RoomFreeCommentResponse> createComment(
             @LoginUser Long userNo,
-            //@RequestHeader(value = "Authorization", required = false) String authHeader,    // 제거
             @PathVariable Long postId,
             @RequestBody RoomFreeCommentRequest request) {
-        //Long userNo = extractUserNo(authHeader);                                            // 제거
         return ApiResponse.success(roomFreeService.createComment(userNo, postId, request.getContent()));
     }
 
@@ -68,10 +71,10 @@ public class RoomFreeController {
     @PostMapping("/chats")
     public ApiResponse<RoomFreeChatResponse> sendChat(
             @LoginUser Long userNo,
-            //@RequestHeader(value = "Authorization", required = false) String authHeader,    // 제거
             @RequestBody RoomFreeChatRequest request) {
-        //Long userNo = extractUserNo(authHeader);                                            // 제거
-        return ApiResponse.success(roomFreeService.sendChat(userNo, request.getContent()));
+        RoomFreeChatResponse response = roomFreeService.sendChat(userNo, request.getContent());
+        messagingTemplate.convertAndSend("/sub/chats", response);
+        return ApiResponse.success(response);
     }
 
     // 임시 토큰 추출 메서드: JwtInterceptor 완성되면 아래 메서드 제거
