@@ -21,6 +21,9 @@ public class S3Service {
     @Value("${aws.s3.bucket}")
     private String bucket;
 
+    @Value("${aws.s3-image-bucket}")
+    private String imageBucket;
+
     public byte[] getFileBytes(String key) {
         try {
             return s3Client.getObject(builder -> builder.bucket(bucket).key(key).build())
@@ -31,10 +34,18 @@ public class S3Service {
     }
 
     public String generatePresignedUrl(String fileName) {
+        return generatePresignedUrl(bucket, fileName);
+    }
+
+    public String generateProfilePresignedUrl(String fileName) {
+        return generatePresignedUrl(imageBucket, fileName);
+    }
+
+    private String generatePresignedUrl(String targetBucket, String fileName) {
         String uniqueFileName = UUID.randomUUID() + "_" + fileName;
 
         PutObjectRequest objectRequest = PutObjectRequest.builder()
-                .bucket(bucket)
+                .bucket(targetBucket)
                 .key(uniqueFileName)
                 .build();
 
@@ -48,6 +59,14 @@ public class S3Service {
     }
 
     public String generatePresignedGetUrl(String rawUrl) {
+        return generatePresignedGetUrl(bucket, rawUrl);
+    }
+
+    public String generateProfilePresignedGetUrl(String rawUrl) {
+        return generatePresignedGetUrl(imageBucket, rawUrl);
+    }
+
+    private String generatePresignedGetUrl(String targetBucket, String rawUrl) {
         if (rawUrl == null || rawUrl.isBlank()) return rawUrl;
         
         try {
@@ -56,7 +75,7 @@ public class S3Service {
 
             software.amazon.awssdk.services.s3.model.GetObjectRequest getObjectRequest = 
                 software.amazon.awssdk.services.s3.model.GetObjectRequest.builder()
-                    .bucket(bucket)
+                    .bucket(targetBucket)
                     .key(key)
                     .build();
 
