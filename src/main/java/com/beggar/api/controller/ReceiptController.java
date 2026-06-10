@@ -26,8 +26,10 @@ public class ReceiptController {
     }
 
     @PostMapping
-    public ReceiptResponse create(@PathVariable Long roomNo, @RequestBody ReceiptCreateRequest request) {
-        return receiptService.create(roomNo, request);
+    public ReceiptResponse create(@PathVariable Long roomNo, 
+                                 @com.beggar.api.security.LoginUser Long userNo,
+                                 @RequestBody ReceiptCreateRequest request) {
+        return receiptService.create(roomNo, userNo, request);
     }
 
     @GetMapping
