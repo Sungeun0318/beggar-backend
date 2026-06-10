@@ -4,6 +4,7 @@ import com.beggar.api.common.response.ApiResponse;
 import com.beggar.api.dto.user.UserRequest;
 import com.beggar.api.dto.user.UserResponse;
 import com.beggar.api.security.LoginUser;
+import com.beggar.api.service.AuthService;
 import com.beggar.api.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final AuthService authService;
 
     @PostMapping("/signup")
     public ApiResponse<Void> signup(@Valid @RequestBody UserRequest userRequest) {
@@ -30,6 +32,12 @@ public class UserController {
     @PatchMapping("/me") // 이미지,닉네임 수정
     public ApiResponse<Void> updateProfile(@LoginUser Long userNo, @RequestBody UserRequest userRequest) {
         userService.updateProfile(userNo, userRequest);
+        return ApiResponse.success();
+    }
+
+    @DeleteMapping("/me")
+    public ApiResponse<Void> withdraw(@LoginUser Long userNo) {
+        authService.withdraw(userNo);
         return ApiResponse.success();
     }
 
