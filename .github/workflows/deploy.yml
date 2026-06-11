@@ -46,9 +46,8 @@ jobs:                       # [필수] 작업(Job) 집합 정의
           utcOffset: "+09:00"                   # [선택] 한국시간
 
       # 7. 생성된 JAR 파일명 환경변수로 저장
-      - name: Set artifact name                 # [필수] 배포할 jar 파일 이름 추출
-        run: echo "ARTIFACT=$(basename build/libs/*SNAPSHOT.jar)" >> $GITHUB_ENV
-                                                # [필수] ARTIFACT 환경변수 등록
+      - name: Set artifact name
+        run: echo "ARTIFACT=app.jar" >> $GITHUB_ENV
 
       # 8. AWS EB 배포
       - name: Deploy to Elastic Beanstalk       # [필수] EB로 배포하는 단계
