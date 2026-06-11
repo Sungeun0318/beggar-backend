@@ -383,13 +383,15 @@ WebFlux의 `WebClient` 두 개:
 ### `controller/RecommendationController.java` ✅ 1차 구현 — `/rooms/{roomNo}/recommend`
 - `GET /rooms/{roomNo}/recommend?tag={tag}&region={region}&lat={lat}&lng={lng}&radius={radius}` → `RecommendationResponse`
 
-### `controller/RoomFreeController.java` ✅ 1차 구현 — `/api/freerooms/**`
-- `GET /api/freerooms/posts` → 게시글 목록/검색
-- `GET /api/freerooms/posts/{postId}` → 게시글 상세
-- `POST /api/freerooms/posts` → 게시글 작성
-- `POST /api/freerooms/posts/{postId}/comments` → 댓글 작성
-- `GET /api/freerooms/chats` → 전체 채팅 내역
-- `POST /api/freerooms/chats` → 채팅 메시지 전송
+### `controller/RoomFreeController.java` ✅ 2차 구현 — `/community/**`
+- `GET /community/posts` → 게시글 목록/검색
+- `GET /community/posts/popular` → 인기 게시글 조회
+- `GET /community/posts/{postId}` → 게시글 상세
+- `POST /community/posts` → 게시글 작성
+- `DELETE /community/posts/{postId}` → 게시글 삭제
+- `POST /community/posts/{postId}/comments` → 댓글 작성
+- `GET /community/chats` → 전체 채팅 내역
+- `POST /community/chats` → 채팅 메시지 전송
 
 ---
 
