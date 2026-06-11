@@ -2,6 +2,7 @@ package com.beggar.api.service;
 
 import com.beggar.api.common.exception.CustomException;
 import com.beggar.api.common.exception.ErrorCode;
+import com.beggar.api.dto.receipt.MyReceiptHistoryResponse;
 import com.beggar.api.dto.receipt.ReceiptCreateRequest;
 import com.beggar.api.dto.receipt.ReceiptResponse;
 import com.beggar.api.dto.receipt.ReceiptUpdateRequest;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -181,6 +183,25 @@ public class ReceiptService {
         return receiptRepository.findAllByRoom_RoomNoOrderByCreatedAtDesc(roomNo).stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    public MyReceiptHistoryResponse readMyReceiptHistory(Long userNo) {
+        List<Long> roomNos = roomMemberRepository.findByUser_UserNoAndStatus(userNo, RoomMember.Status.ACTIVE)
+                .stream()
+                .map(member -> member.getRoom().getRoomNo())
+                .distinct()
+                .toList();
+
+        if (roomNos.isEmpty()) {
+            return MyReceiptHistoryResponse.empty();
+        }
+
+        List<Receipt> receipts = receiptRepository.findAllByRoom_RoomNoInAndReceiptTypeInOrderByCreatedAtDesc(
+                roomNos,
+                EnumSet.of(Receipt.ReceiptType.COMBINED, Receipt.ReceiptType.SPLIT)
+        );
+
+        return MyReceiptHistoryResponse.from(receipts);
     }
 
     public ReceiptResponse readOne(Long roomNo, Long receiptId) {
