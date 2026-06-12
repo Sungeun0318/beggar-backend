@@ -73,7 +73,7 @@ public class BudgetService {
 
         // 이벤트 발행 (제출 상태)
         long totalMembers = roomMemberRepository.countByRoom_RoomNoAndStatus(roomNo, RoomMember.Status.ACTIVE);
-        long submittedCount = budgetRepository.countByRoomNo(roomNo);
+        long submittedCount = budgetRepository.countSubmittedActiveMembers(roomNo, RoomMember.Status.ACTIVE);
         
         roomEventService.publishBudgetSubmitted(roomNo, java.util.Map.of(
                 "submittedCount", submittedCount,
@@ -107,9 +107,10 @@ public class BudgetService {
             throw new CustomException(ErrorCode.ROOM_ALREADY_ENDED);
         }
 
-        List<Budget> budgets = budgetRepository.findByRoomNo(roomNo);
-        if (budgets.isEmpty()) {
-            throw new IllegalStateException("제출된 예산이 없어 확정할 수 없습니다.");
+        long activeMemberCount = roomMemberRepository.countByRoom_RoomNoAndStatus(roomNo, RoomMember.Status.ACTIVE);
+        List<Budget> budgets = budgetRepository.findByRoomNoAndActiveMembers(roomNo, RoomMember.Status.ACTIVE);
+        if (activeMemberCount == 0 || budgets.size() < activeMemberCount) {
+            throw new CustomException(ErrorCode.BUDGET_NOT_READY);
         }
 
         // 최저 금액(MIN) 산출
@@ -118,7 +119,7 @@ public class BudgetService {
                 .min()
                 .orElse(0);
 
-        int memberCount = budgets.size();
+        int memberCount = Math.toIntExact(activeMemberCount);
         int totalBudget = minAmount * memberCount;
 
         // 1. rooms 테이블 총예산 및 상태 동기화

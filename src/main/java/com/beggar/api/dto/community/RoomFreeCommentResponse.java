@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 public class RoomFreeCommentResponse {
     private Long id;
     private String author;
+    private String authorProfileImageUrl;
     private String content;
     private LocalDateTime createdAt;
 }
