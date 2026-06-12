@@ -62,6 +62,8 @@ public class RoomBeggarScore {
         this.totalSpentAmount = 0L;
         this.totalSavedAmount = 0L;
         this.goodPriceVerifiedCount = 0;
+        this.budgetComplianceRate = BigDecimal.ZERO;
+        this.avgSavingsRatio = BigDecimal.ZERO;
         this.lastCalculatedAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }

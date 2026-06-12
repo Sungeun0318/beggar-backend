@@ -41,6 +41,7 @@ public class ReceiptService {
     private final LocationService locationService;
     private final OcrService ocrService;
     private final S3Service s3Service;
+    private final BeggarScoreService beggarScoreService;
     
     @org.springframework.beans.factory.annotation.Autowired
     @org.springframework.context.annotation.Lazy
@@ -107,6 +108,7 @@ public class ReceiptService {
             self.processOcrAsync(roomNo, saved);
         }
 
+        beggarScoreService.recalculate(roomNo);
         return toResponse(saved);
     }
 
@@ -177,6 +179,7 @@ public class ReceiptService {
 
         receipt.applyOcrResult(storeName, totalAmount, address, lat, lng);
         applyGoodPriceMatch(receipt);
+        beggarScoreService.recalculate(roomNo);
     }
 
     public List<ReceiptResponse> read(Long roomNo) {
@@ -248,6 +251,7 @@ public class ReceiptService {
 
         applyGoodPriceMatch(receipt);
 
+        beggarScoreService.recalculate(roomNo);
         return toResponse(receipt);
     }
 
@@ -281,6 +285,7 @@ public class ReceiptService {
         );
         applyGoodPriceMatch(receipt);
 
+        beggarScoreService.recalculate(roomNo);
         return toResponse(receipt);
     }
 
@@ -326,6 +331,7 @@ public class ReceiptService {
                 .filter(found -> found.getRoom().getRoomNo().equals(roomNo))
                 .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
         receiptRepository.delete(receipt);
+        beggarScoreService.recalculate(roomNo);
     }
 
     private void applyGoodPriceMatch(Receipt receipt) {
