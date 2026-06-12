@@ -4,5 +4,7 @@ public record TokenResponse(
         String accessToken,
         String refreshToken,
         Long userNo,
-        String userName
+        String userName,
+        String email,
+        String profileImageUrl
 ) {}

@@ -23,4 +23,6 @@ public interface RoomBeggarScoreRepository extends JpaRepository<RoomBeggarScore
     List<RoomBeggarScore> findTopRoomScores(Pageable pageable);
 
     void deleteByRoom_RoomNo(Long roomNo);
+
+    List<RoomBeggarScore> findAllByRoom_RoomNoIn(List<Long> roomNos);
 }
