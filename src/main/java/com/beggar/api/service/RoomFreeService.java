@@ -24,6 +24,7 @@ public class RoomFreeService {
     private final RoomFreeCommentRepository commentRepository;
     private final RoomFreeChatRepository chatRepository;
     private final UserRepository userRepository;
+    private final S3Service s3Service;
 
     // 1. 게시글 목록 조회 및 검색
     public List<RoomFreePostResponse> getPosts(String keyword) {
@@ -50,6 +51,7 @@ public class RoomFreeService {
                 .id(post.getPostId())
                 .title(post.getTitle())
                 .author(post.getAuthor().getUserName())
+                .authorProfileImageUrl(s3Service.generateProfilePresignedGetUrl(post.getAuthor().getProfileImageUrl()))
                 .content(contentSnippet)
                 .tag(post.getTag())
                 .createdAt(post.getCreatedAt())
@@ -66,6 +68,7 @@ public class RoomFreeService {
                 .map(comment -> RoomFreeCommentResponse.builder()
                         .id(comment.getCommentId())
                         .author(comment.getAuthor().getUserName())
+                        .authorProfileImageUrl(s3Service.generateProfilePresignedGetUrl(comment.getAuthor().getProfileImageUrl()))
                         .content(comment.getContent())
                         .createdAt(comment.getCreatedAt())
                         .build())
@@ -75,6 +78,7 @@ public class RoomFreeService {
                 .id(post.getPostId())
                 .title(post.getTitle())
                 .author(post.getAuthor().getUserName())
+                .authorProfileImageUrl(s3Service.generateProfilePresignedGetUrl(post.getAuthor().getProfileImageUrl()))
                 .content(post.getContent())
                 .tag(post.getTag())
                 .createdAt(post.getCreatedAt())
@@ -140,6 +144,7 @@ public class RoomFreeService {
         return RoomFreeCommentResponse.builder()
                 .id(savedComment.getCommentId())
                 .author(savedComment.getAuthor().getUserName())
+                .authorProfileImageUrl(s3Service.generateProfilePresignedGetUrl(savedComment.getAuthor().getProfileImageUrl()))
                 .content(savedComment.getContent())
                 .createdAt(savedComment.getCreatedAt())
                 .build();
@@ -154,7 +159,7 @@ public class RoomFreeService {
                 .map(chat -> RoomFreeChatResponse.builder()
                         .id(chat.getChatId())
                         .sender(chat.getUser().getUserName())
-                        .senderProfileImageUrl(chat.getUser().getProfileImageUrl())
+                        .senderProfileImageUrl(s3Service.generateProfilePresignedGetUrl(chat.getUser().getProfileImageUrl()))
                         .message(chat.getMessage())
                         .createdAt(chat.getCreatedAt())
                         .build())
@@ -180,7 +185,7 @@ public class RoomFreeService {
         return RoomFreeChatResponse.builder()
                 .id(savedChat.getChatId())
                 .sender(savedChat.getUser().getUserName())
-                .senderProfileImageUrl(savedChat.getUser().getProfileImageUrl())
+                .senderProfileImageUrl(s3Service.generateProfilePresignedGetUrl(savedChat.getUser().getProfileImageUrl()))
                 .message(savedChat.getMessage())
                 .createdAt(savedChat.getCreatedAt())
                 .build();

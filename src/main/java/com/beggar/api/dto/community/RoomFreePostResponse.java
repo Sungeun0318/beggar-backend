@@ -11,6 +11,7 @@ public class RoomFreePostResponse {
     private Long id;
     private String title;
     private String author;
+    private String authorProfileImageUrl;
     private String content;
     private String tag;
     private LocalDateTime createdAt;
