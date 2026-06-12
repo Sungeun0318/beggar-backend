@@ -64,4 +64,4 @@ jobs:                       # [필수] 작업(Job) 집합 정의
           deployment_package: "./build/libs/${{ env.ARTIFACT }}"
           # [필수] 실제 배포할 JAR 파일 경로
           wait_for_deployment: true
-          wait_for_environment_recovery: 1800     # [선택] 배포 후 안정화 대기 시간 (30분 = 1800초)
+          wait_for_environment_recovery: 1800     # [선택] 배포 후 안정화 대기 시간 (30분=1800초)
