@@ -5,7 +5,7 @@ on:                         # [필수] 언제 실행할지 정의
     branches: [ "aws-1" ]   # [필수] aws-1 브랜치에 push될 때만 실행됨
 jobs:                       # [필수] 작업(Job) 집합 정의
   build-and-deploy:         # [필수] Job 이름
-    runs-on: ubuntu-latest  # [필수] 실행 OS (GitHub 제공 환경)
+    runs-on: ubuntu-latest  # [필수] 실행 OS(GitHub 제공 환경)
 
     steps:                  # [필수] 단계별 작업 정의
       # 1. Git Source Code Checkout
