@@ -3,6 +3,8 @@ package com.beggar.api.dto.room;
 import com.beggar.api.entity.RoomMember;
 
 public record RoomMemberResponse(
+        Long roomMemberId,
+        Long userNo,
         String name,
         String status,
         boolean mine,
@@ -15,6 +17,8 @@ public record RoomMemberResponse(
         }
 
         return new RoomMemberResponse(
+                member.getRoomMemberId(),
+                member.getUser().getUserNo(),
                 member.getUser().getUserName(),
                 displayStatus,
                 loginUserNo != null && member.getUser().getUserNo().equals(loginUserNo),

@@ -76,6 +76,7 @@ public class BudgetService {
         long submittedCount = budgetRepository.countSubmittedActiveMembers(roomNo, RoomMember.Status.ACTIVE);
         
         roomEventService.publishBudgetSubmitted(roomNo, java.util.Map.of(
+                "userNo", userNo,
                 "submittedCount", submittedCount,
                 "memberCount", totalMembers
         ));
