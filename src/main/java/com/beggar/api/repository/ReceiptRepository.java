@@ -1,16 +1,24 @@
 package com.beggar.api.repository;
 
 import com.beggar.api.entity.Receipt;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 
 @Repository
 public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
 
     List<Receipt> findAllByRoom_RoomNoOrderByCreatedAtDesc(Long roomNo);
+
+    @EntityGraph(attributePaths = {"room"})
+    List<Receipt> findAllByRoom_RoomNoInAndReceiptTypeInOrderByCreatedAtDesc(
+            Collection<Long> roomNos,
+            Collection<Receipt.ReceiptType> receiptTypes
+    );
 
     @Query("""
            select coalesce(sum(r.amount), 0)
