@@ -55,8 +55,8 @@ dependencies {
     // 9] XML 파싱
     implementation 'com.fasterxml.jackson.dataformat:jackson-dataformat-xml:2.18.1'
 
-    // 10] 비크립트 (BCrypt만 - Spring Security 프레임워크는 미사용)
-    implementation 'org.springframework.security:spring-security-crypto:6.4.4'
+    // 10] 비크립트 (보안 패치 버전 적용)
+    implementation 'org.springframework.security:spring-security-crypto:6.3.5'
 
     // 11] JWT
     implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
@@ -66,8 +66,11 @@ dependencies {
     // 12] AWS S3
     implementation 'software.amazon.awssdk:s3:2.29.1'
 
-    // 13] google cloud vision
-    implementation 'com.google.cloud:google-cloud-vision:3.33.0'
+    // 13] google cloud vision (보안 패치된 최신 gRPC/Protobuf 포함 버전)
+    implementation 'com.google.cloud:google-cloud-vision:3.44.0'
+    
+    // 취약점이 발견된 공통 라이브러리 직접 명시 (보안 패치)
+    implementation 'org.apache.commons:commons-lang3:3.17.0'
 
     // (추가) DTO @Valid 동작용
     implementation 'org.springframework.boot:spring-boot-starter-validation'
@@ -79,11 +82,20 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly    'org.junit.platform:junit-platform-launcher'
 
-    // Apache POI (Excel 기능)
-    implementation 'org.apache.poi:poi:5.2.5'
-    implementation 'org.apache.poi:poi-ooxml:5.2.5'
+    // Apache POI (보안 패치 버전 적용)
+    implementation 'org.apache.poi:poi:5.3.0'
+    implementation 'org.apache.poi:poi-ooxml:5.3.0'
 }
 
 tasks.named('test') {
     useJUnitPlatform()
+}
+
+// 빌드 시 plain jar 생성을 방지하여 EB 배포 시 혼선을 줄임
+jar {
+    enabled = false
+}
+
+bootJar {
+    archiveFileName = 'app.jar'
 }
