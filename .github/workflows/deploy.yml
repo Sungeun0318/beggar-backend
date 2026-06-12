@@ -57,7 +57,7 @@ jobs:                       # [필수] 작업(Job) 집합 정의
           aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}    # [필수] IAM Secret (미리 등록한 값 자동 호출)
           region: ap-northeast-2                                  # [필수] AWS 서울리전
 
-          application_name: Save My Friendship
+          application_name: "Save My Friendship"
           environment_name: SaveMyFriendship-env-1
           
           version_label: "springweb-${{ steps.time.outputs.formattedTime }}"
