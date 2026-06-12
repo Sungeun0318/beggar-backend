@@ -154,6 +154,7 @@ public class RoomFreeService {
                 .map(chat -> RoomFreeChatResponse.builder()
                         .id(chat.getChatId())
                         .sender(chat.getUser().getUserName())
+                        .senderProfileImageUrl(chat.getUser().getProfileImageUrl())
                         .message(chat.getMessage())
                         .createdAt(chat.getCreatedAt())
                         .build())
@@ -179,6 +180,7 @@ public class RoomFreeService {
         return RoomFreeChatResponse.builder()
                 .id(savedChat.getChatId())
                 .sender(savedChat.getUser().getUserName())
+                .senderProfileImageUrl(savedChat.getUser().getProfileImageUrl())
                 .message(savedChat.getMessage())
                 .createdAt(savedChat.getCreatedAt())
                 .build();
