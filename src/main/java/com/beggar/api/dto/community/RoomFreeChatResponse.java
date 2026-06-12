@@ -10,6 +10,7 @@ import java.time.LocalDateTime;
 public class RoomFreeChatResponse {
     private Long id;
     private String sender;
+    private String senderProfileImageUrl;
     private String message;
     private LocalDateTime createdAt;
 }
