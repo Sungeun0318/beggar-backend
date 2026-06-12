@@ -3,11 +3,10 @@ name: Spring Server Deploy   # [필수] GitHub Actions 이름 (가독성용)
 on:                         # [필수] 언제 실행할지 정의
   push:                     # [필수] push 이벤트 기반 실행
     branches: [ "aws-1" ]   # [필수] aws-1 브랜치에 push될 때만 실행됨
-
 jobs:                       # [필수] 작업(Job) 집합 정의
   build-and-deploy:         # [필수] Job 이름
     runs-on: ubuntu-latest  # [필수] 실행 OS (GitHub 제공 환경)
-    
+
     steps:                  # [필수] 단계별 작업 정의
       # 1. Git Source Code Checkout
       - name: Checkout source                   # [필수] 소스코드 가져오기
@@ -19,7 +18,7 @@ jobs:                       # [필수] 작업(Job) 집합 정의
         with:
           distribution: 'temurin'               # [필수] 자바 배포판 종류
           java-version: '17'                    # [필수] 스프링 부트 3.x 최소버전
-          cache: 'gradle'                       # [선택] gradle 캐싱 (빌드 시간 단축)
+          cache: 'gradle'                       # [선택] gradle 캐싱 (빌드 시간 단축)        
 
       # 3. Gradle 권한 부여
       - name: Add permission for gradlew        # [필수] 실행권한 부여
@@ -59,9 +58,10 @@ jobs:                       # [필수] 작업(Job) 집합 정의
 
           application_name: "Save My Friendship"
           environment_name: SaveMyFriendship-env-1
-          
+
           version_label: "springweb-${{ steps.time.outputs.formattedTime }}"
           # [선택] 버전 이름 (Timestamp 포함)
           deployment_package: "./build/libs/${{ env.ARTIFACT }}"
           # [필수] 실제 배포할 JAR 파일 경로
-          wait_for_deployment_timeout: 30     # [선택] 무거운 라이브러리를 위해 대기 시간을 30분으로 설정합니다.
+          wait_for_deployment: true
+          wait_for_environment_recovery: 1800     # [선택] 배포 후 안정화 대기 시간 (30분 = 1800초)
