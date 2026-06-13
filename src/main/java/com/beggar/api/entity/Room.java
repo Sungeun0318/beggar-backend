@@ -43,6 +43,12 @@ public class Room {
 
     private LocalDateTime roomCreated;
 
+    @Column(name = "ended_at")
+    private LocalDateTime endedAt;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
     // DB에 저장되기 직전에 현재 시간으로 세팅해주는 함수
     @PrePersist
     public void prePersist() {
@@ -92,5 +98,16 @@ public class Room {
 
     public void changeOwner(Long ownerUserNo) {
         this.ownerUserNo = ownerUserNo;
+    }
+
+
+    public void markEnded(LocalDateTime endedAt) {
+        this.status = RoomStatus.valueOf("ENDED");
+        this.endedAt = endedAt;
+    }
+
+    public void markDeleted(LocalDateTime deletedAt) {
+        this.status = RoomStatus.valueOf("DELETED");
+        this.deletedAt = deletedAt;
     }
 }

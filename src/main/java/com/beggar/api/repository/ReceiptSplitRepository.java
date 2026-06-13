@@ -2,9 +2,10 @@ package com.beggar.api.repository;
 
 import com.beggar.api.entity.ReceiptSplit;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
-
+@Repository
 public interface ReceiptSplitRepository extends JpaRepository<ReceiptSplit, Long> {
 
     List<ReceiptSplit> findAllByReceipt_ReceiptId(Long receiptId);

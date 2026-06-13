@@ -50,7 +50,9 @@ public class JwtInterceptor implements HandlerInterceptor {
                 || path.equals("/users/signup")
                 || path.equals("/locations/search")
                 || path.equals("/error")
+                || path.equals("/admin/users")
                 || path.equals("/actuator/health");
+
     }
 
     private boolean isPublicCommunityRead(HttpServletRequest request) {
