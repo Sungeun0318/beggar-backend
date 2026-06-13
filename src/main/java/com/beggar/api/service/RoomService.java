@@ -104,10 +104,25 @@ public class RoomService {
 
     /* 👑 내가 참여 중인 방 목록 조회 */
     public List<RoomResponse> findMyRooms(Long userNo) {
-        return roomMemberRepository.findByUser_UserNoAndStatus(userNo, RoomMember.Status.ACTIVE).stream()
+        return roomMemberRepository.findByUser_UserNoAndStatusAndIsHiddenFalse(userNo, RoomMember.Status.ACTIVE).stream()
                 .map(RoomMember::getRoom)
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional
+    public void hideRoom(Long roomNo, Long userNo) {
+        Room room = roomRepository.findById(roomNo)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 거지방입니다."));
+
+        if (room.getStatus() != RoomStatus.ENDED) {
+            throw new IllegalArgumentException("종료된 방만 목록에서 삭제할 수 있습니다.");
+        }
+
+        RoomMember member = roomMemberRepository.findByRoom_RoomNoAndUser_UserNo(roomNo, userNo)
+                .orElseThrow(() -> new IllegalArgumentException("해당 방의 참여자가 아닙니다."));
+
+        member.hide();
     }
 
     public RoomResponse findById(Long roomNo) {

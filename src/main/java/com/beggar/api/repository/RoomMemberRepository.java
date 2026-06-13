@@ -13,6 +13,7 @@ public interface RoomMemberRepository extends JpaRepository<RoomMember, Long> {
     Optional<RoomMember> findByRoom_RoomNoAndUser_UserNo(Long roomNo, Long userNo);
     List<RoomMember> findByRoom_RoomNoOrderByJoinedAtAsc(Long roomNo);
     List<RoomMember> findByUser_UserNoAndStatus(Long userNo, RoomMember.Status status);
+    List<RoomMember> findByUser_UserNoAndStatusAndIsHiddenFalse(Long userNo, RoomMember.Status status);
     List<RoomMember> findByUser_UserNo(Long userNo);
     Optional<RoomMember> findFirstByRoom_RoomNoAndUser_UserNoNotAndStatusOrderByJoinedAtAsc(
             Long roomNo,
