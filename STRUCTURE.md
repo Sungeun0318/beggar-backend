@@ -1,5 +1,9 @@
 # 백엔드 파일 구조 & 기능 설명
 
+> 최신 상태 메모 (2026-06-13): 이 문서는 2026-05-30 기준 설계 설명이 많이 남아 있다. 현재 실제 코드 기준 요약은 [`README.md`](./README.md)와 [`../docs/APP_FEATURES.md`](../docs/APP_FEATURES.md)를 우선 본다.  
+> 현재 `backend`에는 사용자 API뿐 아니라 `controller/admin`, `service/admin`, `dto/admin`, `repository/admin` 관리자 통합 코드가 추가되어 있다. `origin/yeonji` 머지는 완료됐고 `./gradlew compileJava` 통과를 확인했다.  
+> 예산 기능은 ACTIVE 멤버 기준 제출 여부만 공개하며, 금액은 본인 조회/확정 계산 외부로 노출하지 않는다. WebSocket은 `/ws-stomp`, 방 이벤트는 `/topic/rooms/{roomNo}`를 사용한다.
+
 > `backend/` 디렉터리의 모든 파일이 어떤 역할인지, 어떤 내용을 담아야 하는지 정리.
 > **2026-05-30 기준**: DB/JPA 골격은 커뮤니티, 통합/분할 영수증, 방별 거지평가 기준으로 최신화됨. 서비스 / 컨트롤러 / 시큐리티 본체 코드는 팀이 직접 구현 예정.
 > 본 문서가 아직 구현되지 않은 서비스/컨트롤러 메서드의 "구현 계약서" 역할을 함.

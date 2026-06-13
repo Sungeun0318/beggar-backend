@@ -44,12 +44,16 @@ public class RoomMember {
     @Column(name = "left_at")
     private LocalDateTime leftAt;
 
+    @Column(name = "is_hidden", nullable = false)
+    private boolean isHidden;
+
     @Builder
     public RoomMember(Room room, User user, Status status) {
         this.room = room;
         this.user = user;
         this.status = (status == null) ? Status.ACTIVE : status;
         this.joinedAt = LocalDateTime.now();
+        this.isHidden = false;
     }
 
     public void leave() {
@@ -65,5 +69,9 @@ public class RoomMember {
     public void rejoin() {
         this.status = Status.ACTIVE;
         this.leftAt = null;
+    }
+
+    public void hide() {
+        this.isHidden = true;
     }
 }

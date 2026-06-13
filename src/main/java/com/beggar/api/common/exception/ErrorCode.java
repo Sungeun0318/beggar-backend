@@ -11,6 +11,10 @@ public enum ErrorCode {
     EXPIRED_TOKEN(HttpStatus.UNAUTHORIZED, "AUTH_002", "만료된 토큰입니다."),
     KAKAO_LOGIN_FAILED(HttpStatus.UNAUTHORIZED, "AUTH_003", "카카오 로그인에 실패했습니다."),
 
+    // Admin
+    ADMIN_UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "ADMIN_001", "관리자 인증이 필요합니다."),
+    ADMIN_FORBIDDEN(HttpStatus.FORBIDDEN, "ADMIN_002", "관리자 권한이 없습니다."),
+
     // User
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "USER_001", "사용자를 찾을 수 없습니다."),
     DUPLICATE_USER_NAME(HttpStatus.CONFLICT, "USER_002", "이미 사용 중인 닉네임입니다."),

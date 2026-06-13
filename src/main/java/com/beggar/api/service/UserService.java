@@ -18,6 +18,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final S3Service s3Service;
+    private final BeggarScoreService beggarScoreService;
 
     @Transactional
     public void userSignup(UserRequest userRequest) {
@@ -38,7 +39,7 @@ public class UserService {
         userRepository.save(user);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public UserResponse getProfile(Long userNo) {
         User user = userRepository.findById(userNo)
                 .orElseThrow(() -> new CustomException(ErrorCode.USER_NOT_FOUND));
@@ -47,16 +48,10 @@ public class UserService {
         if (StringUtils.hasText(profileUrl) && !profileUrl.startsWith("http")) {
             profileUrl = s3Service.generateProfilePresignedGetUrl(profileUrl);
         }
-        
-        return new UserResponse(
-                user.getUserNo(),
-                user.getUserName(),
-                user.getEmail(),
-                profileUrl,
-                user.getRole(),
-                user.getGender(),
-                user.getAgeRange()
-        );
+
+        var scoreResult = beggarScoreService.getUserScore(userNo);
+
+        return UserResponse.from(user, scoreResult.score(), scoreResult.title());
     }
 
     @Transactional

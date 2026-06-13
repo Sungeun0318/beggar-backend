@@ -40,6 +40,20 @@ public class JwtTokenProvider {
                 .signWith(key)
                 .compact();
     }
+
+    public String createAdminToken(Long adminId, String role) {
+        Date now = new Date();
+        Date validity = new Date(now.getTime() + accessTokenValidityMs);
+
+        return Jwts.builder()
+                .subject(String.valueOf(adminId))
+                .claim("role", role)
+                .issuedAt(now)
+                .expiration(validity)
+                .signWith(key)
+                .compact();
+    }
+
     public String createRefreshToken(Long userNo) {
         Date now = new Date();
         Date validity = new Date(now.getTime() + refreshTokenValidityMs);
@@ -60,6 +74,17 @@ public class JwtTokenProvider {
                 .getPayload();
         return Long.parseLong(claims.getSubject());
     }
+
+    public String parseRole(String token) {
+        Claims claims = Jwts.parser()
+                .verifyWith(key)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload();
+        String role = claims.get("role", String.class);
+        return role == null ? "USER" : role;
+    }
+
     // 서명 검증 + 만료 체크
     public boolean isValid(String token){
         try{
