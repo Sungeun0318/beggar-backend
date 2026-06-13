@@ -22,6 +22,7 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(jwtInterceptor)
                 .addPathPatterns("/**") // 해당 인터셉터가 동작할 URL 패턴을 지정. "/**" = 모든 경로
                 .excludePathPatterns(
+                        "/admin/**",
                         "/auth/login",
                         "/auth/kakao",
                         "/auth/kakao/code",

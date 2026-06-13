@@ -1,12 +1,15 @@
 package com.beggar.api.repository;
 
 import com.beggar.api.entity.RoomFreePost;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.List;
-
+@Repository
 public interface RoomFreePostRepository extends JpaRepository<RoomFreePost, Long> {
 
     @Query("SELECT p FROM RoomFreePost p JOIN FETCH p.author " +
@@ -21,4 +24,22 @@ public interface RoomFreePostRepository extends JpaRepository<RoomFreePost, Long
     List<RoomFreePost> findPopularPosts();
 
     void deleteAllByAuthor_UserNo(Long userNo);
+
+    List<RoomFreePost> findTop5ByOrderByCreatedAtDesc();
+
+    long countByAuthor_UserNo(Long userNo);
+
+    Page<RoomFreePost> findByTitleContainingIgnoreCaseOrContentContainingIgnoreCase(
+            String title,
+            String content,
+            Pageable pageable
+    );
+
+    Page<RoomFreePost> findByTagAndTitleContainingIgnoreCaseOrTagAndContentContainingIgnoreCase(
+            String titleTag,
+            String title,
+            String contentTag,
+            String content,
+            Pageable pageable
+    );
 }
