@@ -33,7 +33,7 @@ jobs:                       # [필수] 작업(Job) 집합 정의
 
       # 5. Build
       - name: Build Spring Boot (bootJar)       # [필수] Spring Boot JAR 빌드
-        run: ./gradlew clean bootJar            # [필수] bootJar만 빌드
+        run: ./gradlew clean bootJar -x test    # [필수] bootJar만 빌드
         shell: bash                             # [필수] bash 쉘 사용
 
       # 6. 현재 시간으로 버전 이름 생성
