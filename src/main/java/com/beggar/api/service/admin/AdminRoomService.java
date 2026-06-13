@@ -4,6 +4,7 @@ import com.beggar.api.dto.admin.RoomDetail;
 import com.beggar.api.dto.admin.RoomListItem;
 import com.beggar.api.entity.Room;
 import com.beggar.api.entity.RoomBudgetResult;
+import com.beggar.api.entity.RoomMember;
 import com.beggar.api.entity.User;
 import com.beggar.api.repository.RoomBudgetResultRepository;
 import com.beggar.api.repository.ReceiptRepository;
@@ -96,7 +97,7 @@ public class AdminRoomService {
                 formatDateTime(room.getEndedAt()),
                 formatDateTime(room.getDeletedAt()),
                 roomMemberRepository.countByRoom_RoomNo(roomNo),
-                roomMemberRepository.countByRoom_RoomNoAndStatus(roomNo, "ACTIVE"),
+                roomMemberRepository.countByRoom_RoomNoAndStatus(roomNo, RoomMember.Status.ACTIVE),
                 budgetResult.map(result -> money(result.getMinBudgetPerPerson()) + "원").orElse("-"),
                 budgetResult.map(result -> money(result.getTotalBudget()) + "원").orElse("-"),
                 budgetResult.map(result -> formatDateTime(result.getConfirmedAt())).orElse("-"),
