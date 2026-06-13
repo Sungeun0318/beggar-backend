@@ -18,6 +18,7 @@ public record ReceiptCreateRequest(
         String address,
         BigDecimal centerLat,
         BigDecimal centerLng,
+        Long splitGroupId,
         @Min(0) Integer amount,
         List<SplitItem> splits
 ) {

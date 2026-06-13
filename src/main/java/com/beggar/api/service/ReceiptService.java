@@ -8,10 +8,12 @@ import com.beggar.api.dto.receipt.ReceiptResponse;
 import com.beggar.api.dto.receipt.ReceiptUpdateRequest;
 import com.beggar.api.entity.Receipt;
 import com.beggar.api.entity.ReceiptSplit;
+import com.beggar.api.entity.ReceiptSplitGroup;
 import com.beggar.api.entity.Room;
 import com.beggar.api.entity.RoomMember;
 import com.beggar.api.entity.RoomStatus;
 import com.beggar.api.repository.ReceiptRepository;
+import com.beggar.api.repository.ReceiptSplitGroupRepository;
 import com.beggar.api.repository.ReceiptSplitRepository;
 import com.beggar.api.repository.RoomMemberRepository;
 import com.beggar.api.repository.RoomRepository;
@@ -35,6 +37,7 @@ import java.util.stream.Collectors;
 public class ReceiptService {
     private final ReceiptRepository receiptRepository;
     private final ReceiptSplitRepository receiptSplitRepository;
+    private final ReceiptSplitGroupRepository receiptSplitGroupRepository;
     private final RoomRepository roomRepository;
     private final RoomMemberRepository roomMemberRepository;
     private final GoodPriceMatchService goodPriceMatchService;
@@ -59,12 +62,26 @@ public class ReceiptService {
         RoomMember uploader = roomMemberRepository
                 .findByRoom_RoomNoAndUser_UserNo(roomNo, userNo)
                 .orElseThrow(() -> new IllegalArgumentException("방 멤버만 영수증을 등록할 수 있습니다."));
+        if (uploader.getStatus() != RoomMember.Status.ACTIVE) {
+            throw new IllegalArgumentException("활성 방 멤버만 영수증을 등록할 수 있습니다.");
+        }
+
+        ReceiptSplitGroup splitGroup = resolveSplitGroup(roomNo, request);
 
         BigDecimal lat = request.centerLat();
         BigDecimal lng = request.centerLng();
+        String storeName = request.storeName();
+        String address = request.address();
 
-        if ((lat == null || lng == null) && request.address() != null && !request.address().isBlank()) {
-            var resolved = locationService.resolveAddress(request.address());
+        if (splitGroup != null) {
+            storeName = splitGroup.getStoreName();
+            address = splitGroup.getAddress();
+            lat = splitGroup.getCenterLat();
+            lng = splitGroup.getCenterLng();
+        }
+
+        if ((lat == null || lng == null) && address != null && !address.isBlank()) {
+            var resolved = locationService.resolveAddress(address);
             if (resolved.isPresent()) {
                 lat = BigDecimal.valueOf(resolved.get().lat());
                 lng = BigDecimal.valueOf(resolved.get().lng());
@@ -77,12 +94,13 @@ public class ReceiptService {
                 .receiptType(request.receiptType())
                 .inputMethod(request.inputMethod())
                 .imageUrl(request.imageUrl())
-                .storeName(request.storeName())
+                .storeName(storeName)
                 .totalAmount(request.totalAmount())
                 .amount(request.amount())
-                .address(request.address())
+                .address(address)
                 .centerLat(lat)
                 .centerLng(lng)
+                .splitGroup(splitGroup)
                 .build();
 
         Receipt saved = receiptRepository.save(receipt);
@@ -307,6 +325,7 @@ public class ReceiptService {
                 original.address(),
                 original.centerLat(),
                 original.centerLng(),
+                original.splitGroupId(),
                 original.goodPriceMatched(),
                 original.goodPriceStoreId(),
                 original.goodPriceStoreName(),
@@ -318,8 +337,26 @@ public class ReceiptService {
         );
     }
 
+    private ReceiptSplitGroup resolveSplitGroup(Long roomNo, ReceiptCreateRequest request) {
+        if (request.splitGroupId() == null) {
+            return null;
+        }
+        if (request.receiptType() != Receipt.ReceiptType.SPLIT) {
+            throw new IllegalArgumentException("분할 그룹에는 SPLIT 영수증만 등록할 수 있습니다.");
+        }
+
+        ReceiptSplitGroup group = receiptSplitGroupRepository.findById(request.splitGroupId())
+                .filter(found -> found.getRoom().getRoomNo().equals(roomNo))
+                .orElseThrow(() -> new IllegalArgumentException("분할 그룹을 찾을 수 없습니다. ID: " + request.splitGroupId()));
+
+        if (group.getStatus() != ReceiptSplitGroup.SplitGroupStatus.OPEN) {
+            throw new IllegalArgumentException("닫힌 분할 그룹에는 영수증을 추가할 수 없습니다.");
+        }
+        return group;
+    }
+
     @Transactional
-    public void delete(Long roomNo, Long receiptId) {
+    public void delete(Long roomNo, Long userNo, Long receiptId) {
         Room room = roomRepository.findById(roomNo)
                 .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND, "방을 찾을 수 없습니다. ID: " + roomNo));
 
@@ -330,6 +367,11 @@ public class ReceiptService {
         Receipt receipt = receiptRepository.findById(receiptId)
                 .filter(found -> found.getRoom().getRoomNo().equals(roomNo))
                 .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
+
+        if (!receipt.getUploader().getUser().getUserNo().equals(userNo)) {
+            throw new IllegalArgumentException("본인이 등록한 영수증만 삭제할 수 있습니다.");
+        }
+
         receiptRepository.delete(receipt);
         beggarScoreService.recalculate(roomNo);
     }
