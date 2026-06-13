@@ -18,6 +18,8 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
 
     List<Receipt> findAllByRoom_RoomNoOrderByCreatedAtDesc(Long roomNo);
 
+    List<Receipt> findAllBySplitGroup_SplitGroupId(Long groupId);
+
     @EntityGraph(attributePaths = {"room"})
     List<Receipt> findAllByRoom_RoomNoInAndReceiptTypeInOrderByCreatedAtDesc(
             Collection<Long> roomNos,

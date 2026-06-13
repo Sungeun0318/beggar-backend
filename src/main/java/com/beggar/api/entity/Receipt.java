@@ -69,6 +69,11 @@ public class Receipt extends BaseTimeEntity {
     @Column(name = "center_lng", precision = 10, scale = 7)
     private BigDecimal centerLng;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "split_group_id",
+            foreignKey = @ForeignKey(name = "fk_receipts_split_group"))
+    private ReceiptSplitGroup splitGroup;
+
     @Column(name = "good_price_store_id", length = 100)
     private String goodPriceStoreId;
 
@@ -91,7 +96,8 @@ public class Receipt extends BaseTimeEntity {
     public Receipt(Room room, RoomMember uploader, ReceiptType receiptType,
                    InputMethod inputMethod, String imageUrl, OcrStatus ocrStatus,
                    String storeName, Integer totalAmount, Integer amount,
-                   String address, BigDecimal centerLat, BigDecimal centerLng) {
+                   String address, BigDecimal centerLat, BigDecimal centerLng,
+                   ReceiptSplitGroup splitGroup) {
         this.room = room;
         this.uploader = uploader;
         this.receiptType = (receiptType == null) ? ReceiptType.COMBINED : receiptType;
@@ -106,6 +112,7 @@ public class Receipt extends BaseTimeEntity {
         this.address = address;
         this.centerLat = centerLat;
         this.centerLng = centerLng;
+        this.splitGroup = splitGroup;
         this.goodPriceMatched = false;
     }
 
