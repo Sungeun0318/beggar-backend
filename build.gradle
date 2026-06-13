@@ -24,6 +24,7 @@ repositories {
 dependencies {
     // 1] SpringBoot Web (MVC) - 작성하신 'webmvc'는 존재 X, 'web'이 MVC 스타터
     implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
     // 2] MySQL (H2 미사용)
     runtimeOnly 'com.mysql:mysql-connector-j'
