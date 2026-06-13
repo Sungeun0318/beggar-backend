@@ -86,6 +86,15 @@ public class RoomController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
+    /* 🗑️ 방 목록에서 삭제 (개별 숨김 처리) */
+    @DeleteMapping("/{roomNo}")
+    public ResponseEntity<ApiResponse<Void>> deleteRoom(
+            @PathVariable Long roomNo,
+            @LoginUser Long loginUserNo) {
+        roomService.hideRoom(roomNo, loginUserNo);
+        return ResponseEntity.ok(ApiResponse.success());
+    }
+
     // 방별 거지평가 등급 및 스코어 조회
     @GetMapping("/{roomNo}/beggar-score")
     public ResponseEntity<ApiResponse<BeggarScoreResponse>> getBeggarScore(@PathVariable Long roomNo) {
