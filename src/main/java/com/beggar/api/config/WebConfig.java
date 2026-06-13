@@ -1,6 +1,7 @@
 package com.beggar.api.config;
 
 import com.beggar.api.security.JwtInterceptor;
+import com.beggar.api.security.AdminInterceptor;
 import com.beggar.api.security.LoginUserArgumentResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
@@ -15,6 +16,7 @@ import java.util.List;
 public class WebConfig implements WebMvcConfigurer {
 
     private final JwtInterceptor jwtInterceptor;
+    private final AdminInterceptor adminInterceptor;
     private final LoginUserArgumentResolver loginUserArgumentResolver;
 
     @Override
@@ -32,6 +34,10 @@ public class WebConfig implements WebMvcConfigurer {
                         "/error",
                         "/actuator/health"
                 ); // 공개 엔드포인트와 상태 체크는 JWT 검사를 제외한다.
+
+        registry.addInterceptor(adminInterceptor)
+                .addPathPatterns("/admin/**")
+                .excludePathPatterns("/admin/auth/login");
     }
 
     @Override

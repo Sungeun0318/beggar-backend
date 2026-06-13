@@ -1,5 +1,6 @@
 package com.beggar.api.service.admin;
 
+import com.beggar.api.dto.admin.AdminUserListItem;
 import com.beggar.api.dto.admin.UserDetail;
 import com.beggar.api.entity.User;
 import com.beggar.api.repository.UserRepository;
@@ -45,7 +46,7 @@ public class AdminUserService {
     }
 
     @Transactional(readOnly = true)
-    public Page<User> getUsers(String keyword, int page) {
+    public Page<AdminUserListItem> getUsers(String keyword, int page) {
         int safePage = Math.max(page, 0);
         Pageable pageable = PageRequest.of(
                 safePage,
@@ -55,14 +56,15 @@ public class AdminUserService {
 
         String trimmed = keyword == null ? "" : keyword.trim();
         if (trimmed.isEmpty()) {
-            return userRepository.findAll(pageable);
+            return userRepository.findAll(pageable)
+                    .map(this::toListItem);
         }
 
         return userRepository.findByUserNameContainingIgnoreCaseOrEmailContainingIgnoreCase(
                 trimmed,
                 trimmed,
                 pageable
-        );
+        ).map(this::toListItem);
     }
 
     @Transactional(readOnly = true)
@@ -95,6 +97,20 @@ public class AdminUserService {
             return "여성";
         }
         return "기타";
+    }
+
+    private AdminUserListItem toListItem(User user) {
+        return new AdminUserListItem(
+                user.getUserNo(),
+                user.getUserName(),
+                user.getProfileImageUrl(),
+                user.getEmail(),
+                user.getRole(),
+                user.getGender(),
+                user.getAgeRange(),
+                user.getCreatedAt(),
+                user.getUpdatedAt()
+        );
     }
 
     private String blankToDash(String value) {

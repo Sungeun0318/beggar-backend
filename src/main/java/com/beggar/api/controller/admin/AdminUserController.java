@@ -1,8 +1,8 @@
 package com.beggar.api.controller.admin;
 
 import com.beggar.api.common.response.ApiResponse;
+import com.beggar.api.dto.admin.AdminUserListItem;
 import com.beggar.api.dto.admin.UserDetail;
-import com.beggar.api.entity.User;
 import com.beggar.api.service.admin.AdminUserService;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,7 +27,7 @@ public class AdminUserController {
             @RequestParam(defaultValue = "") String keyword,
             @RequestParam(defaultValue = "0") int page
     ) {
-        Page<User> users = adminUserService.getUsers(keyword, page);
+        Page<AdminUserListItem> users = adminUserService.getUsers(keyword, page);
 
         Map<String, Object> data = new HashMap<>();
         data.put("pageTitle", "회원 관리");
