@@ -9,9 +9,11 @@ public record UserResponse(
         String profileImageUrl,
         String role,
         Integer gender,
-        String ageRange
+        String ageRange,
+        Integer score,
+        String title
 ) {
-    public static UserResponse from(User user) {
+    public static UserResponse from(User user, Integer score, String title) {
         return new UserResponse(
                 user.getUserNo(),
                 user.getUserName(),
@@ -19,7 +21,9 @@ public record UserResponse(
                 user.getProfileImageUrl(),
                 user.getRole(),
                 user.getGender(),
-                user.getAgeRange()
+                user.getAgeRange(),
+                score,
+                title
         );
     }
 }

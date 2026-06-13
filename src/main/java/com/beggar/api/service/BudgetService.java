@@ -35,6 +35,7 @@ public class BudgetService {
     private final RoomMemberRepository roomMemberRepository;
     private final RoomBudgetResultRepository roomBudgetResultRepository;
     private final RoomEventService roomEventService;
+    private final BeggarScoreService beggarScoreService;
 
     /**
      *  본인 예산 제출 (INSERT or UPDATE)
@@ -138,6 +139,7 @@ public class BudgetService {
                         .build());
         result.update(minAmount, memberCount, totalBudget);
         roomBudgetResultRepository.save(result);
+        beggarScoreService.recalculate(roomNo);
 
         // 3. 확정 이벤트 발행
         roomEventService.publishStateChanged(roomNo, RoomEventDto.EventType.BUDGET_CONFIRMED, "/budget/result?roomNo=" + roomNo);

@@ -1,11 +1,13 @@
 package com.beggar.api.controller;
 
 import com.beggar.api.common.response.ApiResponse;
+import com.beggar.api.dto.ranking.BeggarScoreResponse;
 import com.beggar.api.dto.room.RoomCreateRequest;
 import com.beggar.api.dto.room.RoomJoinRequest;
 import com.beggar.api.dto.room.RoomMemberResponse;
 import com.beggar.api.dto.room.RoomResponse;
 import com.beggar.api.security.LoginUser;
+import com.beggar.api.service.BeggarScoreService;
 import com.beggar.api.service.RoomService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,10 +19,12 @@ import java.util.List;
 public class RoomController {
 
     private final RoomService roomService;
+    private final BeggarScoreService beggarScoreService;
 
     // 생성자 주입
-    public RoomController(RoomService roomService) {
+    public RoomController(RoomService roomService, BeggarScoreService beggarScoreService) {
         this.roomService = roomService;
+        this.beggarScoreService = beggarScoreService;
     }
 
     /* 거지방 신규 생성 */
@@ -29,7 +33,6 @@ public class RoomController {
             @LoginUser Long loginUserNo,
             @RequestBody RoomCreateRequest request) {
         RoomResponse roomResponse = roomService.createRoom(request, loginUserNo);
-
         return ResponseEntity.ok(ApiResponse.success(roomResponse));
     }
 
@@ -83,7 +86,12 @@ public class RoomController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
+    // 방별 거지평가 등급 및 스코어 조회
+    @GetMapping("/{roomNo}/beggar-score")
+    public ResponseEntity<ApiResponse<BeggarScoreResponse>> getBeggarScore(@PathVariable Long roomNo) {
+        return ResponseEntity.ok(ApiResponse.success(beggarScoreService.getRoomScore(roomNo)));
+    }
+
     // TODO: GET   /rooms/{roomNo}            — 방 상세 정보 및 태그 조회
     // TODO: GET   /rooms/{roomNo}/members    — 입장 현황 (보안상 예산 금액 미노출)
-    // TODO: GET   /rooms/{roomNo}/beggar-score — 방별 거지평가 등급 및 스코어 조회
 }

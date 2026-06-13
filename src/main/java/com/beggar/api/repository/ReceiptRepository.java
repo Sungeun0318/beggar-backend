@@ -35,6 +35,8 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
            """)
     long countGoodPriceMatchedByRoomNo(Long roomNo);
 
+    long countByRoom_RoomNo(Long roomNo);
+
     @Query("""
            select r
              from Receipt r
