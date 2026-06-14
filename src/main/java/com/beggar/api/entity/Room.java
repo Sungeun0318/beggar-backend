@@ -54,7 +54,7 @@ public class Room {
     public void prePersist() {
         this.roomCreated = LocalDateTime.now();
         if (this.status == null) {
-            this.status = RoomStatus.INVITING;
+            this.status = RoomStatus.DRAFT;
         }
     }
 
@@ -66,7 +66,7 @@ public class Room {
         this.ownerUserNo = ownerUserNo;
         this.isFriends = isFriends;
         this.location = location;
-        this.status = RoomStatus.INVITING;
+        this.status = RoomStatus.DRAFT;
         this.roomCreated = LocalDateTime.now();
     }
 
@@ -75,16 +75,17 @@ public class Room {
     }
 
     public void startBudgetInput() {
-        if (this.status == RoomStatus.INVITING) {
+        if (this.status == RoomStatus.INVITING || this.status == RoomStatus.DRAFT) {
             this.status = RoomStatus.BUDGET_INPUT;
         }
     }
 
     public void completeBudgetInput() {
-        if (this.status == RoomStatus.BUDGET_INPUT) {
+        if (this.status == RoomStatus.DRAFT || this.status == RoomStatus.BUDGET_INPUT) {
             this.status = RoomStatus.BUDGET_DONE;
         }
     }
+
 
     public void update(String roomName, String location, int maxMemberCount) {
         if (roomName != null) this.roomName = roomName;

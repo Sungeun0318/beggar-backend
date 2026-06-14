@@ -5,6 +5,7 @@ import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public record ReceiptCreateRequest(
@@ -18,6 +19,7 @@ public record ReceiptCreateRequest(
         String address,
         BigDecimal centerLat,
         BigDecimal centerLng,
+        LocalDateTime receiptIssuedAt,
         Long splitGroupId,
         @Min(0) Integer amount,
         List<SplitItem> splits

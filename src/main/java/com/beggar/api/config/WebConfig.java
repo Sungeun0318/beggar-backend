@@ -4,12 +4,16 @@ import com.beggar.api.security.JwtInterceptor;
 import com.beggar.api.security.AdminInterceptor;
 import com.beggar.api.security.LoginUserArgumentResolver;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.util.Arrays;
 import java.util.List;
+
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
 
 @Configuration
 @RequiredArgsConstructor
@@ -18,6 +22,26 @@ public class WebConfig implements WebMvcConfigurer {
     private final JwtInterceptor jwtInterceptor;
     private final AdminInterceptor adminInterceptor;
     private final LoginUserArgumentResolver loginUserArgumentResolver;
+
+    @Value("${app.cors.allowed-origin-patterns:https://dgh1r60fiahrz.cloudfront.net,https://beggar-webfront.vercel.app,http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000}")
+    private String allowedOriginPatterns;
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**")
+                .allowedOriginPatterns(parseAllowedOriginPatterns())
+                .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
+                .allowedHeaders("*")
+                .allowCredentials(true)
+                .maxAge(3600);
+    }
+
+    private String[] parseAllowedOriginPatterns() {
+        return Arrays.stream(allowedOriginPatterns.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isBlank())
+                .toArray(String[]::new);
+    }
 
     @Override
     public void addInterceptors(InterceptorRegistry registry){
