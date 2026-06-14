@@ -31,13 +31,24 @@ public class AuthController {
 
     @PostMapping("/kakao")
     public ApiResponse<TokenResponse> loginWithKakao(@Valid @RequestBody KakaoLoginRequest request) {
-        TokenResponse tokenResponse = authService.loginWithKakao(request.kakaoAccessToken());
+        TokenResponse tokenResponse = authService.loginWithKakao(
+                request.kakaoAccessToken(),
+                request.email(),
+                request.gender(),
+                request.age()
+        );
         return ApiResponse.success(tokenResponse);
     }
 
     @PostMapping("/kakao/code")
     public ApiResponse<TokenResponse> loginWithKakaoCode(@Valid @RequestBody KakaoCodeLoginRequest request) {
-        TokenResponse tokenResponse = authService.loginWithKakaoCode(request.code(), request.redirectUri());
+        TokenResponse tokenResponse = authService.loginWithKakaoCode(
+                request.code(),
+                request.redirectUri(),
+                request.email(),
+                request.gender(),
+                request.age()
+        );
         return ApiResponse.success(tokenResponse);
     }
 

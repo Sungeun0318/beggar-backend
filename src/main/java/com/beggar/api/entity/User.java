@@ -73,4 +73,10 @@ public class User extends BaseTimeEntity {
         if (userName != null) this.userName = userName;
         if (profileImageUrl != null) this.profileImageUrl = profileImageUrl;
     }
+
+    public void updateKakaoLoginInfo(String userName, String profileImageUrl, Integer gender, String ageRange) {
+        updateProfile(userName, profileImageUrl);
+        if (gender != null) this.gender = gender;
+        if (ageRange != null) this.ageRange = ageRange;
+    }
 }
