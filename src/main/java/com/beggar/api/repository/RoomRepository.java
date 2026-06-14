@@ -19,6 +19,8 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     boolean existsByRoomCode(String roomCode);
 
+    boolean existsByRoomName(String roomName);
+
     @Query("SELECT rm.room FROM RoomMember rm " +
            "WHERE rm.user.userNo = :userNo " +
            "AND rm.status = com.beggar.api.entity.RoomMember.Status.ACTIVE " +
