@@ -88,6 +88,11 @@ public class ReceiptService {
             }
         }
 
+        boolean confirmed = true;
+        if (request.receiptType() == Receipt.ReceiptType.COMBINED && request.inputMethod() != Receipt.InputMethod.MANUAL) {
+            confirmed = false;
+        }
+
         Receipt receipt = Receipt.builder()
                 .room(room)
                 .uploader(uploader)
@@ -101,6 +106,7 @@ public class ReceiptService {
                 .centerLat(lat)
                 .centerLng(lng)
                 .splitGroup(splitGroup)
+                .confirmed(confirmed)
                 .build();
 
         Receipt saved = receiptRepository.save(receipt);
@@ -202,6 +208,7 @@ public class ReceiptService {
 
     public List<ReceiptResponse> read(Long roomNo) {
         return receiptRepository.findAllByRoom_RoomNoOrderByCreatedAtDesc(roomNo).stream()
+                .filter(Receipt::getConfirmed)
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
@@ -220,7 +227,9 @@ public class ReceiptService {
         List<Receipt> receipts = receiptRepository.findAllByRoom_RoomNoInAndReceiptTypeInOrderByCreatedAtDesc(
                 roomNos,
                 EnumSet.of(Receipt.ReceiptType.COMBINED, Receipt.ReceiptType.SPLIT)
-        );
+        ).stream()
+                .filter(Receipt::getConfirmed)
+                .toList();
 
         return MyReceiptHistoryResponse.from(receipts);
     }
@@ -244,14 +253,15 @@ public class ReceiptService {
         Receipt receipt = receiptRepository.findById(receiptId)
                 .filter(found -> found.getRoom().getRoomNo().equals(roomNo))
                 .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
-        
+
         receipt.updateAmount(request.amount());
         receipt.updateManualInfo(request.storeName(), request.address(), request.centerLat(), request.centerLng());
+        receipt.confirm();
 
         if (receipt.getReceiptType() == Receipt.ReceiptType.SPLIT && request.splits() != null) {
             receiptSplitRepository.deleteAllByReceipt_ReceiptId(receipt.getReceiptId());
             receipt.getSplits().clear();
-            
+
             request.splits().forEach(splitItem -> {
                 RoomMember splitMember = roomMemberRepository.findById(splitItem.roomMemberId())
                         .orElseThrow(() -> new IllegalArgumentException("분할 대상 멤버를 찾을 수 없습니다. ID: " + splitItem.roomMemberId()));
@@ -331,6 +341,7 @@ public class ReceiptService {
                 original.goodPriceStoreName(),
                 original.goodPriceStoreAddress(),
                 original.goodPriceVerifiedAt(),
+                original.confirmed(),
                 original.createdAt(),
                 original.updatedAt(),
                 original.splits()

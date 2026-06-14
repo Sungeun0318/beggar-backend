@@ -26,6 +26,7 @@ public record ReceiptResponse(
         String goodPriceStoreName,
         String goodPriceStoreAddress,
         LocalDateTime goodPriceVerifiedAt,
+        Boolean confirmed,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,
         List<SplitResponse> splits
@@ -57,6 +58,7 @@ public record ReceiptResponse(
                 r.getGoodPriceStoreName(),
                 r.getGoodPriceStoreAddress(),
                 r.getGoodPriceVerifiedAt(),
+                r.getConfirmed(),
                 r.getCreatedAt(),
                 r.getUpdatedAt(),
                 r.getSplits().stream()

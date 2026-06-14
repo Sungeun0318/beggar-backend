@@ -30,6 +30,7 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
            select coalesce(sum(r.amount), 0)
              from Receipt r
             where r.room.roomNo = :roomNo
+              and r.confirmed = true
            """)
     long sumAmountByRoomNo(Long roomNo);
 
@@ -38,15 +39,23 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
              from Receipt r
             where r.room.roomNo = :roomNo
               and r.goodPriceMatched = true
+              and r.confirmed = true
            """)
     long countGoodPriceMatchedByRoomNo(Long roomNo);
 
+    @Query("""
+           select count(r)
+             from Receipt r
+            where r.room.roomNo = :roomNo
+              and r.confirmed = true
+           """)
     long countByRoom_RoomNo(Long roomNo);
 
     @Query("""
            select r
              from Receipt r
             where r.uploader.user.userNo = :userNo
+              and r.confirmed = true
             order by r.createdAt desc
            """)
     List<Receipt> findAllByUploaderUserNo(Long userNo);
