@@ -19,7 +19,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // 소켓 연결을 위한 엔드포인트 설정 (/ws-stomp)
         registry.addEndpoint("/ws-stomp")
-                .setAllowedOrigins(parseAllowedOriginPatterns())
+                .setAllowedOriginPatterns(parseAllowedOriginPatterns())
                 .withSockJS();
     }
 
