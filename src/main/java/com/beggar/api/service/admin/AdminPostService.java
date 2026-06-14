@@ -84,7 +84,7 @@ public class AdminPostService {
     @Transactional(readOnly = true)
     public PostDetail getPostDetail(Long postId) {
         RoomFreePost post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없어."));
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
 
         return new PostDetail(
                 post.getPostId(),
@@ -103,7 +103,7 @@ public class AdminPostService {
     @Transactional
     public void deletePost(Long postId) {
         RoomFreePost post = postRepository.findById(postId)
-                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없어."));
+                .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없습니다."));
         commentRepository.deleteByPost_PostId(postId);
         postRepository.deleteById(postId);
         actionLogService.record("DELETE", "POST", postId, "#" + postId + " 게시글 삭제");

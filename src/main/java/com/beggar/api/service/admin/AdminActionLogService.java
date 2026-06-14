@@ -57,7 +57,7 @@ public class AdminActionLogService {
     @Transactional(readOnly = true)
     public AdminActionLogListItem getLog(Long logId) {
         AdminActionLog log = logRepository.findById(logId)
-                .orElseThrow(() -> new IllegalArgumentException("운영 로그를 찾을 수 없어."));
+                .orElseThrow(() -> new IllegalArgumentException("운영 로그를 찾을 수 없습니다."));
         return toListItem(log);
     }
 

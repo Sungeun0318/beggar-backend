@@ -82,7 +82,7 @@ public class AdminRoomService {
     @Transactional(readOnly = true)
     public RoomDetail getRoomDetail(Long roomNo) {
         Room room = roomRepository.findById(roomNo)
-                .orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없어."));
+                .orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없습니다."));
         Optional<RoomBudgetResult> budgetResult = budgetResultRepository.findByRoom_RoomNo(roomNo);
 
         return new RoomDetail(
@@ -109,7 +109,7 @@ public class AdminRoomService {
     @Transactional
     public void endRoom(Long roomNo) {
         Room room = roomRepository.findById(roomNo)
-                .orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없어."));
+                .orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없습니다."));
         String status = normalizeStatus(String.valueOf(room.getStatus()));
 
         if (STATUS_DELETED.equals(status)) {
@@ -124,7 +124,7 @@ public class AdminRoomService {
     @Transactional
     public void deleteRoom(Long roomNo) {
         Room room = roomRepository.findById(roomNo)
-                .orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없어."));
+                .orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없습니다."));
 
         if (!STATUS_DELETED.equals(normalizeStatus(String.valueOf(room.getStatus())))) {
             room.markDeleted(LocalDateTime.now());

@@ -87,7 +87,7 @@ public class AdminReceiptService {
     @Transactional(readOnly = true)
     public ReceiptDetail getReceiptDetail(Long receiptId) {
         Receipt receipt = receiptRepository.findById(receiptId)
-                .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없어."));
+                .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다."));
 
         return new ReceiptDetail(
                 receipt.getReceiptId(),
@@ -113,7 +113,7 @@ public class AdminReceiptService {
     @Transactional
     public void deleteReceipt(Long receiptId) {
         Receipt receipt = receiptRepository.findById(receiptId)
-                .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없어."));
+                .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다."));
         receiptRepository.deleteById(receiptId);
         actionLogService.record("DELETE", "RECEIPT", receiptId, "방 #" + (receipt.getRoom() != null ? receipt.getRoom().getRoomNo() : "-") + " 영수증 삭제");
     }
