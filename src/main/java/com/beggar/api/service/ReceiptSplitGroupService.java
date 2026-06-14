@@ -96,7 +96,10 @@ public class ReceiptSplitGroupService {
     }
 
     private SplitGroupResponse toResponse(ReceiptSplitGroup group) {
-        List<Receipt> receipts = receiptRepository.findAllBySplitGroup_SplitGroupId(group.getSplitGroupId());
+        List<Receipt> receipts = receiptRepository.findAllBySplitGroup_SplitGroupId(group.getSplitGroupId())
+                .stream()
+                .filter(Receipt::getConfirmed)
+                .toList();
         List<SplitGroupResponse.Item> items = receipts.stream()
                 .map(receipt -> new SplitGroupResponse.Item(
                         receipt.getReceiptId(),

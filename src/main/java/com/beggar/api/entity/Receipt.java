@@ -89,6 +89,9 @@ public class Receipt extends BaseTimeEntity {
     @Column(name = "good_price_verified_at")
     private java.time.LocalDateTime goodPriceVerifiedAt;
 
+    @Column(name = "confirmed", nullable = false)
+    private Boolean confirmed;
+
     @OneToMany(mappedBy = "receipt", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ReceiptSplit> splits = new ArrayList<>();
 
@@ -97,7 +100,7 @@ public class Receipt extends BaseTimeEntity {
                    InputMethod inputMethod, String imageUrl, OcrStatus ocrStatus,
                    String storeName, Integer totalAmount, Integer amount,
                    String address, BigDecimal centerLat, BigDecimal centerLng,
-                   ReceiptSplitGroup splitGroup) {
+                   ReceiptSplitGroup splitGroup, Boolean confirmed) {
         this.room = room;
         this.uploader = uploader;
         this.receiptType = (receiptType == null) ? ReceiptType.COMBINED : receiptType;
@@ -114,6 +117,7 @@ public class Receipt extends BaseTimeEntity {
         this.centerLng = centerLng;
         this.splitGroup = splitGroup;
         this.goodPriceMatched = false;
+        this.confirmed = (confirmed == null) ? true : confirmed;
     }
 
     public void addSplit(ReceiptSplit split) {
@@ -172,6 +176,7 @@ public class Receipt extends BaseTimeEntity {
     }
 
     public void confirm() {
+        this.confirmed = true;
         if (this.ocrStatus == OcrStatus.PENDING) {
             this.ocrStatus = OcrStatus.MANUAL;
         }
