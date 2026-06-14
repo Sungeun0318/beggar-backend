@@ -1,12 +1,15 @@
 package com.beggar.api.controller;
 
 import com.beggar.api.dto.receipt.ReceiptCreateRequest;
+import com.beggar.api.dto.receipt.ReceiptDuplicateCheckRequest;
+import com.beggar.api.dto.receipt.ReceiptDuplicateCheckResponse;
 import com.beggar.api.dto.receipt.ReceiptResponse;
 import com.beggar.api.dto.receipt.ReceiptUpdateRequest;
 import com.beggar.api.dto.receipt.SplitGroupCreateRequest;
 import com.beggar.api.dto.receipt.SplitGroupResponse;
 import com.beggar.api.entity.ReceiptSplitGroup;
 import com.beggar.api.security.LoginUser;
+import com.beggar.api.service.ReceiptDuplicateService;
 import com.beggar.api.service.ReceiptSplitGroupService;
 import com.beggar.api.service.ReceiptService;
 import com.beggar.api.service.S3Service;
@@ -21,6 +24,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ReceiptController {
     private final ReceiptService receiptService;
+    private final ReceiptDuplicateService receiptDuplicateService;
     private final ReceiptSplitGroupService receiptSplitGroupService;
     private final S3Service s3Service;
 
@@ -36,6 +40,13 @@ public class ReceiptController {
                                  @LoginUser Long userNo,
                                  @RequestBody ReceiptCreateRequest request) {
         return receiptService.create(roomNo, userNo, request);
+    }
+
+    @PostMapping("/duplicate-check")
+    public ReceiptDuplicateCheckResponse checkDuplicate(@PathVariable Long roomNo,
+                                                        @LoginUser Long userNo,
+                                                        @RequestBody ReceiptDuplicateCheckRequest request) {
+        return receiptDuplicateService.check(roomNo, userNo, request);
     }
 
     @PostMapping("/split-groups")

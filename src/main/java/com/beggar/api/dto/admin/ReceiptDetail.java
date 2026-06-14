@@ -18,6 +18,7 @@ public class ReceiptDetail {
     private final String goodPriceStoreName;
     private final String goodPriceStoreAddress;
     private final String goodPriceVerifiedAt;
+    private final String receiptIssuedAt;
     private final String createdAt;
 
     public ReceiptDetail(
@@ -37,6 +38,7 @@ public class ReceiptDetail {
             String goodPriceStoreName,
             String goodPriceStoreAddress,
             String goodPriceVerifiedAt,
+            String receiptIssuedAt,
             String createdAt
     ) {
         this.receiptId = receiptId;
@@ -55,6 +57,7 @@ public class ReceiptDetail {
         this.goodPriceStoreName = goodPriceStoreName;
         this.goodPriceStoreAddress = goodPriceStoreAddress;
         this.goodPriceVerifiedAt = goodPriceVerifiedAt;
+        this.receiptIssuedAt = receiptIssuedAt;
         this.createdAt = createdAt;
     }
 
@@ -120,6 +123,10 @@ public class ReceiptDetail {
 
     public String getGoodPriceVerifiedAt() {
         return goodPriceVerifiedAt;
+    }
+
+    public String getReceiptIssuedAt() {
+        return receiptIssuedAt;
     }
 
     public String getCreatedAt() {

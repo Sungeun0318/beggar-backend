@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,6 +61,9 @@ public class Receipt extends BaseTimeEntity {
     @Column(name = "amount", nullable = false)
     private Integer amount;
 
+    @Column(name = "receipt_issued_at")
+    private LocalDateTime receiptIssuedAt;
+
     @Column(name = "address", length = 100)
     private String address;
 
@@ -99,7 +103,7 @@ public class Receipt extends BaseTimeEntity {
     public Receipt(Room room, RoomMember uploader, ReceiptType receiptType,
                    InputMethod inputMethod, String imageUrl, OcrStatus ocrStatus,
                    String storeName, Integer totalAmount, Integer amount,
-                   String address, BigDecimal centerLat, BigDecimal centerLng,
+                   LocalDateTime receiptIssuedAt, String address, BigDecimal centerLat, BigDecimal centerLng,
                    ReceiptSplitGroup splitGroup, Boolean confirmed) {
         this.room = room;
         this.uploader = uploader;
@@ -112,6 +116,7 @@ public class Receipt extends BaseTimeEntity {
         this.storeName = storeName;
         this.totalAmount = totalAmount;
         this.amount = (amount == null) ? 0 : amount;
+        this.receiptIssuedAt = receiptIssuedAt;
         this.address = address;
         this.centerLat = centerLat;
         this.centerLng = centerLng;
@@ -125,11 +130,15 @@ public class Receipt extends BaseTimeEntity {
     }
 
     public void applyOcrResult(String storeName, Integer totalAmount,
+                               LocalDateTime receiptIssuedAt,
                                String address, BigDecimal lat, BigDecimal lng) {
         this.ocrStatus = OcrStatus.SUCCESS;
         this.storeName = storeName;
         this.totalAmount = totalAmount;
         this.amount = (totalAmount == null) ? this.amount : totalAmount;
+        if (receiptIssuedAt != null) {
+            this.receiptIssuedAt = receiptIssuedAt;
+        }
         this.address = address;
         this.centerLat = lat;
         this.centerLng = lng;
@@ -143,9 +152,12 @@ public class Receipt extends BaseTimeEntity {
         this.amount = newAmount;
     }
 
-    public void updateManualInfo(String storeName, String address, BigDecimal lat, BigDecimal lng) {
+    public void updateManualInfo(String storeName, LocalDateTime receiptIssuedAt, String address, BigDecimal lat, BigDecimal lng) {
         if (storeName != null && !storeName.isBlank()) {
             this.storeName = storeName;
+        }
+        if (receiptIssuedAt != null) {
+            this.receiptIssuedAt = receiptIssuedAt;
         }
         if (address != null && !address.isBlank()) {
             this.address = address;

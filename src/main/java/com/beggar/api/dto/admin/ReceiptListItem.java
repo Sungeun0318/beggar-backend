@@ -11,6 +11,7 @@ public class ReceiptListItem {
     private final String ocrStatusLabel;
     private final String amount;
     private final String goodPriceLabel;
+    private final String receiptIssuedAt;
     private final String createdAt;
 
     public ReceiptListItem(
@@ -23,6 +24,7 @@ public class ReceiptListItem {
             String ocrStatusLabel,
             String amount,
             String goodPriceLabel,
+            String receiptIssuedAt,
             String createdAt
     ) {
         this.receiptId = receiptId;
@@ -34,6 +36,7 @@ public class ReceiptListItem {
         this.ocrStatusLabel = ocrStatusLabel;
         this.amount = amount;
         this.goodPriceLabel = goodPriceLabel;
+        this.receiptIssuedAt = receiptIssuedAt;
         this.createdAt = createdAt;
     }
 
@@ -71,6 +74,10 @@ public class ReceiptListItem {
 
     public String getGoodPriceLabel() {
         return goodPriceLabel;
+    }
+
+    public String getReceiptIssuedAt() {
+        return receiptIssuedAt;
     }
 
     public String getCreatedAt() {

@@ -60,6 +60,32 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
            """)
     List<Receipt> findAllByUploaderUserNo(Long userNo);
 
+    @Query("""
+           select r
+             from Receipt r
+            where r.room.roomNo = :roomNo
+              and r.uploader.user.userNo = :userNo
+              and r.amount = :amount
+              and r.confirmed = true
+              and (:excludeReceiptId is null or r.receiptId <> :excludeReceiptId)
+              and coalesce(r.receiptIssuedAt, r.createdAt) between :fromTime and :toTime
+              and (
+                    (:storeName <> '' and lower(coalesce(r.storeName, '')) = lower(:storeName))
+                    or (:address <> '' and lower(coalesce(r.address, '')) = lower(:address))
+              )
+            order by coalesce(r.receiptIssuedAt, r.createdAt) desc
+           """)
+    List<Receipt> findDuplicateCandidates(
+            @Param("roomNo") Long roomNo,
+            @Param("userNo") Long userNo,
+            @Param("amount") Integer amount,
+            @Param("storeName") String storeName,
+            @Param("address") String address,
+            @Param("fromTime") LocalDateTime fromTime,
+            @Param("toTime") LocalDateTime toTime,
+            @Param("excludeReceiptId") Long excludeReceiptId
+    );
+
     void deleteAllByUploader_RoomMemberId(Long roomMemberId);
 
     void deleteAllByRoom_RoomNo(Long roomNo);
