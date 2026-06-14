@@ -46,6 +46,13 @@ public class RoomController {
         return ResponseEntity.ok(ApiResponse.success(roomService.findMyRooms(loginUserNo)));
     }
 
+    /* 🔍 방 검색 API */
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<List<RoomResponse>>> searchRooms(
+            @RequestParam(required = false, defaultValue = "") String keyword) {
+        return ResponseEntity.ok(ApiResponse.success(roomService.searchRooms(keyword)));
+    }
+
     @GetMapping("/{roomNo}/members")
     public ResponseEntity<ApiResponse<List<RoomMemberResponse>>> getMembers(
             @PathVariable Long roomNo,
