@@ -110,6 +110,17 @@ public class RoomService {
                 .toList();
     }
 
+    /* 🔍 방 검색 기능 (이름, 지역, 코드 기반) */
+    public List<RoomResponse> searchRooms(String keyword) {
+        // Pageable.unpaged()를 사용하여 페이징 없이 모든 결과를 가져옵니다.
+        // Repository의 searchRooms 쿼리는 keyword가 비어있으면 전체를 조회하도록 설계되어 있습니다.
+        return roomRepository.searchRooms(keyword, "ALL", org.springframework.data.domain.Pageable.unpaged())
+                .getContent()
+                .stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     @Transactional
     public void hideRoom(Long roomNo, Long userNo) {
         Room room = roomRepository.findById(roomNo)
