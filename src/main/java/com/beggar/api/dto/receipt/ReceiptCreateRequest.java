@@ -14,6 +14,7 @@ public record ReceiptCreateRequest(
         @NotNull Receipt.ReceiptType receiptType,
         @NotNull Receipt.InputMethod inputMethod,
         String imageUrl,
+        String imageHash,
         String storeName,
         Integer totalAmount,
         String address,

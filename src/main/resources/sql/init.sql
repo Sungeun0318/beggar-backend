@@ -135,6 +135,7 @@ CREATE TABLE IF NOT EXISTS receipts (
   receipt_type               VARCHAR(20)   NOT NULL,
   input_method               VARCHAR(20)   NOT NULL,
   image_url                  VARCHAR(500)  NULL,
+  image_hash                 VARCHAR(64)   NULL,
   ocr_status                 VARCHAR(30)   NOT NULL,
   store_name                 VARCHAR(150)  NULL,
   total_amount               INT           NULL,
@@ -162,6 +163,9 @@ ALTER TABLE receipts
 
 ALTER TABLE receipts
   ADD COLUMN IF NOT EXISTS receipt_issued_at DATETIME NULL;
+
+ALTER TABLE receipts
+  ADD COLUMN IF NOT EXISTS image_hash VARCHAR(64) NULL;
 
 -- 9. receipt_splits
 CREATE TABLE IF NOT EXISTS receipt_splits (

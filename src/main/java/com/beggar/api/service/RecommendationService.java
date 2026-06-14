@@ -232,12 +232,11 @@ public class RecommendationService {
             return true;
         }
         String address = normalize(store.address());
-        for (String keyword : region.trim().split("\\s+")) {
-            if (!address.contains(normalize(keyword))) {
-                return false;
-            }
+        String keyword = regionKeyword(region);
+        if (!keyword.isBlank()) {
+            return address.contains(normalize(keyword));
         }
-        return true;
+        return address.contains(normalize(region));
     }
 
     private int affordableRank(GoodPriceStore store, Integer remainingBudget) {

@@ -48,6 +48,9 @@ public class Receipt extends BaseTimeEntity {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
+    @Column(name = "image_hash", length = 64)
+    private String imageHash;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "ocr_status", length = 30, nullable = false)
     private OcrStatus ocrStatus;
@@ -104,12 +107,13 @@ public class Receipt extends BaseTimeEntity {
                    InputMethod inputMethod, String imageUrl, OcrStatus ocrStatus,
                    String storeName, Integer totalAmount, Integer amount,
                    LocalDateTime receiptIssuedAt, String address, BigDecimal centerLat, BigDecimal centerLng,
-                   ReceiptSplitGroup splitGroup, Boolean confirmed) {
+                   ReceiptSplitGroup splitGroup, String imageHash, Boolean confirmed) {
         this.room = room;
         this.uploader = uploader;
         this.receiptType = (receiptType == null) ? ReceiptType.COMBINED : receiptType;
         this.inputMethod = (inputMethod == null) ? InputMethod.CAMERA : inputMethod;
         this.imageUrl = imageUrl;
+        this.imageHash = imageHash;
         this.ocrStatus = (ocrStatus == null)
                 ? (this.inputMethod == InputMethod.MANUAL ? OcrStatus.MANUAL : OcrStatus.PENDING)
                 : ocrStatus;
