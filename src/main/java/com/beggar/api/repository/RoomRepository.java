@@ -20,7 +20,10 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     boolean existsByRoomCode(String roomCode);
 
     @Query("SELECT rm.room FROM RoomMember rm " +
-           "WHERE rm.user.userNo = :userNo AND rm.status = com.beggar.api.entity.RoomMember.Status.ACTIVE " +
+           "WHERE rm.user.userNo = :userNo " +
+           "AND rm.status = com.beggar.api.entity.RoomMember.Status.ACTIVE " +
+           "AND rm.isHidden = false " +
+           "AND rm.room.status != com.beggar.api.entity.RoomStatus.DELETED " +
            "ORDER BY rm.room.roomCreated DESC")
     java.util.List<Room> findActiveRoomsByUserNo(Long userNo);
 
@@ -37,7 +40,8 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     @Query("""
             SELECT r
               FROM Room r
-             WHERE (:status = 'ALL' OR CAST(r.status AS string) = :status)
+             WHERE (:status = 'ALL' AND r.status NOT IN (com.beggar.api.entity.RoomStatus.DRAFT, com.beggar.api.entity.RoomStatus.DELETED) 
+                    OR CAST(r.status AS string) = :status)
                AND (
                     :keyword = ''
                     OR LOWER(COALESCE(r.roomName, '')) LIKE LOWER(CONCAT('%', :keyword, '%'))
