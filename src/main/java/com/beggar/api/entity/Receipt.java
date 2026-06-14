@@ -170,4 +170,10 @@ public class Receipt extends BaseTimeEntity {
         this.goodPriceMatched = false;
         this.goodPriceVerifiedAt = null;
     }
+
+    public void confirm() {
+        if (this.ocrStatus == OcrStatus.PENDING) {
+            this.ocrStatus = OcrStatus.MANUAL;
+        }
+    }
 }
