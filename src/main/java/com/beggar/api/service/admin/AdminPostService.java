@@ -106,7 +106,7 @@ public class AdminPostService {
                 .orElseThrow(() -> new IllegalArgumentException("게시글을 찾을 수 없어."));
         commentRepository.deleteByPost_PostId(postId);
         postRepository.deleteById(postId);
-        actionLogService.record("DELETE", "POST", postId, "게시글을 삭제했어: " + post.getTitle());
+        actionLogService.record("DELETE", "POST", postId, "#" + postId + " 게시글 삭제");
     }
 
     private PostListItem toListItem(RoomFreePost post) {

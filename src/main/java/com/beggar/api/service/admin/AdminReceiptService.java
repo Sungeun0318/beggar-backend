@@ -115,7 +115,7 @@ public class AdminReceiptService {
         Receipt receipt = receiptRepository.findById(receiptId)
                 .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없어."));
         receiptRepository.deleteById(receiptId);
-        actionLogService.record("DELETE", "RECEIPT", receiptId, "영수증을 삭제했어. 방 #" + (receipt.getRoom() != null ? receipt.getRoom().getRoomNo() : "-"));
+        actionLogService.record("DELETE", "RECEIPT", receiptId, "방 #" + (receipt.getRoom() != null ? receipt.getRoom().getRoomNo() : "-") + " 영수증 삭제");
     }
 
     private ReceiptListItem toListItem(Receipt receipt) {
