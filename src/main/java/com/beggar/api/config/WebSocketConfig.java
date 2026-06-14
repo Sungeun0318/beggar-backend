@@ -12,7 +12,7 @@ import java.util.Arrays;
 @Configuration
 @EnableWebSocketMessageBroker
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
-    @Value("${app.cors.allowed-origin-patterns:https://dgh1r60fiahrz.cloudfront.net,https://beggar-webfront.vercel.app}")
+    @Value("${app.cors.allowed-origin-patterns:https://dgh1r60fiahrz.cloudfront.net,https://beggar-webfront.vercel.app,http://localhost:5173,http://127.0.0.1:5173,http://localhost:3000,http://127.0.0.1:3000}")
     private String allowedOriginPatterns;
 
     @Override
