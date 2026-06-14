@@ -113,11 +113,11 @@ public class AdminRoomService {
         String status = normalizeStatus(String.valueOf(room.getStatus()));
 
         if (STATUS_DELETED.equals(status)) {
-            throw new IllegalStateException("이미 삭제된 방은 종료할 수 없어.");
+            throw new IllegalStateException("이미 삭제된 방은 종료할 수 없습니다.");
         }
         if (!STATUS_ENDED.equals(status)) {
             room.markEnded(LocalDateTime.now());
-            actionLogService.record("END", "ROOM", roomNo, "방을 강제 종료했어: " + room.getRoomName());
+            actionLogService.record("END", "ROOM", roomNo, "방을 강제 종료했습니다: " + room.getRoomName());
         }
     }
 
