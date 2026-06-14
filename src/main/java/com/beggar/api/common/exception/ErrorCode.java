@@ -22,11 +22,12 @@ public enum ErrorCode {
 
     // Room
     ROOM_NOT_FOUND(HttpStatus.NOT_FOUND, "ROOM_001", "방을 찾을 수 없습니다."),
-    INVALID_ROOM_CODE(HttpStatus.NOT_FOUND, "ROOM_002", "유효하지 않은 초대 코드입니다."),
-    ALREADY_JOINED(HttpStatus.CONFLICT, "ROOM_003", "이미 참여 중인 방입니다."),
-    NOT_ROOM_MEMBER(HttpStatus.FORBIDDEN, "ROOM_004", "방 멤버가 아닙니다."),
-    ROOM_NOT_OPEN(HttpStatus.FORBIDDEN, "ROOM_005", "친구 전용 방은 초대 코드로만 입장할 수 있습니다."),
-    ROOM_ALREADY_ENDED(HttpStatus.BAD_REQUEST, "ROOM_006", "이미 종료된 방입니다."),
+    DUPLICATE_ROOM_NAME(HttpStatus.CONFLICT, "ROOM_002", "이미 존재하는 방 이름입니다. 다른 이름을 사용해주세요."),
+    INVALID_ROOM_CODE(HttpStatus.NOT_FOUND, "ROOM_003", "유효하지 않은 초대 코드입니다."),
+    ALREADY_JOINED(HttpStatus.CONFLICT, "ROOM_004", "이미 참여 중인 방입니다."),
+    NOT_ROOM_MEMBER(HttpStatus.FORBIDDEN, "ROOM_005", "방 멤버가 아닙니다."),
+    ROOM_NOT_OPEN(HttpStatus.FORBIDDEN, "ROOM_006", "친구 전용 방은 초대 코드로만 입장할 수 있습니다."),
+    ROOM_ALREADY_ENDED(HttpStatus.BAD_REQUEST, "ROOM_007", "이미 종료된 방입니다."),
 
     // Budget
     BUDGET_ALREADY_CONFIRMED(HttpStatus.CONFLICT, "BUDGET_001", "이미 확정된 예산입니다."),

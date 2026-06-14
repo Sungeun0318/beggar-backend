@@ -1,5 +1,7 @@
 package com.beggar.api.service;
 
+import com.beggar.api.common.exception.CustomException;
+import com.beggar.api.common.exception.ErrorCode;
 import com.beggar.api.dto.room.RoomCreateRequest;
 import com.beggar.api.dto.room.RoomEventDto;
 import com.beggar.api.dto.room.RoomMemberResponse;
@@ -28,13 +30,18 @@ public class RoomService {
     private final UserRepository userRepository;
     private final RoomEventService roomEventService;
 
-    /* 👑 방 생성(create) */
+    /* 방 생성(create) */
     @Transactional
     public RoomResponse createRoom(RoomCreateRequest request, Long userNo) {
+        // 방 이름 중복 체크
+        if (roomRepository.existsByRoomName(request.getRoomName())) {
+            throw new CustomException(ErrorCode.DUPLICATE_ROOM_NAME);
+        }
+
         String roomCode = generateRandomCode();
         System.out.println("생성된 12자리 초대 코드:" + roomCode);
 
-        // 1. 방 기본 정보 저장 (DRAFT 상태로 시작)
+        // 방 기본 정보 저장 (DRAFT 상태로 시작)
         Room room = new Room(
                 request.getRoomName(),
                 roomCode,
@@ -52,7 +59,7 @@ public class RoomService {
                 .status(RoomMember.Status.ACTIVE)
                 .build());
 
-        // 2. 목적 태그 리스트 일괄 DB 저장
+        // 목적 태그 리스트 일괄 DB 저장
         List<String> tagNames = request.getTags();
         if (tagNames != null) {
             for (String tagName : tagNames) {
@@ -102,7 +109,7 @@ public class RoomService {
         return sb.toString();
     }
 
-    /* 👑 내가 참여 중인 방 목록 조회 */
+    /* 내가 참여 중인 방 목록 조회 */
     public List<RoomResponse> findMyRooms(Long userNo) {
         return roomMemberRepository.findByUser_UserNoAndStatusAndIsHiddenFalse(userNo, RoomMember.Status.ACTIVE).stream()
                 .map(RoomMember::getRoom)
@@ -111,7 +118,7 @@ public class RoomService {
                 .toList();
     }
 
-    /* 🔍 방 검색 기능 (이름, 지역, 코드 기반) */
+    /* 방 검색 기능 (이름, 지역, 코드 기반) */
     public List<RoomResponse> searchRooms(String keyword) {
         // Pageable.unpaged()를 사용하여 페이징 없이 모든 결과를 가져옵니다.
         // Repository의 searchRooms 쿼리는 keyword가 비어있으면 전체를 조회하도록 설계되어 있습니다.
