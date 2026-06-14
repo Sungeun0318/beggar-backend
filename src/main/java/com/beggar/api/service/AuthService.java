@@ -84,7 +84,7 @@
 
         }
         @Transactional
-        public TokenResponse loginWithKakao(String kakaoToken) {
+        public TokenResponse loginWithKakao(String kakaoToken, String userInputEmail, Integer gender, Integer age) {
             JsonNode kakaoResponse = kakaoWebClient.get()
                     .uri("/v2/user/me")
                     .accept(MediaType.APPLICATION_JSON)
@@ -101,7 +101,8 @@
             }
 
             JsonNode account = kakaoResponse.path("kakao_account");
-            String email = kakaoEmail(kakaoId, account);
+            String email = normalizeEmail(userInputEmail);
+            String ageRange = toAgeRange(age);
 
             // 1. profile 객체 안전하게 추출
             JsonNode profile = account.path("profile");
@@ -139,15 +140,19 @@
                                 .userName(availableNickname)
                                 .email(email)
                                 .profileImageUrl(finalProfileImageUrl)
+                                .gender(gender)
+                                .ageRange(ageRange)
                                 .role("USER")
                                 .build();
                         return userRepository.save(newUser);
                     });
 
             // 7. 로그인 시마다 프로필 정보 갱신 (중복 방지 닉네임 적용)
-            user.updateProfile(
+            user.updateKakaoLoginInfo(
                     availableKakaoNickname(kakaoNicknameValue, kakaoId, user.getUserNo()),
-                    profileImageUrl
+                    profileImageUrl,
+                    gender,
+                    ageRange
             );
 
             String accessToken = jwtTokenProvider.createToken(user.getUserNo());
@@ -157,9 +162,9 @@
         }
 
         @Transactional
-        public TokenResponse loginWithKakaoCode(String code, String redirectUri) {
+        public TokenResponse loginWithKakaoCode(String code, String redirectUri, String email, Integer gender, Integer age) {
             String accessToken = requestKakaoAccessToken(code, redirectUri);
-            return loginWithKakao(accessToken);
+            return loginWithKakao(accessToken, email, gender, age);
         }
 
         private String requestKakaoAccessToken(String code, String redirectUri) {
@@ -215,6 +220,35 @@
                 return email;
             }
             return "kakao_" + kakaoId + "@kakao.local";
+        }
+
+        private String normalizeEmail(String email) {
+            if (!StringUtils.hasText(email)) {
+                throw new CustomException(ErrorCode.INVALID_REQUEST, "이메일을 입력해 주세요.");
+            }
+            return email.trim().toLowerCase();
+        }
+
+        private String toAgeRange(Integer age) {
+            if (age == null || age < 0 || age > 120) {
+                throw new CustomException(ErrorCode.INVALID_REQUEST, "연령을 올바르게 입력해 주세요.");
+            }
+            if (age < 10) {
+                return "0~9";
+            }
+            if (age < 20) {
+                return "10~19";
+            }
+            if (age < 30) {
+                return "20~29";
+            }
+            if (age < 40) {
+                return "30~39";
+            }
+            if (age < 50) {
+                return "40~49";
+            }
+            return "50~";
         }
 
         private String trimToUserNameLimit(String userName) {
