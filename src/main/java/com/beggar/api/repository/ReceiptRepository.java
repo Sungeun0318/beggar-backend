@@ -20,6 +20,8 @@ public interface ReceiptRepository extends JpaRepository<Receipt, Long> {
 
     List<Receipt> findAllBySplitGroup_SplitGroupId(Long groupId);
 
+    boolean existsByRoom_RoomNoAndImageHash(Long roomNo, String imageHash);
+
     @EntityGraph(attributePaths = {"room"})
     List<Receipt> findAllByRoom_RoomNoInAndReceiptTypeInOrderByCreatedAtDesc(
             Collection<Long> roomNos,

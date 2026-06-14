@@ -34,12 +34,28 @@ CREATE TABLE IF NOT EXISTS rooms (
   max_member_count  INT          NOT NULL DEFAULT 100,
   total_budget      INT          NULL,
   is_friends        BOOLEAN      NOT NULL,
+  location          VARCHAR(255) NULL,
+  status            VARCHAR(20)  NOT NULL DEFAULT 'INVITING',
   room_created      DATETIME     NOT NULL,
+  ended_at          DATETIME     NULL,
+  deleted_at        DATETIME     NULL,
   PRIMARY KEY (room_no),
   UNIQUE KEY uk_rooms_room_name (room_name),
   UNIQUE KEY uk_rooms_room_code (room_code),
   CONSTRAINT fk_rooms_owner FOREIGN KEY (owner_user_no) REFERENCES users(user_no)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE rooms
+  ADD COLUMN IF NOT EXISTS location VARCHAR(255) NULL;
+
+ALTER TABLE rooms
+  ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'INVITING';
+
+ALTER TABLE rooms
+  ADD COLUMN IF NOT EXISTS ended_at DATETIME NULL;
+
+ALTER TABLE rooms
+  ADD COLUMN IF NOT EXISTS deleted_at DATETIME NULL;
 
 -- 3. room_members
 CREATE TABLE IF NOT EXISTS room_members (
@@ -47,6 +63,7 @@ CREATE TABLE IF NOT EXISTS room_members (
   room_no         BIGINT       NOT NULL,
   user_no         BIGINT       NOT NULL,
   status          VARCHAR(15)  NOT NULL,
+  is_hidden       BOOLEAN      NOT NULL DEFAULT FALSE,
   joined_at       DATETIME     NOT NULL,
   left_at         DATETIME     NULL,
   PRIMARY KEY (room_member_id),
@@ -54,6 +71,9 @@ CREATE TABLE IF NOT EXISTS room_members (
   CONSTRAINT fk_room_members_room FOREIGN KEY (room_no) REFERENCES rooms(room_no),
   CONSTRAINT fk_room_members_user FOREIGN KEY (user_no) REFERENCES users(user_no)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE room_members
+  ADD COLUMN IF NOT EXISTS is_hidden BOOLEAN NOT NULL DEFAULT FALSE;
 
 -- 4. room_purpose_tags
 CREATE TABLE IF NOT EXISTS room_purpose_tags (
@@ -115,6 +135,7 @@ CREATE TABLE IF NOT EXISTS receipts (
   receipt_type               VARCHAR(20)   NOT NULL,
   input_method               VARCHAR(20)   NOT NULL,
   image_url                  VARCHAR(500)  NULL,
+  image_hash                 VARCHAR(64)   NULL,
   ocr_status                 VARCHAR(30)   NOT NULL,
   store_name                 VARCHAR(150)  NULL,
   total_amount               INT           NULL,
@@ -142,6 +163,9 @@ ALTER TABLE receipts
 
 ALTER TABLE receipts
   ADD COLUMN IF NOT EXISTS receipt_issued_at DATETIME NULL;
+
+ALTER TABLE receipts
+  ADD COLUMN IF NOT EXISTS image_hash VARCHAR(64) NULL;
 
 -- 9. receipt_splits
 CREATE TABLE IF NOT EXISTS receipt_splits (
@@ -240,3 +264,25 @@ CREATE TABLE IF NOT EXISTS admin_accounts (
 INSERT INTO admin_accounts (username, password, role)
 SELECT 'admin', '$2a$10$iVf4bvDymCqW1T30uuRhIeY9hVKCoyHtlO.PB6oWkL.d7uFWJDv5C', 'ADMIN'
 WHERE NOT EXISTS (SELECT 1 FROM admin_accounts WHERE username = 'admin');
+
+-- 16. recommendation_interactions
+CREATE TABLE IF NOT EXISTS recommendation_interactions (
+  interaction_id   BIGINT       NOT NULL AUTO_INCREMENT,
+  user_no          BIGINT       NOT NULL,
+  room_no          BIGINT       NOT NULL,
+  store_id         VARCHAR(100) NULL,
+  store_name       VARCHAR(150) NOT NULL,
+  action           VARCHAR(20)  NOT NULL,
+  requested_tag    VARCHAR(30)  NULL,
+  requested_region VARCHAR(100) NULL,
+  rank_position    INT          NULL,
+  expected_price   INT          NULL,
+  created_at       DATETIME     NOT NULL,
+  updated_at       DATETIME     NOT NULL,
+  PRIMARY KEY (interaction_id),
+  INDEX idx_rec_interactions_user (user_no),
+  INDEX idx_rec_interactions_room (room_no),
+  INDEX idx_rec_interactions_store (store_id),
+  CONSTRAINT fk_rec_interactions_user FOREIGN KEY (user_no) REFERENCES users(user_no),
+  CONSTRAINT fk_rec_interactions_room FOREIGN KEY (room_no) REFERENCES rooms(room_no)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

@@ -95,12 +95,18 @@ public class ReceiptService {
             confirmed = false;
         }
 
+        String imageHash = normalizeImageHash(request.imageHash());
+        if (imageHash != null && receiptRepository.existsByRoom_RoomNoAndImageHash(roomNo, imageHash)) {
+            throw new CustomException(ErrorCode.DUPLICATE_RECEIPT_IMAGE);
+        }
+
         Receipt receipt = Receipt.builder()
                 .room(room)
                 .uploader(uploader)
                 .receiptType(request.receiptType())
                 .inputMethod(request.inputMethod())
                 .imageUrl(request.imageUrl())
+                .imageHash(imageHash)
                 .storeName(storeName)
                 .totalAmount(request.totalAmount())
                 .amount(request.amount())
@@ -338,6 +344,7 @@ public class ReceiptService {
                 original.receiptType(),
                 original.inputMethod(),
                 presignedUrl,
+                original.imageHash(),
                 original.ocrStatus(),
                 original.storeName(),
                 original.totalAmount(),
@@ -357,6 +364,13 @@ public class ReceiptService {
                 original.updatedAt(),
                 original.splits()
         );
+    }
+
+    private String normalizeImageHash(String imageHash) {
+        if (imageHash == null || imageHash.isBlank()) {
+            return null;
+        }
+        return imageHash.trim().toLowerCase();
     }
 
     private ReceiptSplitGroup resolveSplitGroup(Long roomNo, ReceiptCreateRequest request) {
