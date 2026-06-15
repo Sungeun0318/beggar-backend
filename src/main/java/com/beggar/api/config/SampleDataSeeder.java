@@ -68,10 +68,11 @@ public class SampleDataSeeder implements ApplicationRunner {
             + "store_name,total_amount,amount,receipt_issued_at,address,center_lat,center_lng,split_group_id,"
             + "good_price_store_id,good_price_store_name,good_price_store_address,good_price_matched,"
             + "good_price_verified_at,confirmed,created_at,updated_at"),
-        // budgets.csv 는 현재 Budget 엔티티(테이블 budget: room_no,user_no,amount)와 스키마가 달라
+        // budgets.csv 는 현재 Budget 엔티티(테이블 budget: budget_no,room_no,user_no,amount)와 스키마가 달라
         // room_members 로 조인해 변환한 budget.csv 를 사용한다.
+        // budget_no(500001~)는 PK 부여용 — 앱 자동생성 ID(낮은 값)와 안 겹치고, 재배포 시 중복 방지.
         new SeedSpec("seed/budget.csv", "budget",
-            "room_no,user_no,amount")
+            "budget_no,room_no,user_no,amount")
     );
 
     @Override
@@ -91,13 +92,10 @@ public class SampleDataSeeder implements ApplicationRunner {
         log.info("[seed] 시더 종료 (이번에 적재한 테이블 {}개)", seeded);
     }
 
-    /** @return 실제로 적재했으면 true, 건너뛰었으면 false */
+    /** @return 실제로 1행이라도 적재했으면 true */
     private boolean seedOne(SeedSpec spec) throws Exception {
-        Integer count = jdbc.queryForObject("SELECT COUNT(*) FROM " + spec.table(), Integer.class);
-        if (count != null && count > 0) {
-            log.info("[seed] {} 이미 {}건 존재 → 건너뜀", spec.table(), count);
-            return false;
-        }
+        // 기존 데이터가 있어도 적재한다(덧붙이기). 중복은 PK 기준 INSERT IGNORE 로 걸러진다.
+        Integer before = jdbc.queryForObject("SELECT COUNT(*) FROM " + spec.table(), Integer.class);
 
         String[] targetCols = spec.columns().split(",");
         List<String[]> rows = readCsv(spec.resource(), targetCols);
@@ -134,8 +132,12 @@ public class SampleDataSeeder implements ApplicationRunner {
             }
         });
 
-        log.info("[seed] {} 적재 완료: {}행", spec.table(), rows.size());
-        return true;
+        Integer after = jdbc.queryForObject("SELECT COUNT(*) FROM " + spec.table(), Integer.class);
+        int inserted = (after == null ? 0 : after) - (before == null ? 0 : before);
+        int skipped = rows.size() - inserted;
+        log.info("[seed] {} 적재: 신규 {}행, 중복건너뜀 {}행 (CSV {}행, 현재 총 {}행)",
+                spec.table(), inserted, skipped, rows.size(), after);
+        return inserted > 0;
     }
 
     /** CSV 를 읽어 targetCols 순서대로 값 배열 리스트를 만든다(헤더 이름 기준 매핑). */
