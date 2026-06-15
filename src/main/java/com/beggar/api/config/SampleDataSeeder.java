@@ -26,13 +26,13 @@ import java.util.Map;
  *
  * - aws-1 브랜치 push → EB 배포 → 앱 시작 시 자동 실행된다.
  * - 테이블별로 이미 데이터가 있으면(COUNT > 0) 건너뛰므로 재배포해도 안전하다.
- * - 끄고 싶으면 EB 환경변수 APP_SEED_ENABLED=false 를 주면 된다(기본 on).
+ * - 기본 OFF. 다시 적재가 필요하면 EB 환경변수 APP_SEED_ENABLED=true 를 줄 때만 실행된다.
  *
  * CSV 는 src/main/resources/seed/ 에 있고, jar 에 함께 포함되어 클래스패스에서 읽는다.
  * 컬럼은 "이름"으로 매핑하므로 CSV 컬럼 순서/여분 컬럼(users 의 age 등)에 영향받지 않는다.
  */
 @Component
-@ConditionalOnProperty(name = "app.seed.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "app.seed.enabled", havingValue = "true", matchIfMissing = false)
 public class SampleDataSeeder implements ApplicationRunner {
 
     private static final Logger log = LoggerFactory.getLogger(SampleDataSeeder.class);
