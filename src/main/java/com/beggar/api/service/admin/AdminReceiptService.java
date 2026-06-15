@@ -109,6 +109,8 @@ public class AdminReceiptService {
                 blankToDash(receipt.getGoodPriceStoreId()),
                 blankToDash(receipt.getGoodPriceStoreName()),
                 blankToDash(receipt.getGoodPriceStoreAddress()),
+                receipt.getGoodPriceMatchScore() == null ? "-" : receipt.getGoodPriceMatchScore() + "점",
+                blankToDash(receipt.getGoodPriceMatchReason()),
                 formatDateTime(receipt.getGoodPriceVerifiedAt()),
                 formatDateTime(receipt.getReceiptIssuedAt()),
                 formatDateTime(receipt.getCreatedAt())
