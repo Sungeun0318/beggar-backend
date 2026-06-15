@@ -35,8 +35,31 @@ public class UserService {
         }
 
         String encodedPassword = passwordEncoder.encode(userRequest.getPassword());
-        User user = User.signup(userRequest, encodedPassword);
+        String ageRange = toAgeRange(userRequest.getAge());
+        User user = User.signup(userRequest, encodedPassword, ageRange);
         userRepository.save(user);
+    }
+
+    private String toAgeRange(Integer age) {
+        if (age == null || age < 0 || age > 120) {
+            throw new CustomException(ErrorCode.INVALID_REQUEST, "연령을 올바르게 입력해 주세요.");
+        }
+        if (age < 10) {
+            return "0~9";
+        }
+        if (age < 20) {
+            return "10~19";
+        }
+        if (age < 30) {
+            return "20~29";
+        }
+        if (age < 40) {
+            return "30~39";
+        }
+        if (age < 50) {
+            return "40~49";
+        }
+        return "50~";
     }
 
     @Transactional

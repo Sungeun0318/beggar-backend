@@ -1,6 +1,8 @@
 package com.beggar.api.dto.user;
 
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -26,6 +28,10 @@ public class UserRequest {
     private String profileImageUrl;
 
     private Integer gender;
+
+    @Min(0)
+    @Max(120)
+    private Integer age;
 
     @Size(max = 20)
     private String ageRange;

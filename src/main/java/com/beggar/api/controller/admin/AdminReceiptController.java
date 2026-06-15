@@ -41,7 +41,7 @@ public class AdminReceiptController {
 
         Map<String, Object> data = new HashMap<>();
         data.put("pageTitle", "영수증 관리");
-        data.put("pageDescription", "방별 지출 영수증을 검색하고 상세 정보를 확인해.");
+        data.put("pageDescription", "방별 지출 영수증을 검색하고 상세 정보를 확인하세요.");
         data.put("activeMenu", "receipts");
         data.put("receipts", receipts);
         data.put("keyword", keyword);
@@ -59,7 +59,7 @@ public class AdminReceiptController {
 
         Map<String, Object> data = new HashMap<>();
         data.put("pageTitle", "영수증 상세");
-        data.put("pageDescription", "OCR, 착한가격업소 매칭, 지출 금액을 확인해.");
+        data.put("pageDescription", "OCR, 착한가격업소 매칭, 지출 금액을 확인하세요.");
         data.put("activeMenu", "receipts");
         data.put("receipt", receipt);
 
@@ -69,6 +69,6 @@ public class AdminReceiptController {
     @PostMapping("/admin/receipts/delete")
     public ApiResponse<String> delete(@RequestParam Long receiptId) {
         adminReceiptService.deleteReceipt(receiptId);
-        return ApiResponse.success("영수증을 삭제했어.");
+        return ApiResponse.success("영수증을 삭제했습니다.");
     }
 }

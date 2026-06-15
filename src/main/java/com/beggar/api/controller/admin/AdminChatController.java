@@ -28,7 +28,7 @@ public class AdminChatController {
 
         Map<String, Object> data = new HashMap<>();
         data.put("pageTitle", "채팅 관리");
-        data.put("pageDescription", "커뮤니티 전체 채팅 메시지를 검색하고 삭제할 수 있어.");
+        data.put("pageDescription", "커뮤니티 전체 채팅 메시지를 검색하고 삭제할 수 있습니다.");
         data.put("activeMenu", "chats");
         data.put("chats", chats);
         data.put("keyword", keyword);
@@ -40,6 +40,6 @@ public class AdminChatController {
     @PostMapping("/admin/chats/delete")
     public ApiResponse<String> delete(@RequestParam Long chatId) {
         adminChatService.deleteChat(chatId);
-        return ApiResponse.success("채팅 메시지를 삭제했어.");
+        return ApiResponse.success("채팅 메시지를 삭제했습니다.");
     }
 }

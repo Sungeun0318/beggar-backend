@@ -68,7 +68,7 @@ public class AdminCommentService {
     @Transactional
     public void deleteComment(Long commentId) {
         RoomFreeComment comment = commentRepository.findById(commentId)
-                .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없어."));
+                .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다."));
         commentRepository.deleteById(commentId);
         actionLogService.record("DELETE", "COMMENT", commentId, "#" + commentId + " 댓글 삭제");
     }

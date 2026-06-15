@@ -70,7 +70,7 @@ public class AdminUserService {
     @Transactional(readOnly = true)
     public UserDetail getUserDetail(Long userNo) {
         User user = userRepository.findById(userNo)
-                .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없어."));
+                .orElseThrow(() -> new IllegalArgumentException("회원을 찾을 수 없습니다."));
         return new UserDetail(
                 user.getUserNo(),
                 user.getUserName(),
