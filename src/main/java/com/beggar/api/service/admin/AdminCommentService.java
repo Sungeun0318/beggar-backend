@@ -70,7 +70,7 @@ public class AdminCommentService {
         RoomFreeComment comment = commentRepository.findById(commentId)
                 .orElseThrow(() -> new IllegalArgumentException("댓글을 찾을 수 없습니다."));
         commentRepository.deleteById(commentId);
-        actionLogService.record("DELETE", "COMMENT", commentId, "#" + commentId + " 댓글 삭제");
+        actionLogService.record("DELETE", "COMMENT", commentId, comment.getContent());
     }
 
     private CommentListItem toListItem(RoomFreeComment comment) {
