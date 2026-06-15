@@ -3,7 +3,6 @@ package com.beggar.api.service.admin;
 import com.beggar.api.common.exception.CustomException;
 import com.beggar.api.common.exception.ErrorCode;
 import com.beggar.api.dto.admin.ai.BudgetRiskPredictionRequest;
-import com.beggar.api.dto.admin.ai.BudgetRiskPredictionResponse;
 import com.beggar.api.dto.admin.ai.SpendingInsightRequest;
 import com.beggar.api.dto.admin.ai.SpendingInsightResponse;
 import com.beggar.api.entity.Budget;
@@ -16,6 +15,7 @@ import com.beggar.api.repository.RoomPurposeTagRepository;
 import com.beggar.api.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -25,6 +25,8 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -33,6 +35,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AdminAiInsightService {
+
+    private static final int BUDGET_RISK_DISPLAY_LIMIT = 10;
 
     private final RoomRepository roomRepository;
     private final ReceiptRepository receiptRepository;
@@ -67,7 +71,7 @@ public class AdminAiInsightService {
         }
     }
 
-    public BudgetRiskPredictionResponse getBudgetRiskPredictions() {
+    public Map<String, Object> getBudgetRiskPredictions() {
         BudgetRiskPredictionRequest request = new BudgetRiskPredictionRequest(
                 buildRiskRooms(),
                 buildRiskReceipts(),
@@ -75,12 +79,14 @@ public class AdminAiInsightService {
         );
 
         try {
-            return aiServerWebClient.post()
+            Map<String, Object> response = aiServerWebClient.post()
                     .uri("/api/v1/predictions/budget-risk")
                     .bodyValue(request)
                     .retrieve()
-                    .bodyToMono(BudgetRiskPredictionResponse.class)
+                    .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {
+                    })
                     .block();
+            return buildBudgetRiskDashboardResponse(response);
         } catch (WebClientResponseException e) {
             throw new CustomException(
                     ErrorCode.EXTERNAL_API_FAILED,
@@ -89,6 +95,76 @@ public class AdminAiInsightService {
         } catch (RuntimeException e) {
             throw new CustomException(ErrorCode.EXTERNAL_API_FAILED, "AI 예산 위험 예측 API 호출에 실패했습니다.");
         }
+    }
+
+    private Map<String, Object> buildBudgetRiskDashboardResponse(Map<String, Object> response) {
+        if (response == null) {
+            return Map.of(
+                    "summary", budgetRiskSummary(List.of()),
+                    "items", List.of()
+            );
+        }
+        Map<String, Object> limited = new LinkedHashMap<>(response);
+        Object items = response.get("items");
+        if (items instanceof List<?> list) {
+            limited.put("summary", budgetRiskSummary(list));
+            if (list.size() > BUDGET_RISK_DISPLAY_LIMIT) {
+                limited.put("items", new ArrayList<>(list.subList(0, BUDGET_RISK_DISPLAY_LIMIT)));
+            }
+        } else {
+            limited.put("summary", budgetRiskSummary(List.of()));
+            limited.put("items", List.of());
+        }
+        return limited;
+    }
+
+    private Map<String, Object> budgetRiskSummary(List<?> items) {
+        int highCount = 0;
+        int mediumCount = 0;
+        int lowCount = 0;
+        double totalScore = 0.0;
+
+        for (Object item : items) {
+            if (!(item instanceof Map<?, ?> map)) {
+                continue;
+            }
+            String riskLevel = String.valueOf(map.get("riskLevel"));
+            if ("HIGH".equals(riskLevel)) {
+                highCount++;
+            } else if ("MEDIUM".equals(riskLevel)) {
+                mediumCount++;
+            } else if ("LOW".equals(riskLevel)) {
+                lowCount++;
+            }
+            Object riskScore = map.get("riskScore");
+            if (riskScore instanceof Number number) {
+                totalScore += number.doubleValue();
+            }
+        }
+
+        int totalCount = highCount + mediumCount + lowCount;
+        double averageRiskScore = totalCount == 0 ? 0.0 : roundOneDecimal(totalScore / totalCount);
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("totalRoomCount", totalCount);
+        summary.put("highCount", highCount);
+        summary.put("mediumCount", mediumCount);
+        summary.put("lowCount", lowCount);
+        summary.put("averageRiskScore", averageRiskScore);
+        summary.put("highRate", percentage(highCount, totalCount));
+        summary.put("mediumRate", percentage(mediumCount, totalCount));
+        summary.put("lowRate", percentage(lowCount, totalCount));
+        return summary;
+    }
+
+    private double percentage(int count, int totalCount) {
+        if (totalCount == 0) {
+            return 0.0;
+        }
+        return roundOneDecimal((double) count / totalCount * 100);
+    }
+
+    private double roundOneDecimal(double value) {
+        return Math.round(value * 10.0) / 10.0;
     }
 
     private List<SpendingInsightRequest.RoomInsightItem> buildRooms() {
