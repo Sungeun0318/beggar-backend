@@ -4,6 +4,7 @@ import com.beggar.api.common.response.ApiResponse;
 import com.beggar.api.dto.admin.ai.SpendingInsightResponse;
 import com.beggar.api.service.admin.AdminAiInsightService;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
@@ -23,7 +24,10 @@ public class AdminAiInsightController {
     }
 
     @GetMapping("/admin/ai/predictions/budget-risk")
-    public ApiResponse<Map<String, Object>> budgetRiskPredictions() {
-        return ApiResponse.success(adminAiInsightService.getBudgetRiskPredictions());
+    public ApiResponse<Map<String, Object>> budgetRiskPredictions(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        return ApiResponse.success(adminAiInsightService.getBudgetRiskPredictions(page, size));
     }
 }
