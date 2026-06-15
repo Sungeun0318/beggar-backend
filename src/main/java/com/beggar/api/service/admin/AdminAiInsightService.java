@@ -25,6 +25,8 @@ import org.springframework.web.reactive.function.client.WebClientResponseExcepti
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -75,13 +77,14 @@ public class AdminAiInsightService {
         );
 
         try {
-            return aiServerWebClient.post()
+            Map<String, Object> response = aiServerWebClient.post()
                     .uri("/api/v1/predictions/budget-risk")
                     .bodyValue(request)
                     .retrieve()
                     .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {
                     })
                     .block();
+            return limitBudgetRiskItems(response);
         } catch (WebClientResponseException e) {
             throw new CustomException(
                     ErrorCode.EXTERNAL_API_FAILED,
@@ -90,6 +93,18 @@ public class AdminAiInsightService {
         } catch (RuntimeException e) {
             throw new CustomException(ErrorCode.EXTERNAL_API_FAILED, "AI 예산 위험 예측 API 호출에 실패했습니다.");
         }
+    }
+
+    private Map<String, Object> limitBudgetRiskItems(Map<String, Object> response) {
+        if (response == null) {
+            return Map.of("items", List.of());
+        }
+        Map<String, Object> limited = new LinkedHashMap<>(response);
+        Object items = response.get("items");
+        if (items instanceof List<?> list && list.size() > 20) {
+            limited.put("items", new ArrayList<>(list.subList(0, 20)));
+        }
+        return limited;
     }
 
     private List<SpendingInsightRequest.RoomInsightItem> buildRooms() {

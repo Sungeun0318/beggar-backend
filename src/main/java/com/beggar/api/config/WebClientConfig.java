@@ -3,6 +3,8 @@ package com.beggar.api.config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.codec.ClientCodecConfigurer;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
 /**
@@ -33,7 +35,14 @@ public class WebClientConfig {
     public WebClient aiServerWebClient(@Value("${ai-server.base-url}") String baseUrl) {
         return WebClient.builder()
                 .baseUrl(baseUrl)
+                .exchangeStrategies(ExchangeStrategies.builder()
+                        .codecs(this::configureAiServerCodecs)
+                        .build())
                 .build();
+    }
+
+    private void configureAiServerCodecs(ClientCodecConfigurer codecs) {
+        codecs.defaultCodecs().maxInMemorySize(5 * 1024 * 1024);
     }
 
 }
