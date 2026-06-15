@@ -36,7 +36,8 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class AdminAiInsightService {
 
-    private static final int BUDGET_RISK_DISPLAY_LIMIT = 10;
+    private static final int DEFAULT_BUDGET_RISK_PAGE_SIZE = 10;
+    private static final int MAX_BUDGET_RISK_PAGE_SIZE = 50;
 
     private final RoomRepository roomRepository;
     private final ReceiptRepository receiptRepository;
@@ -71,7 +72,7 @@ public class AdminAiInsightService {
         }
     }
 
-    public Map<String, Object> getBudgetRiskPredictions() {
+    public Map<String, Object> getBudgetRiskPredictions(int page, int size) {
         BudgetRiskPredictionRequest request = new BudgetRiskPredictionRequest(
                 buildRiskRooms(),
                 buildRiskReceipts(),
@@ -86,7 +87,7 @@ public class AdminAiInsightService {
                     .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {
                     })
                     .block();
-            return buildBudgetRiskDashboardResponse(response);
+            return buildBudgetRiskDashboardResponse(response, page, size);
         } catch (WebClientResponseException e) {
             throw new CustomException(
                     ErrorCode.EXTERNAL_API_FAILED,
@@ -97,25 +98,62 @@ public class AdminAiInsightService {
         }
     }
 
-    private Map<String, Object> buildBudgetRiskDashboardResponse(Map<String, Object> response) {
+    private Map<String, Object> buildBudgetRiskDashboardResponse(Map<String, Object> response, int page, int size) {
         if (response == null) {
             return Map.of(
                     "summary", budgetRiskSummary(List.of()),
-                    "items", List.of()
+                    "items", List.of(),
+                    "page", 0,
+                    "size", DEFAULT_BUDGET_RISK_PAGE_SIZE,
+                    "totalItems", 0,
+                    "totalPages", 0,
+                    "hasPrevious", false,
+                    "hasNext", false
             );
         }
         Map<String, Object> limited = new LinkedHashMap<>(response);
         Object items = response.get("items");
         if (items instanceof List<?> list) {
+            int safeSize = clampPageSize(size);
+            int totalItems = list.size();
+            int totalPages = totalItems == 0 ? 0 : (int) Math.ceil((double) totalItems / safeSize);
+            int safePage = clampPage(page, totalPages);
+            int fromIndex = Math.min(safePage * safeSize, totalItems);
+            int toIndex = Math.min(fromIndex + safeSize, totalItems);
+
             limited.put("summary", budgetRiskSummary(list));
-            if (list.size() > BUDGET_RISK_DISPLAY_LIMIT) {
-                limited.put("items", new ArrayList<>(list.subList(0, BUDGET_RISK_DISPLAY_LIMIT)));
-            }
+            limited.put("items", new ArrayList<>(list.subList(fromIndex, toIndex)));
+            limited.put("page", safePage);
+            limited.put("size", safeSize);
+            limited.put("totalItems", totalItems);
+            limited.put("totalPages", totalPages);
+            limited.put("hasPrevious", safePage > 0);
+            limited.put("hasNext", totalPages > 0 && safePage < totalPages - 1);
         } else {
             limited.put("summary", budgetRiskSummary(List.of()));
             limited.put("items", List.of());
+            limited.put("page", 0);
+            limited.put("size", clampPageSize(size));
+            limited.put("totalItems", 0);
+            limited.put("totalPages", 0);
+            limited.put("hasPrevious", false);
+            limited.put("hasNext", false);
         }
         return limited;
+    }
+
+    private int clampPageSize(int size) {
+        if (size <= 0) {
+            return DEFAULT_BUDGET_RISK_PAGE_SIZE;
+        }
+        return Math.min(size, MAX_BUDGET_RISK_PAGE_SIZE);
+    }
+
+    private int clampPage(int page, int totalPages) {
+        if (page <= 0 || totalPages <= 0) {
+            return 0;
+        }
+        return Math.min(page, totalPages - 1);
     }
 
     private Map<String, Object> budgetRiskSummary(List<?> items) {
