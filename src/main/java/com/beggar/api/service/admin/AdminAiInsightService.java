@@ -3,7 +3,6 @@ package com.beggar.api.service.admin;
 import com.beggar.api.common.exception.CustomException;
 import com.beggar.api.common.exception.ErrorCode;
 import com.beggar.api.dto.admin.ai.BudgetRiskPredictionRequest;
-import com.beggar.api.dto.admin.ai.BudgetRiskPredictionResponse;
 import com.beggar.api.dto.admin.ai.SpendingInsightRequest;
 import com.beggar.api.dto.admin.ai.SpendingInsightResponse;
 import com.beggar.api.entity.Budget;
@@ -20,6 +19,7 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
@@ -67,7 +67,7 @@ public class AdminAiInsightService {
         }
     }
 
-    public BudgetRiskPredictionResponse getBudgetRiskPredictions() {
+    public Map<String, Object> getBudgetRiskPredictions() {
         BudgetRiskPredictionRequest request = new BudgetRiskPredictionRequest(
                 buildRiskRooms(),
                 buildRiskReceipts(),
@@ -79,7 +79,8 @@ public class AdminAiInsightService {
                     .uri("/api/v1/predictions/budget-risk")
                     .bodyValue(request)
                     .retrieve()
-                    .bodyToMono(BudgetRiskPredictionResponse.class)
+                    .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {
+                    })
                     .block();
         } catch (WebClientResponseException e) {
             throw new CustomException(
