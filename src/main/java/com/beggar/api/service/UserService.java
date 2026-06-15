@@ -74,7 +74,7 @@ public class UserService {
 
         var scoreResult = beggarScoreService.getUserScore(userNo);
 
-        return UserResponse.from(user, scoreResult.score(), scoreResult.title());
+        return UserResponse.from(user, scoreResult.score(), scoreResult.title(), profileUrl);
     }
 
     @Transactional
@@ -88,7 +88,8 @@ public class UserService {
             throw new CustomException(ErrorCode.DUPLICATE_USER_NAME);
         }
 
-        user.updateProfile(request.getUserName(), request.getProfileImageUrl());
+        String profileImageUrl = s3Service.normalizeProfileImageKey(request.getProfileImageUrl());
+        user.updateProfile(request.getUserName(), profileImageUrl);
     }
 
     public String getProfileUploadUrl(String fileName) {
