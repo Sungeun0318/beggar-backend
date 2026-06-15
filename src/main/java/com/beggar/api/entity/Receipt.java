@@ -93,6 +93,12 @@ public class Receipt extends BaseTimeEntity {
     @Column(name = "good_price_matched", nullable = false)
     private Boolean goodPriceMatched;
 
+    @Column(name = "good_price_match_score")
+    private Integer goodPriceMatchScore;
+
+    @Column(name = "good_price_match_reason", length = 255)
+    private String goodPriceMatchReason;
+
     @Column(name = "good_price_verified_at")
     private java.time.LocalDateTime goodPriceVerifiedAt;
 
@@ -126,6 +132,8 @@ public class Receipt extends BaseTimeEntity {
         this.centerLng = centerLng;
         this.splitGroup = splitGroup;
         this.goodPriceMatched = false;
+        this.goodPriceMatchScore = 0;
+        this.goodPriceMatchReason = "검증 전";
         this.confirmed = (confirmed == null) ? true : confirmed;
     }
 
@@ -175,19 +183,24 @@ public class Receipt extends BaseTimeEntity {
     }
 
     public void applyGoodPriceMatch(String storeId, String storeName, String storeAddress,
+                                    Integer matchScore, String matchReason,
                                     java.time.LocalDateTime verifiedAt) {
         this.goodPriceStoreId = storeId;
         this.goodPriceStoreName = storeName;
         this.goodPriceStoreAddress = storeAddress;
         this.goodPriceMatched = true;
+        this.goodPriceMatchScore = matchScore;
+        this.goodPriceMatchReason = matchReason;
         this.goodPriceVerifiedAt = verifiedAt;
     }
 
-    public void clearGoodPriceMatch() {
+    public void clearGoodPriceMatch(String reason) {
         this.goodPriceStoreId = null;
         this.goodPriceStoreName = null;
         this.goodPriceStoreAddress = null;
         this.goodPriceMatched = false;
+        this.goodPriceMatchScore = 0;
+        this.goodPriceMatchReason = reason;
         this.goodPriceVerifiedAt = null;
     }
 

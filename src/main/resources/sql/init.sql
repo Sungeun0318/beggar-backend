@@ -149,7 +149,10 @@ CREATE TABLE IF NOT EXISTS receipts (
   good_price_store_name      VARCHAR(150)  NULL,
   good_price_store_address   VARCHAR(200)  NULL,
   good_price_matched         BOOLEAN       NOT NULL DEFAULT FALSE,
+  good_price_match_score     INT           NULL,
+  good_price_match_reason    VARCHAR(255)  NULL,
   good_price_verified_at     DATETIME      NULL,
+  confirmed                  BOOLEAN       NOT NULL DEFAULT TRUE,
   created_at                 DATETIME      NOT NULL,
   updated_at                 DATETIME      NOT NULL,
   PRIMARY KEY (receipt_id),
@@ -166,6 +169,15 @@ ALTER TABLE receipts
 
 ALTER TABLE receipts
   ADD COLUMN IF NOT EXISTS image_hash VARCHAR(64) NULL;
+
+ALTER TABLE receipts
+  ADD COLUMN IF NOT EXISTS confirmed BOOLEAN NOT NULL DEFAULT TRUE;
+
+ALTER TABLE receipts
+  ADD COLUMN IF NOT EXISTS good_price_match_score INT NULL;
+
+ALTER TABLE receipts
+  ADD COLUMN IF NOT EXISTS good_price_match_reason VARCHAR(255) NULL;
 
 -- 9. receipt_splits
 CREATE TABLE IF NOT EXISTS receipt_splits (

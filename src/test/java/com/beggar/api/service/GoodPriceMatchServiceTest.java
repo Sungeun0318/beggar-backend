@@ -9,6 +9,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -30,14 +31,13 @@ class GoodPriceMatchServiceTest {
                 "02-0000-0000",
                 "백반"
         );
-        when(client.search(anyInt(), anyInt()))
-                .thenReturn(List.of(store))
-                .thenReturn(List.of());
+        when(client.searchByAddressKeyword(anyString(), anyInt(), anyInt())).thenReturn(List.of(store));
 
         var matched = service.match("착한식당", "서울특별시 중구 세종대로 1");
 
-        assertThat(matched).isPresent();
-        assertThat(matched.get().storeId()).isEqualTo("store-1");
+        assertThat(matched.matched()).isTrue();
+        assertThat(matched.store().storeId()).isEqualTo("store-1");
+        assertThat(matched.score()).isGreaterThanOrEqualTo(120);
     }
 
     @Test
@@ -53,10 +53,11 @@ class GoodPriceMatchServiceTest {
                 null,
                 "백반"
         );
-        when(client.search(anyInt(), anyInt())).thenReturn(List.of(store));
+        when(client.searchByAddressKeyword(anyString(), anyInt(), anyInt())).thenReturn(List.of(store));
 
         var matched = service.match("없는식당", "서울특별시 중구 세종대로 1");
 
-        assertThat(matched).isEmpty();
+        assertThat(matched.matched()).isFalse();
+        assertThat(matched.store()).isNull();
     }
 }

@@ -17,6 +17,8 @@ public class ReceiptDetail {
     private final String goodPriceStoreId;
     private final String goodPriceStoreName;
     private final String goodPriceStoreAddress;
+    private final String goodPriceMatchScore;
+    private final String goodPriceMatchReason;
     private final String goodPriceVerifiedAt;
     private final String receiptIssuedAt;
     private final String createdAt;
@@ -37,6 +39,8 @@ public class ReceiptDetail {
             String goodPriceStoreId,
             String goodPriceStoreName,
             String goodPriceStoreAddress,
+            String goodPriceMatchScore,
+            String goodPriceMatchReason,
             String goodPriceVerifiedAt,
             String receiptIssuedAt,
             String createdAt
@@ -56,6 +60,8 @@ public class ReceiptDetail {
         this.goodPriceStoreId = goodPriceStoreId;
         this.goodPriceStoreName = goodPriceStoreName;
         this.goodPriceStoreAddress = goodPriceStoreAddress;
+        this.goodPriceMatchScore = goodPriceMatchScore;
+        this.goodPriceMatchReason = goodPriceMatchReason;
         this.goodPriceVerifiedAt = goodPriceVerifiedAt;
         this.receiptIssuedAt = receiptIssuedAt;
         this.createdAt = createdAt;
@@ -119,6 +125,14 @@ public class ReceiptDetail {
 
     public String getGoodPriceStoreAddress() {
         return goodPriceStoreAddress;
+    }
+
+    public String getGoodPriceMatchScore() {
+        return goodPriceMatchScore;
+    }
+
+    public String getGoodPriceMatchReason() {
+        return goodPriceMatchReason;
     }
 
     public String getGoodPriceVerifiedAt() {
