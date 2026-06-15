@@ -5,12 +5,14 @@ import com.beggar.api.common.exception.CustomException;
 import com.beggar.api.common.exception.ErrorCode;
 import com.beggar.api.dto.goodprice.GoodPriceStore;
 import com.beggar.api.dto.location.LocationSearchResponse;
+import com.beggar.api.dto.recommendation.RecommendationInteractionRequest;
 import com.beggar.api.dto.recommendation.RecommendationResponse;
 import com.beggar.api.entity.Room;
 import com.beggar.api.entity.RoomPurposeTag;
 import com.beggar.api.entity.RoomStatus;
 import com.beggar.api.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +41,7 @@ public class RecommendationService {
     private final ReceiptRepository receiptRepository;
     private final GoodPriceStoreClient goodPriceStoreClient;
     private final LocationService locationService;
+    private final JdbcTemplate jdbcTemplate;
 
     public RecommendationResponse recommend(Long roomNo, String requestedTag) {
         return recommend(roomNo, requestedTag, null);
@@ -109,6 +112,35 @@ public class RecommendationService {
                 tag,
                 region,
                 places
+        );
+    }
+
+    @Transactional
+    public void recordInteraction(Long roomNo, Long userNo, RecommendationInteractionRequest request) {
+        if (request == null) {
+            throw new CustomException(ErrorCode.INVALID_REQUEST);
+        }
+        roomRepository.findById(roomNo)
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND, "방을 찾을 수 없습니다. roomNo=" + roomNo));
+        roomMemberRepository.findByRoom_RoomNoAndUser_UserNo(roomNo, userNo)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_ROOM_MEMBER));
+
+        jdbcTemplate.update(
+                """
+                INSERT INTO recommendation_interactions
+                    (user_no, room_no, store_id, store_name, action, requested_tag, requested_region,
+                     rank_position, expected_price, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                """,
+                userNo,
+                roomNo,
+                blankToNull(request.storeId()),
+                defaultStoreName(request.storeName()),
+                normalizeAction(request.action()),
+                blankToNull(request.requestedTag()),
+                blankToNull(request.requestedRegion()),
+                request.rankPosition(),
+                request.expectedPrice()
         );
     }
 
@@ -497,6 +529,24 @@ public class RecommendationService {
         }
         int minutes = Math.max(1, (int) Math.ceil(distanceMeters / 67.0));
         return "도보 " + minutes + "분";
+    }
+
+    private String normalizeAction(String action) {
+        if (action == null || action.isBlank()) {
+            return "CLICK";
+        }
+        return action.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String defaultStoreName(String storeName) {
+        if (storeName == null || storeName.isBlank()) {
+            return "추천 장소";
+        }
+        return storeName.trim();
+    }
+
+    private String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     private record RecommendationCandidates(List<GoodPriceStore> stores, boolean fallbackApplied) {
