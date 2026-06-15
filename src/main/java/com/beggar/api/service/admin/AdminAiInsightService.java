@@ -15,11 +15,11 @@ import com.beggar.api.repository.RoomPurposeTagRepository;
 import com.beggar.api.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 
@@ -35,6 +35,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class AdminAiInsightService {
+
+    private static final int BUDGET_RISK_DISPLAY_LIMIT = 10;
 
     private final RoomRepository roomRepository;
     private final ReceiptRepository receiptRepository;
@@ -84,7 +86,7 @@ public class AdminAiInsightService {
                     .bodyToMono(new ParameterizedTypeReference<Map<String, Object>>() {
                     })
                     .block();
-            return limitBudgetRiskItems(response);
+            return buildBudgetRiskDashboardResponse(response);
         } catch (WebClientResponseException e) {
             throw new CustomException(
                     ErrorCode.EXTERNAL_API_FAILED,
@@ -95,16 +97,74 @@ public class AdminAiInsightService {
         }
     }
 
-    private Map<String, Object> limitBudgetRiskItems(Map<String, Object> response) {
+    private Map<String, Object> buildBudgetRiskDashboardResponse(Map<String, Object> response) {
         if (response == null) {
-            return Map.of("items", List.of());
+            return Map.of(
+                    "summary", budgetRiskSummary(List.of()),
+                    "items", List.of()
+            );
         }
         Map<String, Object> limited = new LinkedHashMap<>(response);
         Object items = response.get("items");
-        if (items instanceof List<?> list && list.size() > 20) {
-            limited.put("items", new ArrayList<>(list.subList(0, 20)));
+        if (items instanceof List<?> list) {
+            limited.put("summary", budgetRiskSummary(list));
+            if (list.size() > BUDGET_RISK_DISPLAY_LIMIT) {
+                limited.put("items", new ArrayList<>(list.subList(0, BUDGET_RISK_DISPLAY_LIMIT)));
+            }
+        } else {
+            limited.put("summary", budgetRiskSummary(List.of()));
+            limited.put("items", List.of());
         }
         return limited;
+    }
+
+    private Map<String, Object> budgetRiskSummary(List<?> items) {
+        int highCount = 0;
+        int mediumCount = 0;
+        int lowCount = 0;
+        double totalScore = 0.0;
+
+        for (Object item : items) {
+            if (!(item instanceof Map<?, ?> map)) {
+                continue;
+            }
+            String riskLevel = String.valueOf(map.get("riskLevel"));
+            if ("HIGH".equals(riskLevel)) {
+                highCount++;
+            } else if ("MEDIUM".equals(riskLevel)) {
+                mediumCount++;
+            } else if ("LOW".equals(riskLevel)) {
+                lowCount++;
+            }
+            Object riskScore = map.get("riskScore");
+            if (riskScore instanceof Number number) {
+                totalScore += number.doubleValue();
+            }
+        }
+
+        int totalCount = highCount + mediumCount + lowCount;
+        double averageRiskScore = totalCount == 0 ? 0.0 : roundOneDecimal(totalScore / totalCount);
+        Map<String, Object> summary = new LinkedHashMap<>();
+        summary.put("totalRoomCount", totalCount);
+        summary.put("highCount", highCount);
+        summary.put("mediumCount", mediumCount);
+        summary.put("lowCount", lowCount);
+        summary.put("averageRiskScore", averageRiskScore);
+        summary.put("highRate", percentage(highCount, totalCount));
+        summary.put("mediumRate", percentage(mediumCount, totalCount));
+        summary.put("lowRate", percentage(lowCount, totalCount));
+        return summary;
+    }
+
+    private double percentage(int count, int totalCount) {
+        if (totalCount == 0) {
+            return 0.0;
+        }
+        return roundOneDecimal((double) count / totalCount * 100);
+    }
+
+    private double roundOneDecimal(double value) {
+        return Math.round(value * 10.0) / 10.0;
     }
 
     private List<SpendingInsightRequest.RoomInsightItem> buildRooms() {
