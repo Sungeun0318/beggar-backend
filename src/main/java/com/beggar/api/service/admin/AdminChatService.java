@@ -66,7 +66,8 @@ public class AdminChatService {
         RoomFreeChat chat = chatRepository.findById(chatId)
                 .orElseThrow(() -> new IllegalArgumentException("채팅을 찾을 수 없습니다."));
         chatRepository.deleteById(chatId);
-        actionLogService.record("DELETE", "CHAT", chatId, "#" + chatId + " 채팅 삭제");
+
+
     }
 
     private ChatListItem toListItem(RoomFreeChat chat) {
