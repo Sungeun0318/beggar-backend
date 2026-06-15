@@ -82,7 +82,7 @@ public class AdminRoomService {
     @Transactional(readOnly = true)
     public RoomDetail getRoomDetail(Long roomNo) {
         Room room = roomRepository.findById(roomNo)
-                .orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없어."));
+                .orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없습니다."));
         Optional<RoomBudgetResult> budgetResult = budgetResultRepository.findByRoom_RoomNo(roomNo);
 
         return new RoomDetail(
@@ -109,22 +109,22 @@ public class AdminRoomService {
     @Transactional
     public void endRoom(Long roomNo) {
         Room room = roomRepository.findById(roomNo)
-                .orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없어."));
+                .orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없습니다."));
         String status = normalizeStatus(String.valueOf(room.getStatus()));
 
         if (STATUS_DELETED.equals(status)) {
-            throw new IllegalStateException("이미 삭제된 방은 종료할 수 없어.");
+            throw new IllegalStateException("이미 삭제된 방은 종료할 수 없습니다.");
         }
         if (!STATUS_ENDED.equals(status)) {
             room.markEnded(LocalDateTime.now());
-            actionLogService.record("END", "ROOM", roomNo, "방을 강제 종료했어: " + room.getRoomName());
+            actionLogService.record("END", "ROOM", roomNo, "방을 강제 종료했습니다: " + room.getRoomName());
         }
     }
 
     @Transactional
     public void deleteRoom(Long roomNo) {
         Room room = roomRepository.findById(roomNo)
-                .orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없어."));
+                .orElseThrow(() -> new IllegalArgumentException("방을 찾을 수 없습니다."));
 
         if (!STATUS_DELETED.equals(normalizeStatus(String.valueOf(room.getStatus())))) {
             room.markDeleted(LocalDateTime.now());

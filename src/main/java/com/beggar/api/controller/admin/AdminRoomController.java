@@ -29,7 +29,7 @@ public class AdminRoomController {
 
         Map<String, Object> data = new HashMap<>();
         data.put("pageTitle", "방 관리");
-        data.put("pageDescription", "방 정보를 검색하고 상세 운영 데이터를 확인해.");
+        data.put("pageDescription", "방 정보를 검색하고 상세 운영 데이터를 확인하세요.");
         data.put("activeMenu", "rooms");
         data.put("rooms", rooms);
         data.put("keyword", keyword);
@@ -54,12 +54,12 @@ public class AdminRoomController {
     @PostMapping("/admin/rooms/{roomNo}/end")
     public ApiResponse<String> endRoom(@PathVariable Long roomNo) {
         adminRoomService.endRoom(roomNo);
-        return ApiResponse.success("방을 종료 처리했어.");
+        return ApiResponse.success("방을 종료 처리했습니다.");
     }
 
     @PostMapping("/admin/rooms/{roomNo}/delete")
     public ApiResponse<String> deleteRoom(@PathVariable Long roomNo) {
         adminRoomService.deleteRoom(roomNo);
-        return ApiResponse.success("방을 삭제 처리했어.");
+        return ApiResponse.success("방을 삭제 처리했습니다.");
     }
 }
