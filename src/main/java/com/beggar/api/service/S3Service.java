@@ -8,6 +8,9 @@ import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
 import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
+import java.net.URI;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.UUID;
 
@@ -66,12 +69,19 @@ public class S3Service {
         return generatePresignedGetUrl(imageBucket, rawUrl);
     }
 
+    public String normalizeProfileImageKey(String rawUrl) {
+        return normalizeS3Key(imageBucket, rawUrl);
+    }
+
     private String generatePresignedGetUrl(String targetBucket, String rawUrl) {
         if (rawUrl == null || rawUrl.isBlank()) return rawUrl;
         
         try {
-            String encodedKey = rawUrl.substring(rawUrl.lastIndexOf("/") + 1);
-            String key = java.net.URLDecoder.decode(encodedKey, java.nio.charset.StandardCharsets.UTF_8);
+            String key = normalizeS3Key(targetBucket, rawUrl);
+            if ((rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) && rawUrl.equals(key)) {
+                return rawUrl;
+            }
+            if (key == null || key.isBlank()) return rawUrl;
 
             software.amazon.awssdk.services.s3.model.GetObjectRequest getObjectRequest = 
                 software.amazon.awssdk.services.s3.model.GetObjectRequest.builder()
@@ -86,6 +96,29 @@ public class S3Service {
                     .build();
 
             return s3Presigner.presignGetObject(presignRequest).url().toString();
+        } catch (Exception e) {
+            return rawUrl;
+        }
+    }
+
+    private String normalizeS3Key(String targetBucket, String rawUrl) {
+        if (rawUrl == null || rawUrl.isBlank()) return rawUrl;
+        if (!rawUrl.startsWith("http://") && !rawUrl.startsWith("https://")) return rawUrl;
+
+        try {
+            URI uri = URI.create(rawUrl);
+            String host = uri.getHost();
+            if (host == null || !host.contains("s3")) return rawUrl;
+
+            String path = uri.getRawPath();
+            if (path == null || path.isBlank() || path.equals("/")) return rawUrl;
+
+            String encodedKey = path.startsWith("/") ? path.substring(1) : path;
+            if (encodedKey.startsWith(targetBucket + "/")) {
+                encodedKey = encodedKey.substring(targetBucket.length() + 1);
+            }
+
+            return URLDecoder.decode(encodedKey, StandardCharsets.UTF_8);
         } catch (Exception e) {
             return rawUrl;
         }

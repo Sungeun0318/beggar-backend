@@ -14,11 +14,15 @@ public record UserResponse(
         String title
 ) {
     public static UserResponse from(User user, Integer score, String title) {
+        return from(user, score, title, user.getProfileImageUrl());
+    }
+
+    public static UserResponse from(User user, Integer score, String title, String profileImageUrl) {
         return new UserResponse(
                 user.getUserNo(),
                 user.getUserName(),
                 user.getEmail(),
-                user.getProfileImageUrl(),
+                profileImageUrl,
                 user.getRole(),
                 user.getGender(),
                 user.getAgeRange(),
