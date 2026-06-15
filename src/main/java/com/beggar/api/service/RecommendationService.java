@@ -50,6 +50,11 @@ public class RecommendationService {
 
     public RecommendationResponse recommend(Long roomNo, String requestedTag, String requestedRegion,
                                             Double lat, Double lng, Integer radius) {
+        return recommend(roomNo, requestedTag, requestedRegion, lat, lng, radius, false);
+    }
+
+    public RecommendationResponse recommend(Long roomNo, String requestedTag, String requestedRegion,
+                                            Double lat, Double lng, Integer radius, boolean strictBudget) {
         Room room = roomRepository.findById(roomNo)
                 .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND, "방을 찾을 수 없습니다. roomNo=" + roomNo));
         
@@ -59,6 +64,9 @@ public class RecommendationService {
 
         String tag = resolveTag(roomNo, requestedTag);
         String region = resolveRecommendationRegion(room, requestedRegion, lat, lng);
+        LocationSearchResponse baseLocation = resolveBaseLocation(room, requestedRegion, lat, lng);
+        Double baseLat = lat != null ? lat : baseLocation == null ? null : baseLocation.lat();
+        Double baseLng = lng != null ? lng : baseLocation == null ? null : baseLocation.lng();
         
         long spentAmount = receiptRepository.sumAmountByRoomNo(roomNo);
         Integer totalBudget = room.getTotalBudget();
@@ -78,14 +86,15 @@ public class RecommendationService {
                 remainingBudget,
                 recommendationBudget,
                 activeMemberCount,
-                lat,
-                lng,
-                radius
+                baseLat,
+                baseLng,
+                radius,
+                strictBudget
         );
 
         List<RecommendationResponse.Place> places = candidates.stores().stream()
                 .limit(DEFAULT_RESULT_SIZE)
-                .map(store -> toPlace(store, recommendationBudget, tag, lat, lng))
+                .map(store -> toPlace(store, recommendationBudget, tag, baseLat, baseLng))
                 .toList();
         boolean fallbackApplied = candidates.fallbackApplied() || (remainingBudget != null && remainingBudget <= 0);
 
@@ -106,7 +115,8 @@ public class RecommendationService {
     private RecommendationCandidates findGoodPriceStores(String tag, String requestedRegion,
                                                          Integer remainingBudget, Integer recommendationBudget,
                                                          long activeMemberCount,
-                                                         Double lat, Double lng, Integer radius) {
+                                                         Double lat, Double lng, Integer radius,
+                                                         boolean strictBudget) {
         List<GoodPriceStore> allStores = new ArrayList<>();
         String addressKeyword = regionKeyword(requestedRegion);
         if (!addressKeyword.isBlank()) {
@@ -132,9 +142,16 @@ public class RecommendationService {
         Double filterLat = lat;
         Double filterLng = lng;
 
-        List<GoodPriceStore> strictBudget = filterStores(allStores, tag, requestedRegion, recommendationBudget, filterLat, filterLng, radius);
-        if (strictBudget.size() >= DEFAULT_RESULT_SIZE) {
-            return new RecommendationCandidates(strictBudget, false);
+        if (strictBudget && remainingBudget != null) {
+            return new RecommendationCandidates(
+                    filterStores(allStores, tag, requestedRegion, remainingBudget, filterLat, filterLng, radius),
+                    false
+            );
+        }
+
+        List<GoodPriceStore> recommendationBudgetStores = filterStores(allStores, tag, requestedRegion, recommendationBudget, filterLat, filterLng, radius);
+        if (recommendationBudgetStores.size() >= DEFAULT_RESULT_SIZE) {
+            return new RecommendationCandidates(recommendationBudgetStores, false);
         }
 
         List<GoodPriceStore> perPersonBudget = filterStores(
@@ -172,6 +189,21 @@ public class RecommendationService {
             return room.getLocation();
         }
         return locationService.resolveRegion(lat, lng).orElse(null);
+    }
+
+    private LocationSearchResponse resolveBaseLocation(Room room, String requestedRegion, Double lat, Double lng) {
+        if (lat != null && lng != null) {
+            return null;
+        }
+
+        String address = null;
+        if (requestedRegion != null && !requestedRegion.isBlank()) {
+            address = requestedRegion;
+        } else if (room.getLocation() != null && !room.getLocation().isBlank()) {
+            address = room.getLocation();
+        }
+
+        return locationService.resolveAddress(address).orElse(null);
     }
 
     private String regionKeyword(String region) {

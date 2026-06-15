@@ -22,7 +22,8 @@ public class RecommendationController {
                                             @RequestParam(required = false) String region,
                                             @RequestParam(required = false) Double lat,
                                             @RequestParam(required = false) Double lng,
-                                            @RequestParam(defaultValue = "2000") Integer radius) {
-        return recommendationService.recommend(roomNo, tag, region, lat, lng, radius);
+                                            @RequestParam(defaultValue = "2000") Integer radius,
+                                            @RequestParam(defaultValue = "false") boolean strictBudget) {
+        return recommendationService.recommend(roomNo, tag, region, lat, lng, radius, strictBudget);
     }
 }
