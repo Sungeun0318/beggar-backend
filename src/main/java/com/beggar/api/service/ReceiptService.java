@@ -358,6 +358,8 @@ public class ReceiptService {
                 original.goodPriceStoreId(),
                 original.goodPriceStoreName(),
                 original.goodPriceStoreAddress(),
+                original.goodPriceMatchScore(),
+                original.goodPriceMatchReason(),
                 original.goodPriceVerifiedAt(),
                 original.confirmed(),
                 original.createdAt(),
@@ -413,16 +415,20 @@ public class ReceiptService {
     }
 
     private void applyGoodPriceMatch(Receipt receipt) {
-        goodPriceMatchService.match(receipt.getStoreName(), receipt.getAddress())
-                .ifPresentOrElse(
-                        store -> receipt.applyGoodPriceMatch(
-                                store.storeId(),
-                                store.name(),
-                                store.address(),
-                                LocalDateTime.now()
-                        ),
-                        receipt::clearGoodPriceMatch
-                );
+        GoodPriceMatchService.MatchResult result =
+                goodPriceMatchService.match(receipt.getStoreName(), receipt.getAddress());
+        if (result.matched()) {
+            receipt.applyGoodPriceMatch(
+                    result.store().storeId(),
+                    result.store().name(),
+                    result.store().address(),
+                    result.score(),
+                    result.reason(),
+                    LocalDateTime.now()
+            );
+            return;
+        }
+        receipt.clearGoodPriceMatch(result.reason());
     }
 
     private LocalDateTime parseReceiptIssuedAt(Object rawDate) {
