@@ -64,7 +64,10 @@
 [시연영상](https://youtu.be/cXXMjrrgYiQ)
 
 ## 6. 참고 링크
-[배포 링크](https://dgh1r60fiahrz.cloudfront.net) <br/>
-[프론트](https://github.com/Sungeun0318/beggar-webfront) <br/>
+- **서비스 배포 링크** : [거지방 서비스 바로가기](https://dgh1r60fiahrz.cloudfront.net)
+- **Backend** : [GitHub Repository](https://github.com/Sungeun0318/beggar-backend)
+- **Frontend** : [GitHub Repository](https://github.com/Sungeun0318/beggar-webfront)
+- **Python (AI)** : [GitHub Repository](https://github.com/Sungeun0318/ai)
+- **Admin** : [GitHub Repository](https://github.com/Sungeun0318/admin)
 
 
