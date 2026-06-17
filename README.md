@@ -56,10 +56,15 @@
 <img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white"> <img src="https://img.shields.io/badge/Figma-F24E1E?style=for-the-badge&logo=figma&logoColor=white"> <img src="https://img.shields.io/badge/Draw.io-F08705?style=for-the-badge&logo=diagramsdotnet&logoColor=white"> <img src="https://img.shields.io/badge/Jira-0052CC?style=for-the-badge&logo=jira&logoColor=white">
 
 ## 4. 서비스 아키텍처
-![아키텍처
-         이미지](
+<div align="center">
+  <img width="600" alt="Image" src="https://github.com/user-attachments/assets/310bf8e6-82ff-4dcd-9b7a-74a18a71a32a" />
+</div>
 
 ## 5. 시연영상 링크
 [시연영상](https://youtu.be/cXXMjrrgYiQ)
 
 ## 6. 참고 링크
+[배포 링크](https://dgh1r60fiahrz.cloudfront.net) <br/>
+[프론트](https://github.com/Sungeun0318/beggar-webfront) <br/>
+
+
