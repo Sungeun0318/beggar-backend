@@ -1,10 +1,10 @@
-# 거지 우정 수호대 (Beggar Friendship Guardians)
+# 거지 우정 수호대 (Save My Friendship)
 
 ## 1. 프로젝트 소개
 
 ### 1.1 프로젝트 이름: 
 
->**거지 우정 수호대 (Beggar Friendship Guardians)**
+>**거지 우정 수호대 (Save My Friendship)**
 
 ### 1.2 기획 의도 및 배경
 - **사회적 측면**: 익명 예산 제출 기능을 통해 모임 내 과소비 스트레스를 줄이고, 함께 소비를 절약하고 재미있고 건강한 소비 문화를 지향합니다.
