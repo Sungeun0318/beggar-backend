@@ -1,256 +1,65 @@
-# beggar-backend
+# 거지 우정 수호대 (Beggar Friendship Guardians)
 
-거지 우정 수호대 Spring Boot 백엔드다.
+## 1. 프로젝트 소개
 
-## 현재 상태
+### 1.1 프로젝트 이름: 
 
-- Spring Boot 3.3.5 + Java 17 target + Gradle.
-- MySQL + JPA 기반.
-- JWT 인증은 Spring Security 필터 체인이 아니라 `HandlerInterceptor` + `@LoginUser` argument resolver로 처리한다.
-- 사용자 API, WebSocket, 추천, 영수증, 커뮤니티, 랭킹, 방별 거지력 점수가 구현되어 있다.
-- `origin/yeonji` 머지로 관리자 컨트롤러/서비스/DTO가 `backend` 안에 통합됐다.
-- 최근 머지 충돌은 `BudgetRepository`, `UserRepository`에서 양쪽 변경을 모두 살려 해결했다.
-- `./gradlew compileJava` 통과 확인.
+>**거지 우정 수호대 (Beggar Friendship Guardians)**
 
-## 실행
+### 1.2 기획 의도 및 배경
+- **사회적 측면**: 익명 예산 제출 기능을 통해 모임 내 과소비 스트레스를 줄이고, 함께 소비를 절약하고 재미있고 건강한 소비 문화를 지향합니다.
+- **기술적 측면**: WebSocket(STOMP)을 활용한 실시간 상태 동기화, Google Vision AI 기반의 영수증 OCR 자동 인식, JWT 기반의 보안 인증 등 최신 백엔드 기술을 실무적으로 적용했습니다.
+- **데이터 측면**: 착한가격업소 공공데이터 및 카카오 로컬 API를 연동하여 유저의 위치 기반 절약형 장소를 추천하고, 영수증 데이터를 분석하여 객관적인 소비 지표를 제공합니다.
 
-```bash
-cd backend
-./gradlew bootRun
-```
+## 2. 팀원 / 역할
 
-기본 주소:
+**박소영(팀장)** :
++ **거지방 메인 도메인 구축**: WebSocket 기반 실시간 방 생성, 입장, 상태 관리 로직 구현
++ **예산 수립 시스템**: 유저별 예산 제출, 최저가 기반 총예산 확정 알고리즘 및 점수 산정 로직 개발
++ **프로젝트 매니징**: JIRA를 활용한 업무 이슈 트래킹 및 전체 일정 관리
 
-```text
-http://localhost:8080
-```
+**김성은(팀원)** :
++ **관리자 대시보드 구축**: 회원 관리, 방 모니터링, 게시글/댓글 관리 등 전체 운영 시스템 설계 및 구현
++ **예산 내 추천 및 예측 로직**: 예산 맞춤형 실시간 장소 추천 및 지출 패턴 분석을 통한 예산 초과 위험도 예측
++ **AI 서버 배포 및 GIT 병합**: AI 서버의 AWS 배포, GIT 관리
 
-## 주요 기술
 
-- Spring Boot Web MVC
-- Spring Data JPA
-- MySQL
-- WebFlux WebClient
-- STOMP WebSocket + SockJS
-- JWT (`io.jsonwebtoken`)
-- AWS S3 presigned URL
-- Google Cloud Vision dependency
-- Apache POI 엑셀 다운로드
-- Lombok
+**이연지(팀원)** :
++ **영수증 OCR 연동**: Google Vision AI를 활용한 영수증 분석 및 데이터 자동화
++ **지출 관리 시스템**: 통합 및 분할 영수증 처리 로직 개발로 복합적인 지출 증빙 지원 
++ **관리자 서버 배포**: 관리자 전용 서버의 AWS 배포
 
-## 패키지 구조
+**이태현(팀원)** :
++ **커뮤니티 서비스**: 자유 게시판, 인기글 선정 로직 및 WebSocket 기반 실시간 채팅 기능 개발
++ **메인 서비스 배포**: 백엔드 메인 서비스의 AWS 배포 및 전체 배포 파이프라인 관리
++ **스케쥴러 기반 채팅 내역 관리 담당**: Spring Scheduler를 활용한 채팅 내역 자동 정리 및 시스템 부하 관리
 
-```text
-src/main/java/com/beggar/api/
-├── client/
-│   ├── goodprice/             착한가격업소 API client
-│   └── kakao/                 Kakao Local API client
-├── common/                    ApiResponse, 예외, BaseTimeEntity
-├── config/                    CORS, WebConfig, WebSocket, S3, WebClient 등
-├── controller/                사용자 REST API + 관리자 컨트롤러 + STOMP controller
-│   └── admin/                 관리자 기능
-├── dto/                       사용자/관리자 API DTO
-│   └── admin/                 관리자 화면 전용 DTO
-├── entity/                    JPA 엔티티
-├── repository/                사용자 도메인 repository
-│   └── admin/                 관리자 계정/로그 repository
-├── security/                  JWT interceptor, provider, @LoginUser
-└── service/                   도메인 서비스
-    └── admin/                 관리자 서비스
-```
+**임도경(팀원)** : 
++ **회원 인증 및 보안 관리**: JWT 기반 인증 인터셉터, 사용자 프로필 관리 및 영수증 히스토리 조회 기능 구현 및 카카오 소셜 로그인 연동
++ **거지 점수 알고리즘**: 유저별 소비 패턴을 분석한 '거지력' 산정 로직 및 실시간 랭킹 시스템 개발
++ **소비 인사이트**: 데이터 기반의 개인별 소비 패턴 분석 및 인사이트 제공 기능 구현
 
-## 인증
+## 3. 기술 스택
 
-| Method | Path | 설명 |
-|---|---|---|
-| `POST` | `/auth/login` | 이메일 로그인 |
-| `POST` | `/auth/kakao` | 카카오 access token 로그인 |
-| `POST` | `/auth/kakao/code` | 카카오 authorization code 로그인 |
-| `POST` | `/auth/refresh` | access token 갱신 |
-| `POST` | `/auth/signout` | 로그아웃 |
-| `DELETE` | `/auth/withdraw` | 회원 탈퇴 |
+### **Backend**
+<img src="https://img.shields.io/badge/Java_17-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white"> <img src="https://img.shields.io/badge/Spring_Boot_3.3-6DB33F?style=for-the-badge&logo=springboot&logoColor=white"> <img src="https://img.shields.io/badge/Spring_Security-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white"> <img src="https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white">
+<br>
+<img src="https://img.shields.io/badge/Lombok-BC204B?style=for-the-badge&logo=databricks&logoColor=white"> <img src="https://img.shields.io/badge/WebSocket(STOMP)-000000?style=for-the-badge&logo=socketdotio&logoColor=white"> <img src="https://img.shields.io/badge/Spring_Data_JPA-6DB33F?style=for-the-badge&logo=spring&logoColor=white"> <img src="https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white">
 
-인증 제외 주요 경로:
+### **Frontend**
+<img src="https://img.shields.io/badge/React-61DAFB?style=for-the-badge&logo=react&logoColor=black"> <img src="https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white"> <img src="https://img.shields.io/badge/CSS3-1572B6?style=for-the-badge&logo=css3&logoColor=white"> <img src="https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black">
 
-- `/auth/login`
-- `/auth/kakao`
-- `/auth/kakao/code`
-- `/auth/refresh`
-- `/users/signup`
-- `/locations/search`
-- `/admin/**`
-- `/actuator/health`
+### **API**
+<img src="https://img.shields.io/badge/Kakao_Local_API-FFCD00?style=for-the-badge&logo=kakaotalk&logoColor=black"> <img src="https://img.shields.io/badge/Public_Data_API-003399?style=for-the-badge&logo=data-dot-gov&logoColor=white"> <img src="https://img.shields.io/badge/AWS_S3-569A31?style=for-the-badge&logo=amazons3&logoColor=white"> <img src="https://img.shields.io/badge/Google_Vision_OCR-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white">
 
-## 사용자
+### **ETC**
+<img src="https://img.shields.io/badge/GitHub-181717?style=for-the-badge&logo=github&logoColor=white"> <img src="https://img.shields.io/badge/Figma-F24E1E?style=for-the-badge&logo=figma&logoColor=white"> <img src="https://img.shields.io/badge/Draw.io-F08705?style=for-the-badge&logo=diagramsdotnet&logoColor=white"> <img src="https://img.shields.io/badge/Jira-0052CC?style=for-the-badge&logo=jira&logoColor=white">
 
-| Method | Path | 설명 |
-|---|---|---|
-| `POST` | `/users/signup` | 회원가입 |
-| `GET` | `/users/me` | 내 프로필 |
-| `PATCH` | `/users/me` | 닉네임/프로필 수정 |
-| `GET` | `/users/me/receipts` | 내 영수증 히스토리 |
-| `DELETE` | `/users/me` | 회원 탈퇴 |
-| `GET` | `/users/me/presigned-url?fileName=` | 프로필 업로드 URL |
+## 4. 서비스 아키텍처
+![아키텍처
+         이미지](
 
-## 방
+## 5. 시연영상 링크
+[시연영상](https://youtu.be/cXXMjrrgYiQ)
 
-| Method | Path | 설명 |
-|---|---|---|
-| `POST` | `/rooms` | 방 생성 |
-| `GET` | `/rooms/my` | 내 방 목록 |
-| `GET` | `/rooms/{roomNo}` | 방 상세 |
-| `GET` | `/rooms/{roomNo}/members` | 멤버 목록 + 예산 제출 여부 |
-| `POST` | `/rooms/join` | 초대 코드 입장 |
-| `POST` | `/rooms/{roomNo}/budget/start` | 예산 입력 시작 |
-| `PATCH` | `/rooms/{roomNo}/settings` | 방 설정 수정 |
-| `POST` | `/rooms/{roomNo}/close` | 방 종료 |
-| `GET` | `/rooms/{roomNo}/beggar-score` | 방별 거지력 점수 |
-
-방 상태:
-
-```text
-INVITING -> BUDGET_INPUT -> BUDGET_DONE -> ACTIVE / ENDED / DELETED
-```
-
-## 예산
-
-| Method | Path | 설명 |
-|---|---|---|
-| `GET` | `/rooms/{roomNo}/budget` | 본인 예산 조회 |
-| `POST` | `/rooms/{roomNo}/budget` | 본인 예산 제출/수정 |
-| `POST` | `/rooms/{roomNo}/budget/confirm` | 예산 확정 |
-| `GET` | `/rooms/{roomNo}/budget/result` | 확정 결과 |
-| `GET` | `/rooms/{roomNo}/budget/excel` | 엑셀 다운로드 |
-
-익명성 규칙:
-
-- 멤버 목록은 `budgetSubmitted`만 반환한다.
-- 다른 사람의 예산 금액은 API 응답/웹소켓 이벤트에 넣지 않는다.
-- 확정 계산은 ACTIVE 멤버의 제출 예산만 대상으로 한다.
-- 전원 제출 시 자동으로 `confirmBudget`을 호출한다.
-
-## WebSocket
-
-endpoint:
-
-```text
-/ws-stomp
-```
-
-브로커:
-
-```text
-subscribe: /sub, /topic
-publish:   /pub
-```
-
-방 이벤트:
-
-| Topic | 설명 |
-|---|---|
-| `/topic/rooms/{roomNo}` | 멤버 변경, 예산 제출, 예산 확정, 방 종료 |
-| `/sub/chats` | 전체 채팅 |
-
-채팅 발행:
-
-```text
-/pub/chats
-```
-
-## 추천/위치
-
-| Method | Path | 설명 |
-|---|---|---|
-| `GET` | `/rooms/{roomNo}/recommend` | 착한가격업소 기반 추천 |
-| `GET` | `/locations/search?query=` | Kakao Local 검색 |
-
-추천 query:
-
-- `tag`
-- `region`
-- `lat`
-- `lng`
-- `radius`, 기본 2000m
-
-Spring 백엔드가 착한가격업소 API와 Kakao Local API를 직접 호출한다. Python AI 서버는 현재 추천 경로에 끼지 않는다.
-
-## 영수증
-
-| Method | Path | 설명 |
-|---|---|---|
-| `POST` | `/rooms/{roomNo}/receipts/upload-url` | S3 presigned URL |
-| `POST` | `/rooms/{roomNo}/receipts` | 영수증 생성 |
-| `GET` | `/rooms/{roomNo}/receipts` | 방 영수증 목록 |
-| `GET` | `/rooms/{roomNo}/receipts/{receiptId}` | 영수증 상세 |
-| `PATCH` | `/rooms/{roomNo}/receipts/{receiptId}` | 수동 보정 |
-| `PUT` | `/rooms/{roomNo}/receipts/{receiptId}/ocr` | OCR 결과 반영(수동/외부 보정용) |
-| `DELETE` | `/rooms/{roomNo}/receipts/{receiptId}` | 삭제 |
-
-OCR은 백엔드가 자체 처리한다. 영수증 생성(비수동 입력) 시 `ReceiptService.processOcrAsync`가 S3 이미지를 Google Vision + Groq로 분석해 결과를 DB에 직접 반영한다. Python AI 서버는 OCR에 관여하지 않는다.
-
-## 커뮤니티
-
-| Method | Path | 설명 |
-|---|---|---|
-| `GET` | `/community/posts` | 게시글 목록/검색 |
-| `GET` | `/community/posts/popular` | 인기글 |
-| `GET` | `/community/posts/{postId}` | 상세 |
-| `POST` | `/community/posts` | 작성 |
-| `DELETE` | `/community/posts/{postId}` | 삭제 |
-| `POST` | `/community/posts/{postId}/comments` | 댓글 작성 |
-| `GET` | `/community/chats` | 채팅 내역 |
-| `POST` | `/community/chats` | HTTP 채팅 전송 |
-
-## 랭킹
-
-| Method | Path | 설명 |
-|---|---|---|
-| `GET` | `/ranking?limit=15` | 방별 거지력 점수 랭킹 |
-
-## 관리자 통합
-
-`backend` 안에 관리자 컨트롤러가 추가됐다.
-
-```text
-controller/admin/
-dto/admin/
-service/admin/
-repository/admin/
-entity/AdminAccount.java
-entity/AdminActionLog.java
-```
-
-관리자 주요 경로:
-
-| Path | 기능 |
-|---|---|
-| `/admin` | 대시보드 |
-| `/admin/users` | 회원 목록 |
-| `/admin/users/{userNo}` | 회원 상세 |
-| `/admin/rooms` | 방 목록 |
-| `/admin/rooms/{roomNo}` | 방 상세 |
-| `/admin/community/posts` | 게시글 관리 |
-| `/admin/community/comments` | 댓글 관리 |
-| `/admin/chats` | 채팅 관리 |
-| `/admin/receipts` | 영수증 관리 |
-| `/admin/logs` | 운영 로그 |
-
-주의:
-
-- `/admin/**`은 JWT interceptor 제외 경로다.
-- 관리자 인증/인가 정책은 통합 완료 전 별도 점검해야 한다.
-- 기존 독립 `admin/` 앱과 중복 기능이 있으므로 최종 운영 구조를 결정해야 한다.
-
-## 검증
-
-```bash
-./gradlew compileJava
-```
-
-현재 머지 후 `compileJava` 통과 확인.
-
-## 참고 문서
-
-- 전체 기능 명세: `../docs/APP_FEATURES.md`
-- DB 설계: `../docs/DB_DESIGN.md`
-- AI 서버: `../ai/README.md`
+## 6. 참고 링크
