@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.util.List;
 
 @Service
@@ -62,6 +63,19 @@ public class RouletteService {
         if(members.isEmpty()){
             throw new IllegalArgumentException("룰렛에 참여할 멤버가 없습니다.");
         }
+
+        // 랜덤 추첨 준비
+        SecureRandom random = new SecureRandom();
+
+        // 숫자 뽑기 0부터 size-1 중 하나
+        int winnerIndex = random.nextInt(members.size());
+
+        // 리스트에서 당첨자 꺼내기
+        
+
+
+
+
 
 
         return null;
