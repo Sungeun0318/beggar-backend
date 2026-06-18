@@ -3,6 +3,7 @@ package com.beggar.api.service;
 import com.beggar.api.dto.room.RouletteResultResponse;
 import com.beggar.api.entity.Room;
 import com.beggar.api.entity.RoomBudgetResult;
+import com.beggar.api.entity.RoomMember;
 import com.beggar.api.entity.RoomStatus;
 import com.beggar.api.repository.ReceiptRepository;
 import com.beggar.api.repository.RoomBudgetResultRepository;
@@ -11,6 +12,8 @@ import com.beggar.api.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -49,9 +52,17 @@ public class RouletteService {
 
         // 룰렛에 걸 최종 잔액 예산
         Long remainingBudget = totalBudget - spentAmount;
-        if (remainingBudget <= 0){ // 기본형은 null이 될 수 없어서 remainingBudget == null 은 안 해도 된다~ ㅎㅎ
+        if (remainingBudget <= 0){ // 산술 연산 숫자 : 당연히 숫자가 나온다. 숫자타입은 절대 null이 될 수 없어서 remainingBudget == null 은 안 해도 된다~ ㅎㅎ
             throw new IllegalArgumentException("룰렛 상금액이 부족합니다.");
         }
+
+        // 멤버 리스트 가져오기
+        List<RoomMember> members = roomMemberRepository.findByRoom_RoomNoAndStatus(roomId, RoomMember.Status.ACTIVE);
+        // 멤버가 0명이면..?
+        if(members.isEmpty()){
+            throw new IllegalArgumentException("룰렛에 참여할 멤버가 없습니다.");
+        }
+
 
         return null;
     }
