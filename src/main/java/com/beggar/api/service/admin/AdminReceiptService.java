@@ -106,6 +106,7 @@ public class AdminReceiptService {
                 blankToDash(receipt.getGoodPriceStoreName()),
                 blankToDash(receipt.getGoodPriceStoreAddress()),
                 formatDateTime(receipt.getGoodPriceVerifiedAt()),
+                formatDateTime(receipt.getReceiptIssuedAt()),
                 formatDateTime(receipt.getCreatedAt())
         );
     }
@@ -129,6 +130,7 @@ public class AdminReceiptService {
                 ocrStatusLabel(receipt.getOcrStatus()),
                 money(receipt.getAmount()),
                 goodPriceMatchedLabel(receipt.getGoodPriceMatched()),
+                formatDateTime(receipt.getReceiptIssuedAt()),
                 formatDateTime(receipt.getCreatedAt())
         );
     }

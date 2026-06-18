@@ -25,6 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -102,6 +104,7 @@ public class ReceiptService {
                 .storeName(storeName)
                 .totalAmount(request.totalAmount())
                 .amount(request.amount())
+                .receiptIssuedAt(request.receiptIssuedAt())
                 .address(address)
                 .centerLat(lat)
                 .centerLng(lng)
@@ -159,14 +162,14 @@ public class ReceiptService {
 
                 String storeName = (String) data.get("store_name");
                 String address = (String) data.get("address");
-                Object totalAmountObj = data.get("total_amount");
-                Integer totalAmount = totalAmountObj instanceof Integer ? (Integer) totalAmountObj : ((Double) totalAmountObj).intValue();
+                Integer totalAmount = parseTotalAmount(data.get("total_amount"));
+                LocalDateTime receiptIssuedAt = parseReceiptIssuedAt(data.get("date"));
 
                 if (address != null) {
                     address = address.split("\\(")[0].trim();
                 }
 
-                self.updateOcrResultInternal(roomNo, receipt.getReceiptId(), storeName, totalAmount, address);
+                self.updateOcrResultInternal(roomNo, receipt.getReceiptId(), storeName, totalAmount, receiptIssuedAt, address);
 
             } catch (Exception e) {
                 log.error("비동기 OCR 처리 중 오류 발생: {}", receipt.getReceiptId(), e);
@@ -185,7 +188,8 @@ public class ReceiptService {
     }
 
     @Transactional
-    public void updateOcrResultInternal(Long roomNo, Long receiptId, String storeName, Integer totalAmount, String address) {
+    public void updateOcrResultInternal(Long roomNo, Long receiptId, String storeName, Integer totalAmount,
+                                        LocalDateTime receiptIssuedAt, String address) {
         Receipt receipt = receiptRepository.findById(receiptId)
                 .filter(found -> found.getRoom().getRoomNo().equals(roomNo))
                 .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
@@ -201,7 +205,7 @@ public class ReceiptService {
             }
         }
 
-        receipt.applyOcrResult(storeName, totalAmount, address, lat, lng);
+        receipt.applyOcrResult(storeName, totalAmount, receiptIssuedAt, address, lat, lng);
         applyGoodPriceMatch(receipt);
         beggarScoreService.recalculate(roomNo);
     }
@@ -255,7 +259,13 @@ public class ReceiptService {
                 .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다. ID: " + receiptId));
 
         receipt.updateAmount(request.amount());
-        receipt.updateManualInfo(request.storeName(), request.address(), request.centerLat(), request.centerLng());
+        receipt.updateManualInfo(
+                request.storeName(),
+                request.receiptIssuedAt(),
+                request.address(),
+                request.centerLat(),
+                request.centerLng()
+        );
         receipt.confirm();
 
         if (receipt.getReceiptType() == Receipt.ReceiptType.SPLIT && request.splits() != null) {
@@ -308,7 +318,7 @@ public class ReceiptService {
         }
 
         receipt.applyOcrResult(
-                request.storeName(), request.totalAmount(),
+                request.storeName(), request.totalAmount(), request.receiptIssuedAt(),
                 request.address(), lat, lng
         );
         applyGoodPriceMatch(receipt);
@@ -332,6 +342,7 @@ public class ReceiptService {
                 original.storeName(),
                 original.totalAmount(),
                 original.amount(),
+                original.receiptIssuedAt(),
                 original.address(),
                 original.centerLat(),
                 original.centerLng(),
@@ -398,5 +409,54 @@ public class ReceiptService {
                         ),
                         receipt::clearGoodPriceMatch
                 );
+    }
+
+    private LocalDateTime parseReceiptIssuedAt(Object rawDate) {
+        if (rawDate == null) {
+            return null;
+        }
+
+        String value = String.valueOf(rawDate).trim();
+        if (value.isBlank() || value.equalsIgnoreCase("null")) {
+            return null;
+        }
+
+        List<DateTimeFormatter> formatters = List.of(
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"),
+                DateTimeFormatter.ISO_LOCAL_DATE_TIME
+        );
+
+        for (DateTimeFormatter formatter : formatters) {
+            try {
+                return LocalDateTime.parse(value, formatter);
+            } catch (DateTimeParseException ignored) {
+                // 다음 포맷으로 시도한다.
+            }
+        }
+
+        log.warn("영수증 발행시간 파싱 실패. rawDate={}", rawDate);
+        return null;
+    }
+
+    private Integer parseTotalAmount(Object rawAmount) {
+        if (rawAmount == null) {
+            return null;
+        }
+        if (rawAmount instanceof Number number) {
+            return number.intValue();
+        }
+
+        String value = String.valueOf(rawAmount).replaceAll("[^0-9]", "");
+        if (value.isBlank()) {
+            return null;
+        }
+
+        try {
+            return Integer.parseInt(value);
+        } catch (NumberFormatException e) {
+            log.warn("영수증 총액 파싱 실패. rawAmount={}", rawAmount);
+            return null;
+        }
     }
 }

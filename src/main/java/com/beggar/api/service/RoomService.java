@@ -1,5 +1,7 @@
 package com.beggar.api.service;
 
+import com.beggar.api.common.exception.CustomException;
+import com.beggar.api.common.exception.ErrorCode;
 import com.beggar.api.dto.room.RoomCreateRequest;
 import com.beggar.api.dto.room.RoomEventDto;
 import com.beggar.api.dto.room.RoomMemberResponse;
@@ -28,13 +30,18 @@ public class RoomService {
     private final UserRepository userRepository;
     private final RoomEventService roomEventService;
 
-    /* 👑 방 생성(create) */
+    /* 방 생성(create) */
     @Transactional
     public RoomResponse createRoom(RoomCreateRequest request, Long userNo) {
+        // 방 이름 중복 체크
+        if (roomRepository.existsByRoomName(request.getRoomName())) {
+            throw new CustomException(ErrorCode.DUPLICATE_ROOM_NAME);
+        }
+
         String roomCode = generateRandomCode();
         System.out.println("생성된 12자리 초대 코드:" + roomCode);
 
-        // 1. 방 기본 정보 저장
+        // 방 기본 정보 저장 (DRAFT 상태로 시작)
         Room room = new Room(
                 request.getRoomName(),
                 roomCode,
@@ -52,7 +59,7 @@ public class RoomService {
                 .status(RoomMember.Status.ACTIVE)
                 .build());
 
-        // 2. 목적 태그 리스트 일괄 DB 저장
+        // 목적 태그 리스트 일괄 DB 저장
         List<String> tagNames = request.getTags();
         if (tagNames != null) {
             for (String tagName : tagNames) {
@@ -102,15 +109,16 @@ public class RoomService {
         return sb.toString();
     }
 
-    /* 👑 내가 참여 중인 방 목록 조회 */
+    /* 내가 참여 중인 방 목록 조회 */
     public List<RoomResponse> findMyRooms(Long userNo) {
         return roomMemberRepository.findByUser_UserNoAndStatusAndIsHiddenFalse(userNo, RoomMember.Status.ACTIVE).stream()
                 .map(RoomMember::getRoom)
+                .filter(room -> room.getStatus() != RoomStatus.DELETED) // 삭제된 방 제외
                 .map(this::toResponse)
                 .toList();
     }
 
-    /* 🔍 방 검색 기능 (이름, 지역, 코드 기반) */
+    /* 방 검색 기능 (이름, 지역, 코드 기반) */
     public List<RoomResponse> searchRooms(String keyword) {
         // Pageable.unpaged()를 사용하여 페이징 없이 모든 결과를 가져옵니다.
         // Repository의 searchRooms 쿼리는 keyword가 비어있으면 전체를 조회하도록 설계되어 있습니다.
@@ -126,12 +134,24 @@ public class RoomService {
         Room room = roomRepository.findById(roomNo)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 거지방입니다."));
 
-        if (room.getStatus() != RoomStatus.ENDED) {
-            throw new IllegalArgumentException("종료된 방만 목록에서 삭제할 수 있습니다.");
-        }
-
         RoomMember member = roomMemberRepository.findByRoom_RoomNoAndUser_UserNo(roomNo, userNo)
                 .orElseThrow(() -> new IllegalArgumentException("해당 방의 참여자가 아닙니다."));
+
+        boolean isOwner = room.getOwnerUserNo().equals(userNo);
+
+        if (isOwner) {
+            // 방장은 진행 중(ACTIVE)인 방만 아니면 삭제(방 전체 삭제) 가능
+            if (room.getStatus() == RoomStatus.ACTIVE) {
+                throw new IllegalArgumentException("진행 중인 방은 삭제할 수 없습니다. 종료 후 삭제해 주세요.");
+            }
+            // 방장이 삭제하면 방 상태 자체를 DELETED로 변경하여 모두에게서 숨김
+            room.markDeleted(java.time.LocalDateTime.now());
+        } else {
+            // 방장이 아닌 멤버는 종료된(ENDED) 방만 목록에서 숨길 수 있음
+            if (room.getStatus() != RoomStatus.ENDED) {
+                throw new IllegalArgumentException("종료된 방만 목록에서 삭제할 수 있습니다.");
+            }
+        }
 
         member.hide();
     }
@@ -156,8 +176,8 @@ public class RoomService {
         Room room = roomRepository.findByRoomCode(roomCode.trim())
                 .orElseThrow(() -> new IllegalArgumentException("올바르지 않은 초대 코드입니다."));
         
-        // 방 상태가 INVITING 또는 BUDGET_INPUT일 때만 입장 허용 (기획 5.2 참고)
-        if (room.getStatus() != RoomStatus.INVITING && room.getStatus() != RoomStatus.BUDGET_INPUT) {
+        // 방 상태가 DRAFT, INVITING 또는 BUDGET_INPUT일 때만 입장 허용
+        if (room.getStatus() != RoomStatus.DRAFT && room.getStatus() != RoomStatus.INVITING && room.getStatus() != RoomStatus.BUDGET_INPUT) {
             throw new IllegalArgumentException("현재는 입장이 불가능한 상태의 방입니다.");
         }
 
@@ -200,18 +220,8 @@ public class RoomService {
         roomEventService.publishMembersUpdated(room.getRoomNo(), members);
         System.out.println("DEBUG: [" + room.getRoomNo() + "] 멤버 갱신 방송 송출 - 현재 인원: " + members.size());
 
-        // [추가] 정원이 다 찼다면 자동으로 예산 입력 단계로 전환
-        long activeCount = members.size();
-        if (activeCount >= room.getMaxMemberCount() && room.getStatus() == RoomStatus.INVITING) {
-            room.startBudgetInput();
-            roomEventService.publishStateChanged(
-                    room.getRoomNo(),
-                    RoomEventDto.EventType.BUDGET_INPUT_STARTED,
-                    "/budget/input?roomNo=" + room.getRoomNo()
-            );
-            System.out.println("DEBUG: [" + room.getRoomNo() + "] 정원 충족! 자동 전환 방송 송출 (INVITING -> BUDGET_INPUT)");
-        } else if (room.getStatus() == RoomStatus.BUDGET_INPUT) {
-            // 이미 예산 입력 단계인 방에 추가 입장/재입장 시에도 상태 동기화를 위해 이벤트 재송출
+        // [변경] 인원이 찼을 때 자동으로 넘기지 않고, 이미 상태가 BUDGET_INPUT인 경우에만 경로 안내
+        if (room.getStatus() == RoomStatus.BUDGET_INPUT) {
             roomEventService.publishStateChanged(
                     room.getRoomNo(),
                     RoomEventDto.EventType.BUDGET_INPUT_STARTED,
@@ -279,14 +289,21 @@ public class RoomService {
             throw new IllegalArgumentException("방장만 예산 입력을 시작할 수 있습니다.");
         }
 
-        if (room.getStatus() != RoomStatus.INVITING) {
+        // 1. 최소 인원 체크 (방장 포함 최소 2명은 있어야 함)
+        long activeMemberCount = roomMemberRepository.countByRoom_RoomNoAndStatus(roomNo, RoomMember.Status.ACTIVE);
+        if (activeMemberCount < 2) {
+            throw new IllegalArgumentException("최소 2명 이상의 멤버가 모여야 예산 입력을 시작할 수 있습니다. 친구를 초대해 주세요!");
+        }
+
+        // 2. 상태 체크 (DRAFT 또는 INVITING 상태에서만 시작 가능)
+        if (room.getStatus() != RoomStatus.DRAFT && room.getStatus() != RoomStatus.INVITING) {
             throw new IllegalArgumentException("이미 예산 입력이 시작되었거나 입장이 불가능한 상태입니다.");
         }
 
         // 상태 변경
         room.startBudgetInput();
 
-        // 이벤트 발행
+        // [중요] 모든 멤버에게 "우리 방 번호(roomNo)를 가지고 예산 입력창으로 이동해!"라고 알림
         roomEventService.publishStateChanged(roomNo, RoomEventDto.EventType.BUDGET_INPUT_STARTED, "/budget/input?roomNo=" + roomNo);
     }
 

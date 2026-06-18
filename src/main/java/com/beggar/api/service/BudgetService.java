@@ -45,11 +45,7 @@ public class BudgetService {
         Room room = roomRepository.findById(roomNo)
                 .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND, "존재하지 않는 거지방입니다."));
 
-        // 방 상태 검증
-        if (room.getStatus() == RoomStatus.ENDED) {
-            throw new CustomException(ErrorCode.ROOM_ALREADY_ENDED);
-        }
-
+        // 방 상태 검증 (오직 BUDGET_INPUT 단계에서만 예산 제출 가능)
         if (room.getStatus() != RoomStatus.BUDGET_INPUT) {
             throw new IllegalArgumentException("현재 방 상태가 '" + room.getStatus() + "'입니다. 예산 입력 단계(BUDGET_INPUT)에서만 제출이 가능합니다.");
         }
