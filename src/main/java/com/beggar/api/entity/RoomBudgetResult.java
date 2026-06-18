@@ -38,6 +38,10 @@ public class RoomBudgetResult {
     @Column(name = "confirmed_at", nullable = false)
     private LocalDateTime confirmedAt;
 
+    @Column(name = "winner_member_id" , nullable = true)
+    private Long winnerMemberId;
+
+
     @Builder
     public RoomBudgetResult(Room room, Integer minBudgetPerPerson, Integer memberCount, Integer totalBudget) {
         this.room = room;
@@ -45,6 +49,7 @@ public class RoomBudgetResult {
         this.memberCount = memberCount;
         this.totalBudget = totalBudget;
         this.confirmedAt = LocalDateTime.now();
+        this.winnerMemberId = winnerMemberId;
     }
 
     public void update(Integer minBudgetPerPerson, Integer memberCount, Integer totalBudget) {
@@ -52,5 +57,9 @@ public class RoomBudgetResult {
         this.memberCount = memberCount;
         this.totalBudget = totalBudget;
         this.confirmedAt = LocalDateTime.now();
+    }
+
+    public void setWinnerMemberId(Long winnerMemberId){
+        this.winnerMemberId = winnerMemberId;
     }
 }
