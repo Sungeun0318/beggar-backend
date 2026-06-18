@@ -84,7 +84,7 @@
 
         }
         @Transactional
-        public TokenResponse loginWithKakao(String kakaoToken) {
+        public TokenResponse loginWithKakao(String kakaoToken, String userInputEmail, Integer gender, Integer age) {
             JsonNode kakaoResponse = kakaoWebClient.get()
                     .uri("/v2/user/me")
                     .accept(MediaType.APPLICATION_JSON)
@@ -101,17 +101,15 @@
             }
 
             JsonNode account = kakaoResponse.path("kakao_account");
-            String email = kakaoEmail(kakaoId, account);
+            String email = normalizeEmail(userInputEmail);
+            String ageRange = toAgeRange(age);
+            Integer normalizedGender = normalizeGender(gender);
 
             // 1. profile 객체 안전하게 추출
             JsonNode profile = account.path("profile");
 
             // 2. 카카오 실제 반환 Key 매핑 (동의하지 않았다면 null이 반환됨)
-            String kakaoNicknameValue = kakaoText(profile, "nickname");
-            System.out.println("kakaoNicknameValue = " + kakaoNicknameValue);
-
-            String profile_nickname = kakaoText(profile, "profile_nickname");
-            System.out.println("profile_nickname = " + profile_nickname);
+            String kakaoNicknameValue = kakaoNickname(kakaoResponse, kakaoId);
 
 
             String profileImageUrl = kakaoText(profile, "profile_image_url");
@@ -139,15 +137,19 @@
                                 .userName(availableNickname)
                                 .email(email)
                                 .profileImageUrl(finalProfileImageUrl)
+                                .gender(normalizedGender)
+                                .ageRange(ageRange)
                                 .role("USER")
                                 .build();
                         return userRepository.save(newUser);
                     });
 
             // 7. 로그인 시마다 프로필 정보 갱신 (중복 방지 닉네임 적용)
-            user.updateProfile(
+            user.updateKakaoLoginInfo(
                     availableKakaoNickname(kakaoNicknameValue, kakaoId, user.getUserNo()),
-                    profileImageUrl
+                    profileImageUrl,
+                    normalizedGender,
+                    ageRange
             );
 
             String accessToken = jwtTokenProvider.createToken(user.getUserNo());
@@ -157,9 +159,9 @@
         }
 
         @Transactional
-        public TokenResponse loginWithKakaoCode(String code, String redirectUri) {
+        public TokenResponse loginWithKakaoCode(String code, String redirectUri, String email, Integer gender, Integer age) {
             String accessToken = requestKakaoAccessToken(code, redirectUri);
-            return loginWithKakao(accessToken);
+            return loginWithKakao(accessToken, email, gender, age);
         }
 
         private String requestKakaoAccessToken(String code, String redirectUri) {
@@ -199,22 +201,68 @@
             return accessToken;
         }
 
-        private Integer parseKakaoGender(String gender) {
-            if ("male".equalsIgnoreCase(gender)) {
-                return 0;
+        private String normalizeEmail(String email) {
+            if (!StringUtils.hasText(email)) {
+                throw new CustomException(ErrorCode.INVALID_REQUEST, "이메일을 입력해 주세요.");
             }
-            if ("female".equalsIgnoreCase(gender)) {
-                return 1;
-            }
-            return null;
+            return email.trim().toLowerCase();
         }
 
-        private String kakaoEmail(Long kakaoId, JsonNode account) {
-            String email = kakaoText(account, "email");
-            if (email != null && !email.isBlank()) {
-                return email;
+        private String kakaoNickname(JsonNode kakaoResponse, Long kakaoId) {
+            JsonNode account = kakaoResponse.path("kakao_account");
+            JsonNode profile = account.path("profile");
+
+            String nickname = kakaoText(profile, "nickname");
+            if (StringUtils.hasText(nickname)) {
+                return nickname;
             }
-            return "kakao_" + kakaoId + "@kakao.local";
+
+            nickname = kakaoText(kakaoResponse.path("properties"), "nickname");
+            if (StringUtils.hasText(nickname)) {
+                return nickname;
+            }
+
+            nickname = kakaoText(account, "profile_nickname");
+            if (StringUtils.hasText(nickname)) {
+                return nickname;
+            }
+
+            return "kakao_" + kakaoId;
+        }
+
+        private Integer normalizeGender(Integer gender) {
+            if (gender == null) {
+                throw new CustomException(ErrorCode.INVALID_REQUEST, "성별을 선택해 주세요.");
+            }
+            if (gender == 1 || gender == 2) {
+                return gender;
+            }
+            if (gender == 0) {
+                return 1;
+            }
+            throw new CustomException(ErrorCode.INVALID_REQUEST, "성별을 올바르게 선택해 주세요.");
+        }
+
+        private String toAgeRange(Integer age) {
+            if (age == null || age < 0 || age > 120) {
+                throw new CustomException(ErrorCode.INVALID_REQUEST, "연령을 올바르게 입력해 주세요.");
+            }
+            if (age < 10) {
+                return "0~9";
+            }
+            if (age < 20) {
+                return "10~19";
+            }
+            if (age < 30) {
+                return "20~29";
+            }
+            if (age < 40) {
+                return "30~39";
+            }
+            if (age < 50) {
+                return "40~49";
+            }
+            return "50~";
         }
 
         private String trimToUserNameLimit(String userName) {
@@ -226,20 +274,37 @@
         }
 
         private String availableKakaoNickname(String nickname, Long kakaoId, Long currentUserNo) {
-            if (!isDuplicateUserName(nickname, currentUserNo)) {
-                return nickname;
+            String baseNickname = trimToUserNameLimit(
+                    StringUtils.hasText(nickname) ? nickname : "kakao_" + kakaoId
+            );
+
+            if (!isDuplicateUserName(baseNickname, currentUserNo)) {
+                return baseNickname;
             }
 
-            String suffix = "_" + Long.toString(kakaoId).substring(Math.max(0, Long.toString(kakaoId).length() - 4));
+            String kakaoIdText = Long.toString(kakaoId);
+            String idSuffix = "_" + kakaoIdText.substring(Math.max(0, kakaoIdText.length() - 4));
+            String idCandidate = appendNicknameSuffix(baseNickname, idSuffix);
+            if (!isDuplicateUserName(idCandidate, currentUserNo)) {
+                return idCandidate;
+            }
+
+            int hash = Math.abs((baseNickname + kakaoIdText).hashCode());
+            for (int index = 0; index < 100; index++) {
+                String suffix = "_" + Integer.toString((hash + index) % 10000);
+                String candidate = appendNicknameSuffix(baseNickname, suffix);
+                if (!isDuplicateUserName(candidate, currentUserNo)) {
+                    return candidate;
+                }
+            }
+
+            throw new CustomException(ErrorCode.DUPLICATE_USER_NAME, "사용 가능한 카카오 닉네임을 만들 수 없습니다.");
+        }
+
+        private String appendNicknameSuffix(String nickname, String suffix) {
             int baseLength = Math.max(1, 15 - suffix.length());
             String base = nickname.length() > baseLength ? nickname.substring(0, baseLength) : nickname;
-            String candidate = base + suffix;
-
-            if (!isDuplicateUserName(candidate, currentUserNo)) {
-                return candidate;
-            }
-
-            return trimToUserNameLimit("kakao_" + kakaoId);
+            return base + suffix;
         }
 
         private boolean isDuplicateUserName(String nickname, Long currentUserNo) {

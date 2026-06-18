@@ -35,6 +35,7 @@ public enum ErrorCode {
 
     // Receipt
     RECEIPT_NOT_FOUND(HttpStatus.NOT_FOUND, "RECEIPT_001", "영수증을 찾을 수 없습니다."),
+    DUPLICATE_RECEIPT_IMAGE(HttpStatus.CONFLICT, "RECEIPT_002", "이미 등록된 영수증 사진입니다."),
 
     // External API
     EXTERNAL_API_FAILED(HttpStatus.BAD_GATEWAY, "EXTERNAL_001", "외부 API 호출에 실패했습니다."),

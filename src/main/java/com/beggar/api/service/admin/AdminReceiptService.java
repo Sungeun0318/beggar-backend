@@ -10,6 +10,7 @@ import com.beggar.api.repository.ReceiptRepository;
 import com.beggar.api.repository.RoomMemberRepository;
 import com.beggar.api.repository.RoomRepository;
 import com.beggar.api.repository.UserRepository;
+import com.beggar.api.service.S3Service;
 import org.springframework.data.domain.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,19 +35,22 @@ public class AdminReceiptService {
     private final RoomMemberRepository roomMemberRepository;
     private final UserRepository userRepository;
     private final AdminActionLogService actionLogService;
+    private final S3Service s3Service;
 
     public AdminReceiptService(
             ReceiptRepository receiptRepository,
             RoomRepository roomRepository,
             RoomMemberRepository roomMemberRepository,
             UserRepository userRepository,
-            AdminActionLogService actionLogService
+            AdminActionLogService actionLogService,
+            S3Service s3Service
     ) {
         this.receiptRepository = receiptRepository;
         this.roomRepository = roomRepository;
         this.roomMemberRepository = roomMemberRepository;
         this.userRepository = userRepository;
         this.actionLogService = actionLogService;
+        this.s3Service = s3Service;
     }
 
     @Transactional(readOnly = true)
@@ -95,7 +99,7 @@ public class AdminReceiptService {
                 uploaderLabel(receipt.getUploader()),
                 receiptTypeLabel(receipt.getReceiptType()),
                 inputMethodLabel(receipt.getInputMethod()),
-                blankToDash(receipt.getImageUrl()),
+                presignedImageUrl(receipt.getImageUrl()),
                 ocrStatusLabel(receipt.getOcrStatus()),
                 blankToDash(receipt.getStoreName()),
                 money(receipt.getTotalAmount()),
@@ -105,6 +109,8 @@ public class AdminReceiptService {
                 blankToDash(receipt.getGoodPriceStoreId()),
                 blankToDash(receipt.getGoodPriceStoreName()),
                 blankToDash(receipt.getGoodPriceStoreAddress()),
+                receipt.getGoodPriceMatchScore() == null ? "-" : receipt.getGoodPriceMatchScore() + "점",
+                blankToDash(receipt.getGoodPriceMatchReason()),
                 formatDateTime(receipt.getGoodPriceVerifiedAt()),
                 formatDateTime(receipt.getReceiptIssuedAt()),
                 formatDateTime(receipt.getCreatedAt())
@@ -116,7 +122,10 @@ public class AdminReceiptService {
         Receipt receipt = receiptRepository.findById(receiptId)
                 .orElseThrow(() -> new IllegalArgumentException("영수증을 찾을 수 없습니다."));
         receiptRepository.deleteById(receiptId);
-        actionLogService.record("DELETE", "RECEIPT", receiptId, "방 #" + (receipt.getRoom() != null ? receipt.getRoom().getRoomNo() : "-") + " 영수증 삭제");
+        actionLogService.record("DELETE", "RECEIPT", receiptId,
+                (receipt.getRoom() != null ? receipt.getRoom().getRoomName() : "-")
+                        + " - "
+                        + (receipt.getStoreName() != null ? receipt.getStoreName() : "-"));
     }
 
     private ReceiptListItem toListItem(Receipt receipt) {
@@ -209,6 +218,13 @@ public class AdminReceiptService {
             return "-";
         }
         return MONEY_FORMATTER.format(value) + "원";
+    }
+
+    private String presignedImageUrl(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) {
+            return "-";
+        }
+        return s3Service.generatePresignedGetUrl(imageUrl);
     }
 
     private String blankToDash(String value) {

@@ -5,12 +5,14 @@ import com.beggar.api.common.exception.CustomException;
 import com.beggar.api.common.exception.ErrorCode;
 import com.beggar.api.dto.goodprice.GoodPriceStore;
 import com.beggar.api.dto.location.LocationSearchResponse;
+import com.beggar.api.dto.recommendation.RecommendationInteractionRequest;
 import com.beggar.api.dto.recommendation.RecommendationResponse;
 import com.beggar.api.entity.Room;
 import com.beggar.api.entity.RoomPurposeTag;
 import com.beggar.api.entity.RoomStatus;
 import com.beggar.api.repository.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +41,7 @@ public class RecommendationService {
     private final ReceiptRepository receiptRepository;
     private final GoodPriceStoreClient goodPriceStoreClient;
     private final LocationService locationService;
+    private final JdbcTemplate jdbcTemplate;
 
     public RecommendationResponse recommend(Long roomNo, String requestedTag) {
         return recommend(roomNo, requestedTag, null);
@@ -50,6 +53,11 @@ public class RecommendationService {
 
     public RecommendationResponse recommend(Long roomNo, String requestedTag, String requestedRegion,
                                             Double lat, Double lng, Integer radius) {
+        return recommend(roomNo, requestedTag, requestedRegion, lat, lng, radius, false);
+    }
+
+    public RecommendationResponse recommend(Long roomNo, String requestedTag, String requestedRegion,
+                                            Double lat, Double lng, Integer radius, boolean strictBudget) {
         Room room = roomRepository.findById(roomNo)
                 .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND, "방을 찾을 수 없습니다. roomNo=" + roomNo));
         
@@ -59,6 +67,9 @@ public class RecommendationService {
 
         String tag = resolveTag(roomNo, requestedTag);
         String region = resolveRecommendationRegion(room, requestedRegion, lat, lng);
+        LocationSearchResponse baseLocation = resolveBaseLocation(room, requestedRegion, lat, lng);
+        Double baseLat = lat != null ? lat : baseLocation == null ? null : baseLocation.lat();
+        Double baseLng = lng != null ? lng : baseLocation == null ? null : baseLocation.lng();
         
         long spentAmount = receiptRepository.sumAmountByRoomNo(roomNo);
         Integer totalBudget = room.getTotalBudget();
@@ -78,14 +89,15 @@ public class RecommendationService {
                 remainingBudget,
                 recommendationBudget,
                 activeMemberCount,
-                lat,
-                lng,
-                radius
+                baseLat,
+                baseLng,
+                radius,
+                strictBudget
         );
 
         List<RecommendationResponse.Place> places = candidates.stores().stream()
                 .limit(DEFAULT_RESULT_SIZE)
-                .map(store -> toPlace(store, recommendationBudget, tag, lat, lng))
+                .map(store -> toPlace(store, recommendationBudget, tag, baseLat, baseLng))
                 .toList();
         boolean fallbackApplied = candidates.fallbackApplied() || (remainingBudget != null && remainingBudget <= 0);
 
@@ -103,10 +115,40 @@ public class RecommendationService {
         );
     }
 
+    @Transactional
+    public void recordInteraction(Long roomNo, Long userNo, RecommendationInteractionRequest request) {
+        if (request == null) {
+            throw new CustomException(ErrorCode.INVALID_REQUEST);
+        }
+        roomRepository.findById(roomNo)
+                .orElseThrow(() -> new CustomException(ErrorCode.ROOM_NOT_FOUND, "방을 찾을 수 없습니다. roomNo=" + roomNo));
+        roomMemberRepository.findByRoom_RoomNoAndUser_UserNo(roomNo, userNo)
+                .orElseThrow(() -> new CustomException(ErrorCode.NOT_ROOM_MEMBER));
+
+        jdbcTemplate.update(
+                """
+                INSERT INTO recommendation_interactions
+                    (user_no, room_no, store_id, store_name, action, requested_tag, requested_region,
+                     rank_position, expected_price, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+                """,
+                userNo,
+                roomNo,
+                blankToNull(request.storeId()),
+                defaultStoreName(request.storeName()),
+                normalizeAction(request.action()),
+                blankToNull(request.requestedTag()),
+                blankToNull(request.requestedRegion()),
+                request.rankPosition(),
+                request.expectedPrice()
+        );
+    }
+
     private RecommendationCandidates findGoodPriceStores(String tag, String requestedRegion,
                                                          Integer remainingBudget, Integer recommendationBudget,
                                                          long activeMemberCount,
-                                                         Double lat, Double lng, Integer radius) {
+                                                         Double lat, Double lng, Integer radius,
+                                                         boolean strictBudget) {
         List<GoodPriceStore> allStores = new ArrayList<>();
         String addressKeyword = regionKeyword(requestedRegion);
         if (!addressKeyword.isBlank()) {
@@ -132,9 +174,16 @@ public class RecommendationService {
         Double filterLat = lat;
         Double filterLng = lng;
 
-        List<GoodPriceStore> strictBudget = filterStores(allStores, tag, requestedRegion, recommendationBudget, filterLat, filterLng, radius);
-        if (strictBudget.size() >= DEFAULT_RESULT_SIZE) {
-            return new RecommendationCandidates(strictBudget, false);
+        if (strictBudget && remainingBudget != null) {
+            return new RecommendationCandidates(
+                    filterStores(allStores, tag, requestedRegion, remainingBudget, filterLat, filterLng, radius),
+                    false
+            );
+        }
+
+        List<GoodPriceStore> recommendationBudgetStores = filterStores(allStores, tag, requestedRegion, recommendationBudget, filterLat, filterLng, radius);
+        if (recommendationBudgetStores.size() >= DEFAULT_RESULT_SIZE) {
+            return new RecommendationCandidates(recommendationBudgetStores, false);
         }
 
         List<GoodPriceStore> perPersonBudget = filterStores(
@@ -172,6 +221,21 @@ public class RecommendationService {
             return room.getLocation();
         }
         return locationService.resolveRegion(lat, lng).orElse(null);
+    }
+
+    private LocationSearchResponse resolveBaseLocation(Room room, String requestedRegion, Double lat, Double lng) {
+        if (lat != null && lng != null) {
+            return null;
+        }
+
+        String address = null;
+        if (requestedRegion != null && !requestedRegion.isBlank()) {
+            address = requestedRegion;
+        } else if (room.getLocation() != null && !room.getLocation().isBlank()) {
+            address = room.getLocation();
+        }
+
+        return locationService.resolveAddress(address).orElse(null);
     }
 
     private String regionKeyword(String region) {
@@ -232,12 +296,11 @@ public class RecommendationService {
             return true;
         }
         String address = normalize(store.address());
-        for (String keyword : region.trim().split("\\s+")) {
-            if (!address.contains(normalize(keyword))) {
-                return false;
-            }
+        String keyword = regionKeyword(region);
+        if (!keyword.isBlank()) {
+            return address.contains(normalize(keyword));
         }
-        return true;
+        return address.contains(normalize(region));
     }
 
     private int affordableRank(GoodPriceStore store, Integer remainingBudget) {
@@ -466,6 +529,24 @@ public class RecommendationService {
         }
         int minutes = Math.max(1, (int) Math.ceil(distanceMeters / 67.0));
         return "도보 " + minutes + "분";
+    }
+
+    private String normalizeAction(String action) {
+        if (action == null || action.isBlank()) {
+            return "CLICK";
+        }
+        return action.trim().toUpperCase(Locale.ROOT);
+    }
+
+    private String defaultStoreName(String storeName) {
+        if (storeName == null || storeName.isBlank()) {
+            return "추천 장소";
+        }
+        return storeName.trim();
+    }
+
+    private String blankToNull(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     private record RecommendationCandidates(List<GoodPriceStore> stores, boolean fallbackApplied) {

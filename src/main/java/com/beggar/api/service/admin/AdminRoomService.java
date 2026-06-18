@@ -128,7 +128,7 @@ public class AdminRoomService {
 
         if (!STATUS_DELETED.equals(normalizeStatus(String.valueOf(room.getStatus())))) {
             room.markDeleted(LocalDateTime.now());
-            actionLogService.record("DELETE", "ROOM", roomNo, "#" + roomNo + " 방 삭제");
+            actionLogService.record("DELETE", "ROOM", roomNo, room.getRoomName());
         }
     }
 

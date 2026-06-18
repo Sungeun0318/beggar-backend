@@ -57,14 +57,14 @@ public class User extends BaseTimeEntity {
     }
 
     // 회원가입용 정적 팩토리 메서드 추가 (UserService)
-    public static User signup(UserRequest requestDto, String encodedPassword) {
+    public static User signup(UserRequest requestDto, String encodedPassword, String ageRange) {
         return User.builder()
                 .userName(requestDto.getUserName())
                 .passwordHash(encodedPassword)
                 .email(requestDto.getEmail())
                 .profileImageUrl(requestDto.getProfileImageUrl())
                 .gender(requestDto.getGender())
-                .ageRange(requestDto.getAgeRange())
+                .ageRange(ageRange)
                 .role("USER") // 기본 권한 세팅
                 .build();
     }
@@ -72,5 +72,11 @@ public class User extends BaseTimeEntity {
     public void updateProfile(String userName, String profileImageUrl) {
         if (userName != null) this.userName = userName;
         if (profileImageUrl != null) this.profileImageUrl = profileImageUrl;
+    }
+
+    public void updateKakaoLoginInfo(String userName, String profileImageUrl, Integer gender, String ageRange) {
+        updateProfile(userName, profileImageUrl);
+        if (gender != null) this.gender = gender;
+        if (ageRange != null) this.ageRange = ageRange;
     }
 }

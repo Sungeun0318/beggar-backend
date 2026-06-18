@@ -48,6 +48,9 @@ public class Receipt extends BaseTimeEntity {
     @Column(name = "image_url", length = 500)
     private String imageUrl;
 
+    @Column(name = "image_hash", length = 64)
+    private String imageHash;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "ocr_status", length = 30, nullable = false)
     private OcrStatus ocrStatus;
@@ -90,6 +93,12 @@ public class Receipt extends BaseTimeEntity {
     @Column(name = "good_price_matched", nullable = false)
     private Boolean goodPriceMatched;
 
+    @Column(name = "good_price_match_score")
+    private Integer goodPriceMatchScore;
+
+    @Column(name = "good_price_match_reason", length = 255)
+    private String goodPriceMatchReason;
+
     @Column(name = "good_price_verified_at")
     private java.time.LocalDateTime goodPriceVerifiedAt;
 
@@ -104,12 +113,13 @@ public class Receipt extends BaseTimeEntity {
                    InputMethod inputMethod, String imageUrl, OcrStatus ocrStatus,
                    String storeName, Integer totalAmount, Integer amount,
                    LocalDateTime receiptIssuedAt, String address, BigDecimal centerLat, BigDecimal centerLng,
-                   ReceiptSplitGroup splitGroup, Boolean confirmed) {
+                   ReceiptSplitGroup splitGroup, String imageHash, Boolean confirmed) {
         this.room = room;
         this.uploader = uploader;
         this.receiptType = (receiptType == null) ? ReceiptType.COMBINED : receiptType;
         this.inputMethod = (inputMethod == null) ? InputMethod.CAMERA : inputMethod;
         this.imageUrl = imageUrl;
+        this.imageHash = imageHash;
         this.ocrStatus = (ocrStatus == null)
                 ? (this.inputMethod == InputMethod.MANUAL ? OcrStatus.MANUAL : OcrStatus.PENDING)
                 : ocrStatus;
@@ -122,6 +132,8 @@ public class Receipt extends BaseTimeEntity {
         this.centerLng = centerLng;
         this.splitGroup = splitGroup;
         this.goodPriceMatched = false;
+        this.goodPriceMatchScore = 0;
+        this.goodPriceMatchReason = "검증 전";
         this.confirmed = (confirmed == null) ? true : confirmed;
     }
 
@@ -171,19 +183,24 @@ public class Receipt extends BaseTimeEntity {
     }
 
     public void applyGoodPriceMatch(String storeId, String storeName, String storeAddress,
+                                    Integer matchScore, String matchReason,
                                     java.time.LocalDateTime verifiedAt) {
         this.goodPriceStoreId = storeId;
         this.goodPriceStoreName = storeName;
         this.goodPriceStoreAddress = storeAddress;
         this.goodPriceMatched = true;
+        this.goodPriceMatchScore = matchScore;
+        this.goodPriceMatchReason = matchReason;
         this.goodPriceVerifiedAt = verifiedAt;
     }
 
-    public void clearGoodPriceMatch() {
+    public void clearGoodPriceMatch(String reason) {
         this.goodPriceStoreId = null;
         this.goodPriceStoreName = null;
         this.goodPriceStoreAddress = null;
         this.goodPriceMatched = false;
+        this.goodPriceMatchScore = 0;
+        this.goodPriceMatchReason = reason;
         this.goodPriceVerifiedAt = null;
     }
 

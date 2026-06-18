@@ -54,17 +54,24 @@ public class BeggarScoreService {
         return BeggarScoreResponse.from(recalculate(roomNo));
     }
 
-    @Transactional
+    // 랭킹 조회는 "저장된 점수"만 읽는다(가벼운 읽기 전용).
+    // 전체 재계산은 매일 한국 0시 스케줄러(recalculateAllScores)에서만 수행한다.
+    @Transactional(readOnly = true)
     public List<RankingEntryResponse> getRoomRanking(int limit) {
         int safeLimit = Math.max(1, Math.min(limit, 50));
         AtomicInteger rank = new AtomicInteger(1);
 
-        roomBeggarScoreRepository.findAll()
-                .forEach(score -> recalculate(score.getRoom().getRoomNo()));
-
         return roomBeggarScoreRepository.findTopRoomScores(PageRequest.of(0, safeLimit)).stream()
                 .map(score -> RankingEntryResponse.of(rank.getAndIncrement(), score))
                 .toList();
+    }
+
+    // 저장된 모든 방 점수를 최신 산식으로 재계산한다. (하루 1회 배치용)
+    @Transactional
+    public int recalculateAllScores() {
+        List<RoomBeggarScore> scores = roomBeggarScoreRepository.findAll();
+        scores.forEach(score -> recalculate(score.getRoom().getRoomNo()));
+        return scores.size();
     }
 
     @Transactional
