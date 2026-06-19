@@ -64,7 +64,8 @@
 [시연영상](https://youtu.be/cXXMjrrgYiQ)
 
 ## 6. 참고 링크
-- **서비스 배포 링크** : [거지방 서비스 바로가기](https://dgh1r60fiahrz.cloudfront.net)
+- **사용자 배포 링크** : [거지방 서비스 바로가기](https://dgh1r60fiahrz.cloudfront.net)
+- **관리자 배포 링크** : [거지 관리자 서비스 바로가기](http://begmanager-env.eba-wd8acumg.ap-northeast-2.elasticbeanstalk.com/login)
 - **Backend** : [GitHub Repository](https://github.com/Sungeun0318/beggar-backend)
 - **Frontend** : [GitHub Repository](https://github.com/Sungeun0318/beggar-webfront)
 - **Python (AI)** : [GitHub Repository](https://github.com/Sungeun0318/ai)
