@@ -1,0 +1,93 @@
+package com.beggar.api.service;
+
+import com.beggar.api.dto.room.RoomMemberResponse;
+import com.beggar.api.dto.room.RouletteResultResponse;
+import com.beggar.api.entity.Room;
+import com.beggar.api.entity.RoomBudgetResult;
+import com.beggar.api.entity.RoomMember;
+import com.beggar.api.entity.RoomStatus;
+import com.beggar.api.repository.ReceiptRepository;
+import com.beggar.api.repository.RoomBudgetResultRepository;
+import com.beggar.api.repository.RoomMemberRepository;
+import com.beggar.api.repository.RoomRepository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.security.SecureRandom;
+import java.util.List;
+import java.util.stream.Collectors;
+
+@Service
+@RequiredArgsConstructor
+@Transactional
+public class RouletteService {
+    private final RoomRepository roomRepository;
+    private final RoomBudgetResultRepository roomBudgetResultRepository;
+    private final RoomMemberRepository roomMemberRepository;
+    private final ReceiptRepository receiptRepository;
+
+    public RouletteResultResponse runRoulette(Long roomId, Long loginUserNo){
+        // 방 찾기
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(()->new IllegalArgumentException("존재하지 않는 거지방입니다."));
+
+        // 방장 권한 확인
+        if (!room.getOwnerUserNo().equals(loginUserNo)){
+                throw new IllegalArgumentException("방장만 운명의 거지룰렛을 돌릴 수 있습니다.");
+            }
+
+        // 방이 정말 종료된 상태인지 확인
+        if (!room.getStatus().equals(RoomStatus.ENDED)){
+            throw new IllegalArgumentException("종료된 방만 거지룰렛을 돌릴 수 있습니다.");
+        }
+
+
+        // 정산 데이터 가져오기
+        RoomBudgetResult result = roomBudgetResultRepository.findByRoom_RoomNo(roomId)
+                .orElseThrow(()->new IllegalArgumentException("정산 데이터가 없습니다."));
+
+        // 목표로 정했던 총 예산
+        Integer totalBudget = result.getTotalBudget();
+
+        // 쓴 돈
+        Long spentAmount = receiptRepository.sumAmountByRoomNo(roomId);
+
+        // 룰렛에 걸 최종 잔액 예산
+        Long remainingBudget = totalBudget - spentAmount;
+        if (remainingBudget <= 0){ // 산술 연산 숫자 : 당연히 숫자가 나온다. 숫자타입은 절대 null이 될 수 없어서 remainingBudget == null 은 안 해도 된다~ ㅎㅎ
+            throw new IllegalArgumentException("룰렛 상금액이 부족합니다.");
+        }
+
+        // 멤버 리스트 가져오기
+        List<RoomMember> members = roomMemberRepository.findByRoom_RoomNoAndStatus(roomId, RoomMember.Status.ACTIVE);
+        // 멤버가 0명이면..?
+        if(members.isEmpty()){
+            throw new IllegalArgumentException("룰렛에 참여할 멤버가 없습니다.");
+        }
+
+        // 랜덤 추첨 준비
+        SecureRandom random = new SecureRandom();
+
+        // 숫자 뽑기 0부터 size-1 중 하나
+        int winnerIndex = random.nextInt(members.size());
+
+        // 리스트에서 당첨자 꺼내기
+        RoomMember winnerMember = members.get(winnerIndex);
+
+        // 룰렛을 돌릴 때는 이미 방이 종료(ENDED)되었고 예산이 정산된 시점이므로, budgetSubmitted 상태는 true로 넘겨줌이
+        List<RoomMemberResponse> allMembersDto = members.stream()
+                .map(member -> RoomMemberResponse.from(member, loginUserNo, true))
+                .collect(Collectors.toList());
+
+        // RouletteResultResponse 레코드 구조에 맞게 최종 리턴
+        return new RouletteResultResponse(
+                room.getRoomNo(),
+                winnerMember.getUser().getUserNo(), // 엔티티 관계(member.getUser())에 맞춰서 꺼내기
+                winnerMember.getUser().getUserName(), // 당첨자 닉네임/이름 매핑
+                remainingBudget,
+                allMembersDto
+        );
+
+    }
+}

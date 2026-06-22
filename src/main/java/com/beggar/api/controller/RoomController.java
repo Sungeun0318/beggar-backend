@@ -2,13 +2,11 @@ package com.beggar.api.controller;
 
 import com.beggar.api.common.response.ApiResponse;
 import com.beggar.api.dto.ranking.BeggarScoreResponse;
-import com.beggar.api.dto.room.RoomCreateRequest;
-import com.beggar.api.dto.room.RoomJoinRequest;
-import com.beggar.api.dto.room.RoomMemberResponse;
-import com.beggar.api.dto.room.RoomResponse;
+import com.beggar.api.dto.room.*;
 import com.beggar.api.security.LoginUser;
 import com.beggar.api.service.BeggarScoreService;
 import com.beggar.api.service.RoomService;
+import com.beggar.api.service.RouletteService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,15 +14,18 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/rooms")
+
 public class RoomController {
 
     private final RoomService roomService;
     private final BeggarScoreService beggarScoreService;
+    private final RouletteService rouletteService;
 
     // 생성자 주입
-    public RoomController(RoomService roomService, BeggarScoreService beggarScoreService) {
+    public RoomController(RoomService roomService, BeggarScoreService beggarScoreService, RouletteService rouletteService) {
         this.roomService = roomService;
         this.beggarScoreService = beggarScoreService;
+        this.rouletteService = rouletteService;
     }
 
     /* 거지방 신규 생성 */
@@ -106,6 +107,16 @@ public class RoomController {
     @GetMapping("/{roomNo}/beggar-score")
     public ResponseEntity<ApiResponse<BeggarScoreResponse>> getBeggarScore(@PathVariable Long roomNo) {
         return ResponseEntity.ok(ApiResponse.success(beggarScoreService.getRoomScore(roomNo)));
+    }
+
+    // 거지룰렛 돌리기
+    @PostMapping("/{roomId}/roulette")
+    public ResponseEntity<RouletteResultResponse> startRoulette(
+            @PathVariable("roomId") Long roomId,
+            @RequestAttribute("userNo") Long loginUserNo // 혹은 현재 프로젝트의 로그인 세션/토큰 주입 방식(예: @AuthenticationPrincipal)에 맞게 커스텀하세요!
+    ) {
+        RouletteResultResponse result = rouletteService.runRoulette(roomId, loginUserNo);
+        return ResponseEntity.ok(result);
     }
 
     // TODO: GET   /rooms/{roomNo}            — 방 상세 정보 및 태그 조회
