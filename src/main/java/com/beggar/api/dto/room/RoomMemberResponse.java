@@ -25,4 +25,5 @@ public record RoomMemberResponse(
                 budgetSubmitted
         );
     }
+
 }

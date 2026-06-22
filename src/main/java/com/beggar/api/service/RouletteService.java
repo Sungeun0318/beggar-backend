@@ -1,5 +1,6 @@
 package com.beggar.api.service;
 
+import com.beggar.api.dto.room.RoomMemberResponse;
 import com.beggar.api.dto.room.RouletteResultResponse;
 import com.beggar.api.entity.Room;
 import com.beggar.api.entity.RoomBudgetResult;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -71,13 +73,21 @@ public class RouletteService {
         int winnerIndex = random.nextInt(members.size());
 
         // 리스트에서 당첨자 꺼내기
-        
+        RoomMember winnerMember = members.get(winnerIndex);
 
+        // 룰렛을 돌릴 때는 이미 방이 종료(ENDED)되었고 예산이 정산된 시점이므로, budgetSubmitted 상태는 true로 넘겨줌이
+        List<RoomMemberResponse> allMembersDto = members.stream()
+                .map(member -> RoomMemberResponse.from(member, loginUserNo, true))
+                .collect(Collectors.toList());
 
+        // RouletteResultResponse 레코드 구조에 맞게 최종 리턴
+        return new RouletteResultResponse(
+                room.getRoomNo(),
+                winnerMember.getUser().getUserNo(), // 엔티티 관계(member.getUser())에 맞춰서 꺼내기
+                winnerMember.getUser().getUserName(), // 당첨자 닉네임/이름 매핑
+                remainingBudget,
+                allMembersDto
+        );
 
-
-
-
-        return null;
     }
 }
