@@ -37,4 +37,6 @@ public interface RoomMemberRepository extends JpaRepository<RoomMember, Long> {
     long countByRoom_RoomNo(Long roomNo);
 
     long countByRoom_RoomNoAndStatus(Long roomNo, String status);
+
+    List<RoomMember> findByRoom_RoomNoAndStatus(Long roomId, RoomMember.Status status);
 }

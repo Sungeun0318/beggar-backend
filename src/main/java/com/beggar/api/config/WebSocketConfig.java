@@ -18,7 +18,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         // 소켓 연결을 위한 엔드포인트 설정 (/ws-stomp)
+        // room, budget 전용 엔드포인트
         registry.addEndpoint("/ws-stomp")
+                .setAllowedOriginPatterns(parseAllowedOriginPatterns())
+                .withSockJS();
+
+        // community(chat) 전용 엔드포인트
+        registry.addEndpoint("/ws-community")
                 .setAllowedOriginPatterns(parseAllowedOriginPatterns())
                 .withSockJS();
     }
